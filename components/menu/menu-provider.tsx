@@ -48,7 +48,7 @@ import { UpsellSheet } from "@/components/menu/upsell-sheet";
 import { MenuSplash } from "@/components/menu/menu-splash";
 import { FadeImg } from "@/components/menu/fade-img";
 import { upsellSuggestions } from "@/lib/upsell";
-import { ArrowLeftIcon, MenuIcon, SearchIcon, ShoppingBagIcon } from "@/components/icons";
+import { ArrowLeftIcon, MenuIcon, SearchIcon, ShoppingBagIcon, StarIcon } from "@/components/icons";
 
 /** Sepete eklemenin nereden geldiği: menüdeki ürün kartı ya da "yanına içecek" önerisi. */
 type AddSource = "menu" | "upsell";
@@ -131,16 +131,14 @@ function isPopupInWindow(popup: Popup) {
 function MenuHeader({
   business,
   base,
-  onOpenDrawer,
 }: {
   business: Business;
   base: string;
-  onOpenDrawer: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const { locale, t, tf } = useMenu();
-  const isProductPage = pathname.startsWith(`${base}/products/`);
+  const isSubPage = pathname.startsWith(`${base}/products/`) || pathname.startsWith(`${base}/categories/`);
 
   function goBack() {
     if (window.history.length > 1) router.back();
@@ -148,51 +146,67 @@ function MenuHeader({
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
-      <div className="relative mx-auto flex h-[var(--header-h)] max-w-3xl items-center justify-between gap-3 px-4">
-        {isProductPage ? (
-          <button
-            onClick={goBack}
-            aria-label={t("back")}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-            style={{ background: "var(--brand)", color: "var(--brand-on)" }}
-          >
-            <ArrowLeftIcon size={20} className={isRTLLocale(locale) ? "rotate-180" : undefined} />
-          </button>
-        ) : (
-          <button
-            onClick={onOpenDrawer}
-            aria-label={t("categoriesLabel")}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-crema"
-          >
-            <MenuIcon size={22} />
-          </button>
-        )}
+    <header className="sticky top-0 z-40 border-b border-line/40 bg-paper/90 backdrop-blur-md">
+      <div className="relative mx-auto flex h-[var(--header-h)] max-w-3xl items-center justify-between px-4">
+        {/* Sol Alan: Alt sayfalarda Geri butonu, anasayfada temiz görünüm */}
+        <div className="flex w-9 shrink-0 items-center justify-start">
+          {isSubPage ? (
+            <button
+              onClick={goBack}
+              aria-label={t("back")}
+              className="flex h-9 w-9 items-center justify-center rounded-full shadow-xs transition-transform active:scale-95"
+              style={{ background: "var(--brand)", color: "var(--brand-on)" }}
+            >
+              <ArrowLeftIcon size={18} className={isRTLLocale(locale) ? "rotate-180" : undefined} />
+            </button>
+          ) : null}
+        </div>
 
-        <Link href={`${base}/welcome`} className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
+        {/* Tam Merkez: Logo ve İsim (Ekrana göre matematiksel tam ortalama) */}
+        <Link
+          href={`${base}/menu`}
+          className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 max-w-[60%] flex-col items-center gap-1 text-center transition-opacity hover:opacity-85"
+        >
           {business.logo_url ? (
-            <span className="relative block h-9 w-9 overflow-hidden rounded-md border border-line bg-paper">
+            <span className="relative block h-8 w-8 overflow-hidden rounded-xl border border-line/50 bg-paper shadow-xs">
               <picture>
                 <FadeImg src={business.logo_url} alt="" loading="eager" className="absolute inset-0 h-full w-full object-cover" />
               </picture>
             </span>
           ) : null}
-          <span className="max-w-full truncate font-display text-sm font-bold leading-tight">
+          <span className="max-w-full truncate font-display text-[15px] font-bold leading-tight text-ink">
             {tf(business, "name")}
           </span>
         </Link>
 
-        <LanguageSwitcher />
+        {/* Sağ Alan: Dil Seçici */}
+        <div className="flex w-9 shrink-0 items-center justify-end">
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );
 }
 
-/** Menü altbilgisi. Şimdilik tek işi künye sayfasına bağlanmak; künye
- *  gerektiren görsel yoksa hiç basılmaz. */
+/** Menü altbilgisi: Alt sayfalarda değerlendirme bağlantısı ve görsel künye linki. */
 function MenuFooter({ base, products, locale }: { base: string; products: Product[]; locale: Locale }) {
+  const pathname = usePathname();
+  const { t } = useMenu();
+  // Ana menü sayfasında zaten zengin değerlendirme banner'ı bulunur; alt sayfalarda hafif bir hap buton sunulur.
+  const isMenuHome = pathname.endsWith("/menu") || pathname.endsWith("/menu/") || pathname === base || pathname === `${base}/`;
+  const isReviewPage = pathname.includes("/review");
+
   return (
-    <div className="mx-auto flex max-w-3xl justify-center px-5 pb-2 pt-6">
+    <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-2.5 px-5 pb-6 pt-6">
+      {!isMenuHome && !isReviewPage && (
+        <Link
+          href={`${base}/review`}
+          className="flex items-center gap-2 rounded-full border border-line/60 bg-paper/90 px-4 py-2 font-display text-xs font-semibold text-ink-soft shadow-xs backdrop-blur-sm transition-all hover:border-[var(--brand)]/60 hover:text-ink active:scale-95"
+        >
+          <StarIcon size={14} filled className="text-amber-400" />
+          <span>{t("reviewUsCta")}</span>
+        </Link>
+      )}
       <ImageCreditsLink products={products} base={base} locale={locale} />
     </div>
   );
@@ -218,29 +232,41 @@ function BottomNav({ base }: { base: string }) {
   ];
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 backdrop-blur">
-      <div className="mx-auto flex max-w-3xl">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="relative flex flex-1 flex-col items-center gap-1 py-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-soft transition-colors"
-            style={item.active ? { color: "var(--brand-text)" } : undefined}
-          >
-            <span className="relative">
-              <item.Icon size={22} strokeWidth={item.active ? 2.2 : 1.8} />
-              {"badge" in item && item.badge ? (
-                <span
-                  className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none text-[var(--brand-on)]"
-                  style={{ background: "var(--brand)" }}
-                >
-                  {item.badge}
-                </span>
-              ) : null}
-            </span>
-            {item.label}
-          </Link>
-        ))}
+    <nav className="pointer-events-none fixed inset-x-0 bottom-4 z-40 px-4 sm:bottom-6">
+      <div className="pointer-events-auto mx-auto flex max-w-[340px] items-center justify-between gap-1 rounded-full border border-line/60 bg-paper/90 p-1.5 shadow-[0_12px_36px_-6px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.04)] backdrop-blur-2xl transition-all">
+        {items.map((item) => {
+          const active = item.active;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 px-3 font-display text-xs font-semibold transition-all duration-300 active:scale-95 ${
+                active
+                  ? "shadow-xs"
+                  : "text-ink-soft hover:bg-crema/60 hover:text-ink"
+              }`}
+              style={
+                active
+                  ? { background: "var(--brand)", color: "var(--brand-on)" }
+                  : undefined
+              }
+            >
+              <span className="relative flex items-center justify-center">
+                <item.Icon size={17} strokeWidth={active ? 2.4 : 1.8} />
+                {"badge" in item && item.badge ? (
+                  <span
+                    className={`absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-xs ${
+                      active ? "bg-white text-ink" : "bg-[var(--brand)] text-[var(--brand-on)]"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                ) : null}
+              </span>
+              <span className="tracking-tight">{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
@@ -259,12 +285,12 @@ function LanguageSwitcher() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={t("chooseLanguage")}
-        className="relative z-50 flex h-10 w-10 items-center justify-center rounded-full border border-line bg-paper font-mono text-[12px] font-bold uppercase tracking-wider text-ink shadow-sm"
+        className="relative z-50 flex h-9 w-9 items-center justify-center rounded-full border border-line/50 bg-paper/90 font-display text-xs font-bold text-ink shadow-xs transition-colors hover:bg-crema active:scale-95"
       >
         {localeCodes[locale]}
       </button>
       {open && (
-        <div className="absolute end-0 top-12 z-50 min-w-[10rem] overflow-hidden rounded-xl border border-line bg-paper shadow-lg">
+        <div className="absolute end-0 top-11 z-50 min-w-[10rem] overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-xl backdrop-blur-md">
           {locales.map((l) => (
             <button
               key={l}
@@ -272,10 +298,10 @@ function LanguageSwitcher() {
                 setLocale(l);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-3 whitespace-nowrap px-4 py-2.5 text-sm hover:bg-crema/60"
-              style={l === locale ? { color: "var(--brand-text)", fontWeight: 600 } : undefined}
+              className="flex w-full items-center gap-3 whitespace-nowrap px-4 py-2.5 font-display text-sm hover:bg-crema/60"
+              style={l === locale ? { color: "var(--brand-text)", fontWeight: 700 } : undefined}
             >
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">{localeCodes[l]}</span>
+              <span className="font-mono text-xs font-bold uppercase tracking-wider">{localeCodes[l]}</span>
               <span>{localeLabels[l]}</span>
             </button>
           ))}
@@ -570,7 +596,7 @@ export function MenuProvider({
         // global (açık tema) mürekkepten hesaplanıp miras kalıyordu — koyu
         // yüzeylerde renk sınıfı olmayan her metin (kategori başlıkları, dil
         // listesi…) zemine gömülüyordu.
-        className="min-h-dvh bg-paper pb-24 text-ink"
+        className="min-h-dvh bg-paper pb-28 sm:pb-32 text-ink"
       >
         <MenuSplash />
         <TrackPageViews business={business} base={basePath} locale={locale} />
@@ -590,7 +616,7 @@ export function MenuProvider({
           />
         )}
 
-        <MenuHeader business={business} base={basePath} onOpenDrawer={() => setDrawerOpen(true)} />
+        <MenuHeader business={business} base={basePath} />
         {drawerOpen && <CategoryDrawer onClose={() => setDrawerOpen(false)} />}
         <main className="mx-auto max-w-3xl">{children}</main>
         <MenuFooter base={basePath} products={products} locale={locale} />

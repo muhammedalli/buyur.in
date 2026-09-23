@@ -6,8 +6,9 @@ import { pb } from "@/lib/pocketbase";
 import { useMenu } from "@/components/menu/menu-provider";
 import { allergenLabels, badgeLabels } from "@/lib/labels";
 import { formatPrice } from "@/lib/format";
-import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon } from "@/components/icons";
+import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, PlusIcon } from "@/components/icons";
 import { ImageCredit } from "@/components/menu/image-credit";
+import { CategoryPlaceholder } from "@/components/menu/placeholder-art";
 import type { Product, ProductOption } from "@/lib/types";
 
 export default function ProductDetailPage() {
@@ -72,7 +73,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="pb-10">
-      {image && !imageBroken && (
+      {image && !imageBroken ? (
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-crema sm:aspect-[2/1]">
           <picture>
             <img
@@ -80,24 +81,25 @@ export default function ProductDetailPage() {
               alt={name}
               loading="eager"
               fetchPriority="high"
-              // Görsel kaynağından gelir; kaynak ölürse kırık ikon yerine
-              // görselsiz düzene düşülür.
               onError={() => setImageBroken(true)}
               className="ken-burns absolute inset-0 h-full w-full object-cover"
             />
           </picture>
-          {/* Alt kenarda içeriğe yumuşak geçiş için hafif degrade */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-paper/60 to-transparent" />
         </div>
+      ) : (
+        <div className="relative aspect-[16/9] w-full overflow-hidden bg-crema sm:aspect-[2/1]">
+          <CategoryPlaceholder />
+        </div>
       )}
-      {!imageBroken && <ImageCredit product={product} locale={locale} />}
+      {image && !imageBroken && <ImageCredit product={product} locale={locale} />}
 
       <div className="space-y-4 px-5 pt-5">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="font-display text-2xl font-extrabold leading-tight">{name}</h1>
+          <h1 className="font-display text-2xl font-bold leading-tight text-ink">{name}</h1>
           <div className="shrink-0 text-right">
-            {hasDiscount && <p className="font-mono text-sm text-ink-soft line-through">{formatPrice(product.price)}</p>}
-            <p className="font-mono text-xl font-bold" style={{ color: "var(--brand-text)" }}>
+            {hasDiscount && <p className="font-sans text-sm text-ink-soft line-through">{formatPrice(product.price)}</p>}
+            <p className="font-display text-2xl font-bold text-[var(--brand-text)]">
               {formatPrice(finalPrice)}
             </p>
           </div>
@@ -108,14 +110,14 @@ export default function ProductDetailPage() {
             {product.badges?.map((b) => (
               <span
                 key={b}
-                className="flex items-center gap-1.5 rounded-full bg-crema px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft"
+                className="flex items-center gap-1.5 rounded-full border border-line/40 bg-crema/60 px-3 py-1 font-display text-xs font-medium text-ink-soft"
               >
-                <BadgeIcon badge={b} size={13} strokeWidth={2.2} />
+                <BadgeIcon badge={b} size={12} strokeWidth={2.2} />
                 {badgeLabels[locale][b]}
               </span>
             ))}
             {product.campaign_label && (
-              <span className="rounded-full bg-herb/10 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-herb">
+              <span className="rounded-full bg-herb/10 px-3 py-1 font-display text-xs font-semibold text-herb">
                 {tf(product, "campaign_label")}
               </span>
             )}
@@ -125,7 +127,7 @@ export default function ProductDetailPage() {
         {description && <p className="text-sm leading-relaxed text-ink-soft">{description}</p>}
 
         {(product.prep_time_min > 0 || product.calories > 0) && (
-          <div className="flex flex-wrap gap-4 font-mono text-[12px] text-ink-soft">
+          <div className="flex flex-wrap gap-4 font-display text-xs text-ink-soft">
             {product.prep_time_min > 0 && (
               <span className="flex items-center gap-1.5">
                 <ClockIcon size={14} />
@@ -144,10 +146,10 @@ export default function ProductDetailPage() {
 
         {product.allergens?.length > 0 && (
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("allergensLabel")}</p>
+            <p className="font-display text-xs font-semibold uppercase tracking-wider text-ink-soft">{t("allergensLabel")}</p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {product.allergens.map((a) => (
-                <span key={a} className="rounded-full border border-line px-2.5 py-1 text-[11px] text-ink-soft">
+                <span key={a} className="rounded-full border border-line/50 bg-crema/40 px-2.5 py-1 text-xs text-ink-soft">
                   {allergenLabels[locale][a]}
                 </span>
               ))}
@@ -158,15 +160,15 @@ export default function ProductDetailPage() {
         {optionGroups.size > 0 && (
           <div className="space-y-3">
             {Array.from(optionGroups.entries()).map(([groupName, groupOptions]) => (
-              <div key={groupName} className="rounded-xl border border-line p-4">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+              <div key={groupName} className="rounded-2xl border border-line/60 bg-crema/30 p-4 shadow-xs">
+                <p className="font-display text-xs font-bold uppercase tracking-wider text-ink-soft">
                   {tf(groupOptions[0], "group_name")}
                 </p>
-                <div className="mt-2 space-y-1.5">
+                <div className="mt-2 space-y-2">
                   {groupOptions.map((opt) => (
                     <div key={opt.id} className="flex items-center justify-between text-sm">
-                      <span>{tf(opt, "name")}</span>
-                      <span className="font-mono text-ink-soft">
+                      <span className="font-medium text-ink">{tf(opt, "name")}</span>
+                      <span className="font-display font-semibold text-[var(--brand-text)]">
                         {opt.price_delta >= 0 ? "+" : ""}
                         {formatPrice(opt.price_delta)}
                       </span>
@@ -185,16 +187,21 @@ export default function ProductDetailPage() {
             if (addedTimer.current) clearTimeout(addedTimer.current);
             addedTimer.current = setTimeout(() => setAdded(false), 1100);
           }}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 font-display text-lg font-bold shadow-lg transition-opacity hover:opacity-90 ${added ? "cart-pop" : ""}`}
-          style={{ background: "var(--brand)", color: "var(--brand-on)" }}
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-display text-base font-bold shadow-md transition-all active:scale-[0.98] ${
+            added ? "cart-pop bg-herb text-white" : "hover:opacity-95"
+          }`}
+          style={!added ? { background: "var(--brand)", color: "var(--brand-on)" } : undefined}
         >
           {added ? (
             <>
-              <CheckCircleIcon size={20} strokeWidth={2.4} />
+              <CheckCircleIcon size={18} strokeWidth={2.4} />
               {t("addToCart")}
             </>
           ) : (
-            <>+ {t("addToCart")} · {formatPrice(finalPrice)}</>
+            <>
+              <PlusIcon size={18} strokeWidth={2.4} />
+              {t("addToCart")} · {formatPrice(finalPrice)}
+            </>
           )}
         </button>
       </div>

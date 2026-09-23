@@ -94,7 +94,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  url.pathname = url.pathname === "/" ? `/${sub}/welcome` : `/${sub}${url.pathname}`;
+  url.pathname = url.pathname === "/" ? `/${sub}/menu` : `/${sub}${url.pathname}`;
 
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-buyur-rewrite", "subdomain");

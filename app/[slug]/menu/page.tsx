@@ -5,42 +5,15 @@ import { useMemo } from "react";
 import { useMenu } from "@/components/menu/menu-provider";
 import { CategoryTabs } from "@/components/menu/category-tabs";
 import { FadeImg } from "@/components/menu/fade-img";
-import { ArrowLeftIcon, BadgeIcon, SearchIcon } from "@/components/icons";
+import { BadgeIcon, ChevronRightIcon, MessageIcon, SearchIcon, SparklesIcon, StarIcon } from "@/components/icons";
+import { CategoryPlaceholder, ProductPlaceholder } from "@/components/menu/placeholder-art";
 import { formatPrice } from "@/lib/format";
 import { badgeLabels } from "@/lib/labels";
 import { isRTLLocale } from "@/lib/i18n";
 import type { Category, Product } from "@/lib/types";
 
-/** Görselsiz kategori/ürün karesi — kırık ikon yerine markanın tonunda doku. */
-function PlaceholderArt() {
-  return (
-    <svg
-      className="absolute inset-0 h-full w-full"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      aria-hidden
-      style={{ color: "var(--brand-text)" }}
-    >
-      <defs>
-        <pattern id="menu-dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1.2" fill="currentColor" opacity="0.15" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#menu-dots)" />
-      <circle cx="50" cy="50" r="20" fill="currentColor" opacity="0.08" />
-      <circle cx="50" cy="50" r="30" fill="currentColor" opacity="0.04" />
-      <g transform="translate(38, 38)" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="8.5" cy="8.5" r="1.5" />
-        <polyline points="21 15 16 10 5 21" />
-      </g>
-    </svg>
-  );
-}
-
-/** Kategori karosu. `wide` olan ilk kart tam genişlik kaplar — menünün en üstü
- *  düz bir ızgara yerine bir kapak gibi açılır. */
-function CategoryTile({ category, image, count, wide }: { category: Category; image?: string; count: number; wide: boolean }) {
+/** Modern Kategori Karosu */
+function CategoryTile({ category, image, count }: { category: Category; image?: string; count: number }) {
   const { base, locale, t, tf } = useMenu();
   const description = tf(category, "description");
 
@@ -48,11 +21,9 @@ function CategoryTile({ category, image, count, wide }: { category: Category; im
     <Link
       href={`${base}/categories/${category.id}`}
       data-reveal
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-paper transition-colors hover:border-[var(--brand)] ${
-        wide ? "col-span-2 sm:col-span-3" : ""
-      }`}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] active:scale-[0.98]"
     >
-      <div className={`relative w-full overflow-hidden bg-crema ${wide ? "aspect-[16/7]" : "aspect-[4/3]"}`}>
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-crema/40">
         {image ? (
           <picture>
             <FadeImg
@@ -63,34 +34,30 @@ function CategoryTile({ category, image, count, wide }: { category: Category; im
             />
           </picture>
         ) : (
-          <PlaceholderArt />
+          <CategoryPlaceholder />
         )}
-        {/* Ürün sayısı görselin üstünde: başlık satırı yalnızca isme kalır */}
-        <span
-          className="absolute end-2 top-2 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider shadow-sm"
-          style={{ background: "var(--brand)", color: "var(--brand-on)" }}
-        >
+        {/* Ürün sayısı sayacı — yumuşak yarı saydam hap rozet */}
+        <span className="absolute end-2.5 top-2.5 z-10 flex items-center rounded-full border border-line/40 bg-paper/90 px-2.5 py-0.5 font-display text-[11px] font-medium text-ink-soft shadow-xs backdrop-blur-md">
           {t("productCount", { count })}
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-2 px-3 py-3">
-        <div className="min-w-0">
-          <p className="truncate font-display text-base font-bold leading-tight">{tf(category, "name")}</p>
-          {wide && description && <p className="mt-0.5 line-clamp-1 text-[13px] text-ink-soft">{description}</p>}
+      <div className="flex items-center justify-between gap-2 p-3 sm:p-3.5">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-[15px] font-bold leading-tight text-ink transition-colors group-hover:text-[var(--brand-text)]">
+            {tf(category, "name")}
+          </p>
+          {description && <p className="mt-0.5 line-clamp-1 text-xs text-ink-soft">{description}</p>}
         </div>
-        <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-crema transition-transform group-hover:translate-x-0.5"
-          style={{ color: "var(--brand-text)" }}
-        >
-          <ArrowLeftIcon size={14} className={isRTLLocale(locale) ? undefined : "rotate-180"} />
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-crema/60 text-ink-soft transition-all duration-200 group-hover:translate-x-0.5 group-hover:bg-[var(--brand)] group-hover:text-[var(--brand-on)]">
+          <ChevronRightIcon size={14} className={isRTLLocale(locale) ? "rotate-180" : undefined} />
         </span>
       </div>
     </Link>
   );
 }
 
-/** Öne çıkan ürün kartı — yatay şeritte, dokunmatik kaydırma için dar. */
+/** Öne çıkan ürün kartı */
 function FeaturedCard({ product }: { product: Product }) {
   const { base, locale, tf } = useMenu();
   const image = product.images?.[0];
@@ -102,9 +69,9 @@ function FeaturedCard({ product }: { product: Product }) {
   return (
     <Link
       href={`${base}/products/${product.id}`}
-      className="group w-[150px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-paper transition-colors hover:border-[var(--brand)]"
+      className="group w-[155px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_18px_rgba(0,0,0,0.06)] active:scale-[0.98]"
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-crema">
+      <div className="relative aspect-square w-full overflow-hidden bg-crema/40">
         {image ? (
           <picture>
             <FadeImg
@@ -115,11 +82,11 @@ function FeaturedCard({ product }: { product: Product }) {
             />
           </picture>
         ) : (
-          <PlaceholderArt />
+          <ProductPlaceholder size="md" />
         )}
         {badgeText && (
           <span
-            className="absolute start-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider shadow-sm"
+            className="absolute start-2 top-2 z-10 flex items-center gap-1 rounded-full px-2 py-0.5 font-display text-[10px] font-semibold tracking-tight shadow-xs"
             style={{ background: "var(--brand)", color: "var(--brand-on)" }}
           >
             {!product.campaign_label && badge && <BadgeIcon badge={badge} size={10} strokeWidth={2.2} />}
@@ -127,14 +94,77 @@ function FeaturedCard({ product }: { product: Product }) {
           </span>
         )}
       </div>
-      <div className="px-2.5 py-2.5">
-        <p className="line-clamp-2 min-h-[2.4em] font-display text-[13px] font-bold leading-tight">{tf(product, "name")}</p>
-        <p className="mt-1 flex items-baseline gap-1.5">
-          {hasDiscount && <span className="font-mono text-[10px] text-ink-soft line-through">{formatPrice(product.price)}</span>}
-          <span className="font-mono text-[13px] font-semibold text-[var(--brand-text)]">{formatPrice(finalPrice)}</span>
+      <div className="p-3">
+        <p className="line-clamp-1 font-display text-[13px] font-bold leading-tight text-ink transition-colors group-hover:text-[var(--brand-text)]">
+          {tf(product, "name")}
         </p>
+        <div className="mt-1 flex items-baseline gap-1.5">
+          {hasDiscount && <span className="font-sans text-[11px] text-ink-soft line-through">{formatPrice(product.price)}</span>}
+          <span className="font-display text-[14px] font-bold text-[var(--brand-text)]">{formatPrice(finalPrice)}</span>
+        </div>
       </div>
     </Link>
+  );
+}
+
+/** Bizi Değerlendir / Görüş Bildir Banner Kartı */
+function ReviewBanner() {
+  const { base, locale, t } = useMenu();
+
+  return (
+    <section className="px-4 pt-8">
+      <Link
+        href={`${base}/review`}
+        data-reveal
+        className="group relative flex flex-col items-start gap-3.5 overflow-hidden rounded-3xl border border-line/70 bg-gradient-to-br from-paper via-crema/40 to-crema/80 p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--brand)]/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.07)] active:scale-[0.99]"
+      >
+        {/* Arka plan dekoratif marka parıltısı */}
+        <div
+          className="pointer-events-none absolute -end-6 -top-6 h-28 w-28 rounded-full opacity-15 blur-2xl transition-opacity duration-300 group-hover:opacity-25"
+          style={{ background: "var(--brand)" }}
+        />
+
+        <div className="flex w-full items-center justify-between gap-3">
+          {/* 5 Yıldız Grubu */}
+          <div className="flex items-center gap-1 text-amber-400">
+            {[...Array(5)].map((_, i) => (
+              <StarIcon key={i} size={17} filled className="transition-transform duration-200 group-hover:scale-110" />
+            ))}
+          </div>
+
+          {/* Kısa Rozet */}
+          <span
+            className="flex items-center gap-1 rounded-full px-2.5 py-0.5 font-display text-[11px] font-bold uppercase tracking-wider shadow-2xs"
+            style={{ background: "color-mix(in srgb, var(--brand) 15%, transparent)", color: "var(--brand-text)" }}
+          >
+            <SparklesIcon size={12} strokeWidth={2.5} />
+            {t("reviewUsCta")}
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="font-display text-[16px] font-extrabold leading-snug text-ink transition-colors group-hover:text-[var(--brand-text)]">
+            {t("reviewBannerTitle")}
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+            {t("reviewBannerSubtitle")}
+          </p>
+        </div>
+
+        <div className="mt-1 flex w-full items-center justify-between border-t border-line/40 pt-3">
+          <span className="flex items-center gap-1.5 font-display text-xs font-bold text-ink transition-colors group-hover:text-[var(--brand-text)]">
+            <MessageIcon size={15} className="text-ink-soft group-hover:text-[var(--brand-text)]" />
+            {t("reviewBannerButton")}
+          </span>
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-200 group-hover:translate-x-1"
+            style={{ background: "var(--brand)", color: "var(--brand-on)" }}
+          >
+            <ChevronRightIcon size={14} className={isRTLLocale(locale) ? "rotate-180" : undefined} />
+          </span>
+        </div>
+      </Link>
+    </section>
   );
 }
 
@@ -142,8 +172,6 @@ export default function MenuCategoriesPage() {
   const { base, business, categories, products, categoriesLoading, imageByCategory, productCountByCategory, t, tf } =
     useMenu();
 
-  // Öne çıkanlar uydurulmaz: yalnızca işletmenin kendi işaretlediği ürünler
-  // (kampanya etiketi, indirim ya da rozet). Üçten azsa şerit hiç basılmaz.
   const featured = useMemo(
     () => products.filter((p) => p.campaign_label || p.discount_percent > 0 || (p.badges?.length ?? 0) > 0).slice(0, 10),
     [products]
@@ -160,25 +188,27 @@ export default function MenuCategoriesPage() {
   const description = tf(business, "description");
 
   return (
-    <div className="pb-6">
+    <div className="pb-8">
       <CategoryTabs />
 
-      {/* İşletmenin kendi tanıtım cümlesi + menüde arama kısayolu */}
+      {/* Tanıtım + arama çubuğu */}
       <div className="px-4 pt-4">
         {description && <p className="text-sm leading-relaxed text-ink-soft">{description}</p>}
         <Link
           href={`${base}/search`}
-          className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-crema/60 px-3.5 py-3 text-sm text-ink-soft transition-colors hover:border-[var(--brand)]"
+          className="mt-3.5 flex items-center gap-2.5 rounded-2xl border border-line/60 bg-crema/40 px-4 py-3 text-sm text-ink-soft shadow-xs transition-all duration-200 hover:border-[var(--brand)]/50 hover:bg-crema/70"
         >
-          <SearchIcon size={16} />
-          {t("menuSearchCta")}
+          <SearchIcon size={18} className="text-ink-soft/70" />
+          <span className="flex-1 text-ink-soft/80">{t("menuSearchCta")}…</span>
         </Link>
       </div>
 
       {featured.length >= 3 && (
         <section className="pt-6">
-          <h2 className="px-4 font-display text-lg font-extrabold tracking-tight">{t("menuFeatured")}</h2>
-          <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1">
+          <div className="flex items-center justify-between px-4">
+            <h2 className="font-display text-lg font-bold tracking-tight">{t("menuFeatured")}</h2>
+          </div>
+          <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {featured.map((product) => (
               <FeaturedCard key={product.id} product={product} />
             ))}
@@ -187,19 +217,26 @@ export default function MenuCategoriesPage() {
       )}
 
       <section className="pt-6">
-        <h2 className="px-4 font-display text-lg font-extrabold tracking-tight">{t("menuAllCategories")}</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3 px-4 sm:grid-cols-3">
-          {categories.map((cat, i) => (
+        <div className="flex items-center justify-between px-4">
+          <h2 className="font-display text-lg font-bold tracking-tight">{t("menuAllCategories")}</h2>
+          <span className="font-display text-xs font-medium text-ink-soft">
+            {t("productCount", { count: products.length })}
+          </span>
+        </div>
+        <div className="mt-3.5 grid grid-cols-2 gap-3.5 px-4 sm:grid-cols-3">
+          {categories.map((cat) => (
             <CategoryTile
               key={cat.id}
               category={cat}
               image={cat.image_url || imageByCategory.get(cat.id)}
               count={productCountByCategory.get(cat.id) ?? 0}
-              wide={i === 0}
             />
           ))}
         </div>
       </section>
+
+      {/* Değerlendirme Banner'ı */}
+      <ReviewBanner />
     </div>
   );
 }

@@ -75,7 +75,7 @@ export default function SearchPage() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={t("searchPlaceholder")}
-        className="w-full rounded-xl border border-line bg-crema/40 px-5 py-3.5 text-base text-ink outline-none transition-colors focus:border-[var(--brand)]"
+        className="w-full rounded-2xl border border-line/60 bg-crema/40 px-5 py-3.5 text-base text-ink outline-none shadow-xs transition-colors focus:border-[var(--brand)] focus:bg-crema/60"
       />
 
       <div className="mt-5">

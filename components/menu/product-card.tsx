@@ -5,8 +5,9 @@ import { trackEvent, trackOnce } from "@/lib/analytics/track-client";
 import type { Product, Template } from "@/lib/types";
 import { allergenLabels, badgeLabels } from "@/lib/labels";
 import { formatPrice } from "@/lib/format";
-import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, ImageIcon } from "@/components/icons";
+import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, PlusIcon } from "@/components/icons";
 import { FadeImg } from "@/components/menu/fade-img";
+import { ProductPlaceholder } from "@/components/menu/placeholder-art";
 import { useMenu } from "@/components/menu/menu-provider";
 
 export function ProductCard({
@@ -27,9 +28,6 @@ export function ProductCard({
   const cardRef = useRef<HTMLDivElement | null>(null);
   const hasDiscount = product.discount_percent > 0;
 
-  // Ürün listede gerçekten görüldüğünde bir "product_view" — oturum başına ürün
-  // başına bir kez. Detay açılışı ayrı event (product_detail_view), böylece
-  // funnel'da "gördü → detaya girdi" adımı ölçülebiliyor.
   useEffect(() => {
     const element = cardRef.current;
     if (!element || typeof IntersectionObserver === "undefined") return;
@@ -63,6 +61,7 @@ export function ProductCard({
     if (addedTimer.current) clearTimeout(addedTimer.current);
     addedTimer.current = setTimeout(() => setAdded(false), 1100);
   }
+
   const finalPrice = hasDiscount ? product.price * (1 - product.discount_percent / 100) : product.price;
   const image = product.images?.[0];
   const isGrid = template === "grid";
@@ -74,15 +73,15 @@ export function ProductCard({
       ref={cardRef}
       onClick={onOpen}
       data-reveal
-      className={`group rounded-xl border border-line bg-paper p-4 transition-colors hover:border-[var(--brand)] ${
-        onOpen ? "cursor-pointer " : ""
-      }${isGrid ? "flex flex-col" : "flex gap-4"}`}
+      className={`group relative overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] ${
+        onOpen ? "cursor-pointer active:scale-[0.99]" : ""
+      } ${isGrid ? "flex flex-col p-3 sm:p-3.5" : "flex gap-3.5 p-3.5 sm:p-4"}`}
     >
       <div
         className={
           isGrid
-            ? "relative mb-3 flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-crema text-ink-soft/30"
-            : "relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-crema text-ink-soft/30"
+            ? "relative mb-2.5 aspect-square w-full overflow-hidden rounded-xl bg-crema/40"
+            : "relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-xl bg-crema/40"
         }
       >
         {image && !imageBroken ? (
@@ -91,87 +90,125 @@ export function ProductCard({
               src={image}
               alt={name}
               loading="lazy"
-              // Görsel kaynağından gelir; kaynak ölürse kırık ikon yerine
-              // kartın görselsiz hâline düşülür.
               onError={() => setImageBroken(true)}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </picture>
         ) : (
-          <ImageIcon size={isGrid ? 48 : 32} strokeWidth={1.2} />
+          <ProductPlaceholder size="sm" />
         )}
       </div>
-      <div className="flex flex-1 flex-col">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-lg font-bold leading-tight">{name}</h3>
-          <div className="shrink-0 text-right">
-            {hasDiscount && <p className="font-mono text-xs text-ink-soft line-through">{formatPrice(product.price)}</p>}
-            <p className="font-mono text-base font-semibold text-[var(--brand-text)]">{formatPrice(finalPrice)}</p>
+
+      <div className="flex flex-1 flex-col justify-between">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-ink transition-colors group-hover:text-[var(--brand-text)]">
+              {name}
+            </h3>
+            {!isGrid && (
+              <div className="shrink-0 text-right">
+                {hasDiscount && (
+                  <p className="font-sans text-xs text-ink-soft line-through">{formatPrice(product.price)}</p>
+                )}
+                <p className="font-display text-base font-bold text-[var(--brand-text)]">{formatPrice(finalPrice)}</p>
+              </div>
+            )}
           </div>
+
+          {(product.badges?.length > 0 || product.campaign_label) && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {product.badges?.map((b) => (
+                <span
+                  key={b}
+                  className="flex items-center gap-1 rounded-full border border-line/40 bg-crema/60 px-2 py-0.5 font-display text-[10px] font-medium text-ink-soft"
+                >
+                  <BadgeIcon badge={b} size={10} strokeWidth={2.2} />
+                  {badgeLabels[locale][b]}
+                </span>
+              ))}
+              {product.campaign_label && (
+                <span className="rounded-full bg-herb/10 px-2 py-0.5 font-display text-[10px] font-semibold text-herb">
+                  {tf(product, "campaign_label")}
+                </span>
+              )}
+            </div>
+          )}
+
+          {description && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-soft">{description}</p>}
+
+          {(product.prep_time_min > 0 || product.calories > 0) && (
+            <div className="mt-1.5 flex flex-wrap gap-3 font-display text-[11px] text-ink-soft">
+              {product.prep_time_min > 0 && (
+                <span className="flex items-center gap-1">
+                  <ClockIcon size={12} />
+                  {product.prep_time_min}
+                  {product.prep_time_max > product.prep_time_min ? `-${product.prep_time_max}` : ""} {t("minUnit")}
+                </span>
+              )}
+              {product.calories > 0 && (
+                <span className="flex items-center gap-1">
+                  <FlameIcon size={12} />
+                  {product.calories} kcal
+                </span>
+              )}
+            </div>
+          )}
+
+          {product.allergens?.length > 0 && (
+            <p className="mt-1 text-[11px] text-ink-soft">
+              {t("allergenPrefix")}: {product.allergens.map((a) => allergenLabels[locale][a]).join(", ")}
+            </p>
+          )}
         </div>
 
-        {(product.badges?.length > 0 || product.campaign_label) && (
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {product.badges?.map((b) => (
-              <span
-                key={b}
-                className="flex items-center gap-1 rounded-full bg-crema px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-soft"
-              >
-                <BadgeIcon badge={b} size={11} strokeWidth={2.2} />
-                {badgeLabels[locale][b]}
-              </span>
-            ))}
-            {product.campaign_label && (
-              <span className="rounded-full bg-herb/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-herb">
-                {tf(product, "campaign_label")}
-              </span>
-            )}
+        {isGrid ? (
+          <div className="mt-2.5 flex items-end justify-between gap-2 border-t border-line/30 pt-2">
+            <div>
+              {hasDiscount && (
+                <p className="font-sans text-[11px] text-ink-soft line-through">{formatPrice(product.price)}</p>
+              )}
+              <p className="font-display text-sm sm:text-base font-bold text-[var(--brand-text)]">
+                {formatPrice(finalPrice)}
+              </p>
+            </div>
+            <button
+              onClick={handleAdd}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-xs transition-all duration-200 active:scale-90 ${
+                added
+                  ? "bg-herb text-white scale-105"
+                  : "hover:opacity-90 active:scale-95"
+              }`}
+              style={!added ? { background: "var(--brand)", color: "var(--brand-on)" } : undefined}
+              aria-label={t("addToCart")}
+            >
+              {added ? <CheckCircleIcon size={15} strokeWidth={2.2} /> : <PlusIcon size={15} strokeWidth={2.2} />}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center justify-between">
+            <button
+              onClick={handleAdd}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-display text-xs font-semibold shadow-xs transition-all duration-200 active:scale-95 ${
+                added
+                  ? "bg-herb text-white"
+                  : "hover:opacity-90"
+              }`}
+              style={!added ? { background: "var(--brand)", color: "var(--brand-on)" } : undefined}
+            >
+              {added ? (
+                <>
+                  <CheckCircleIcon size={13} strokeWidth={2.2} />
+                  {t("addToCart")}
+                </>
+              ) : (
+                <>
+                  <PlusIcon size={13} strokeWidth={2.2} />
+                  {t("addToCart")}
+                </>
+              )}
+            </button>
           </div>
         )}
-
-        {description && <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{description}</p>}
-
-        {(product.prep_time_min > 0 || product.calories > 0) && (
-          <div className="mt-2 flex flex-wrap gap-3 font-mono text-[11px] text-ink-soft">
-            {product.prep_time_min > 0 && (
-              <span className="flex items-center gap-1">
-                <ClockIcon size={12} />
-                {product.prep_time_min}
-                {product.prep_time_max > product.prep_time_min ? `-${product.prep_time_max}` : ""} {t("minUnit")}
-              </span>
-            )}
-            {product.calories > 0 && (
-              <span className="flex items-center gap-1">
-                <FlameIcon size={12} />
-                {product.calories} kcal
-              </span>
-            )}
-          </div>
-        )}
-
-        {product.allergens?.length > 0 && (
-          <p className="mt-1 text-[11px] text-ink-soft">
-            {t("allergenPrefix")}: {product.allergens.map((a) => allergenLabels[locale][a]).join(", ")}
-          </p>
-        )}
-
-        <button
-          onClick={handleAdd}
-          className={`mt-3 flex items-center gap-1.5 self-start rounded-md border px-4 py-1.5 font-mono text-[12px] uppercase tracking-wider transition-colors ${
-            added
-              ? "cart-pop border-[var(--brand)] bg-[var(--brand)] text-[var(--brand-on)]"
-              : "border-[var(--brand)] text-[var(--brand-text)] hover:bg-[var(--brand)] hover:text-[var(--brand-on)]"
-          }`}
-        >
-          {added ? (
-            <>
-              <CheckCircleIcon size={14} strokeWidth={2.2} />
-              {t("addToCart")}
-            </>
-          ) : (
-            <>+ {t("addToCart")}</>
-          )}
-        </button>
       </div>
     </div>
   );

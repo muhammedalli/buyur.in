@@ -27,12 +27,18 @@ export default function CategoryPage() {
 
       {/* Kategori başlığı */}
       {current && (
-        <div className="px-4 pt-5">
-          <h1 className="font-display text-2xl font-extrabold italic tracking-tight" style={{ color: "var(--brand-text)" }}>
-            {tf(current, "name")}
-          </h1>
-          {tf(current, "description") && <p className="mt-1 text-sm text-ink-soft">{tf(current, "description")}</p>}
-          <div className="mt-2 h-0.5 w-full rounded" style={{ background: "var(--brand)" }} />
+        <div className="px-4 pt-5 pb-1">
+          <div className="flex items-center justify-between">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+              {tf(current, "name")}
+            </h1>
+            <span className="font-display text-xs font-medium text-ink-soft">
+              {t("productCount", { count: categoryProducts.length })}
+            </span>
+          </div>
+          {tf(current, "description") && (
+            <p className="mt-1 text-xs sm:text-sm leading-relaxed text-ink-soft">{tf(current, "description")}</p>
+          )}
         </div>
       )}
 
@@ -43,7 +49,7 @@ export default function CategoryPage() {
         ) : categoryProducts.length === 0 ? (
           <p className="py-16 text-center text-ink-soft">{t("noProductsInCategory")}</p>
         ) : (
-          <div className={business.template === "grid" ? "grid grid-cols-2 gap-3" : "space-y-3"}>
+          <div className={business.template === "grid" ? "grid grid-cols-2 gap-3.5" : "space-y-3"}>
             {categoryProducts.map((product) => (
               <ProductCard
                 key={product.id}
