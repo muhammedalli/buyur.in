@@ -21,13 +21,15 @@ export type AdminBusinessRow = Pick<
   | "suspended_at"
   | "plan_expires_at"
   | "menu_views"
+  | "ai_scans_used"
+  | "ai_scans_period"
   | "created"
   | "updated"
 >;
 
 /** Listede istenen alanlar — yanıt küçük kalsın. */
 export const ADMIN_BUSINESS_ROW_FIELDS =
-  "id,name,slug,email,plan,is_active,suspended_at,plan_expires_at,menu_views,created,updated";
+  "id,name,slug,email,plan,is_active,suspended_at,plan_expires_at,menu_views,ai_scans_used,ai_scans_period,created,updated";
 
 export type BusinessStatus = "live" | "setup" | "offline" | "suspended";
 

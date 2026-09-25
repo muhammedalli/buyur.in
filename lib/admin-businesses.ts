@@ -120,3 +120,29 @@ export async function loadBusinessDetail(id: string): Promise<BusinessDetail | n
     activity,
   };
 }
+
+/** Tüm işletmelerin son `days` gündeki toplam etkinliği (günlük özetlerden).
+ *  Okunamazsa null. İşletme sayısı büyüdüğünde (binler × 30 gün satır) bu
+ *  okuma pahalılaşır; o noktada platform düzeyinde ayrı bir özet gerekir. */
+export async function loadPlatformActivity(days = ACTIVITY_DAYS): Promise<BusinessActivitySummary | null> {
+  try {
+    const pb = await getServicePB();
+    const rows = await pb.collection(STATS_COLLECTION).getFullList<DailyStat>({
+      filter: pb.filter("dimension = 'total' && date >= {:from}", { from: daysAgoKey(days) }),
+      fields: "dimension,metrics",
+      batch: 1000,
+      requestKey: null,
+    });
+    const totals = totalMetrics(rows);
+    return {
+      days,
+      sessions: totals.sessions ?? 0,
+      pageViews: totals.page_views ?? 0,
+      qrScans: totals.qr_scans ?? 0,
+      productViews: totals.product_views ?? 0,
+    };
+  } catch (err) {
+    console.error("[admin-overview] platform etkinliği okunamadı", err);
+    return null;
+  }
+}

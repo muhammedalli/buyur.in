@@ -97,8 +97,19 @@ bellekte süzülür. Kurallar: `lib/admin-business-actions.ts`,
   - İç not ekleme
 - "İşletme olarak gör" özelliği yalnızca okuma yapar ve her kullanımı loglanır.
   Bu aşamada kapsam dışı; yalnızca nasıl yapılacağını öner.
+  *Öneri:* işletmenin token'ını üretmek (PocketBase impersonate) YERİNE panel
+  ekranlarının salt-okur bir kopyası `/admin/businesses/[id]/panel` altında,
+  veriyi servis hesabıyla okuyan sunucu bileşenleriyle kurulmalı. Böylece admin
+  işletme adına hiçbir şey yazamaz (yazma yolu yok), token üretilmez ve her
+  açılış `business.view_as` olarak loglanır. Panel bileşenleri `useBusiness()`
+  bağlamına bağlı olduğundan, bağlamı sunucudan gelen kayıtla dolduran salt-okur
+  bir sağlayıcı gerekir.
 
-### Aşama 3: Planlar ve fiyatlar (yalnızca `super_admin`)
+### Aşama 3: Planlar ve fiyatlar (yalnızca `super_admin`) ✅ (2026-09-25)
+*Kararlar:* kurallar `lib/admin-plan-edit.ts`. Varsayılan plan pasif yapılamaz;
+yıllıkta aylık fiyat aylıktan yüksek olamaz; formun bilmediği limit anahtarları
+korunur; boş sayı alanı "sınırsız" sayılmasın diye istemcide engellenir.
+`is_default` değiştirme bilerek yok (tek varsayılan kuralı için ayrı akış gerekir).
 - `buyur_plans` düzenleme ekranı: ad, açıklama, `price_monthly`,
   `price_yearly_monthly`, `trial_months`, `is_active`.
 - `limits` ve `features` ham JSON olarak düzenlenmez. Form, `Feature` union'ından
@@ -107,7 +118,11 @@ bellekte süzülür. Kurallar: `lib/admin-business-actions.ts`,
 - Canlı kayıt `DEFAULT_PLAN_ENTITLEMENTS` yedeğinden farklıysa kayma uyarısı göster.
 - Değişikliğin en geç 60 saniyede yansıyacağını belirten not ekle.
 
-### Aşama 4: Genel bakış
+### Aşama 4: Genel bakış ✅ (2026-09-25)
+*Kararlar:* hesaplar `lib/admin-overview.ts`; "bugün" İstanbul gününe göre.
+"Ücretli oran" = kurulumu bitmiş hesaplar içinde süre/görüntülenme sınırı olmayan
+plandakiler (plan adına bakılmaz). Platform etkinliği günlük özetlerin toplamı;
+binlerce işletmede ayrı bir platform özeti gerekecek.
 - Toplam işletme; bugün ve bu hafta açılan hesaplar; yayında olanlar; kurulumu yarım
   kalanlar.
 - Plan dağılımı ve freemium'dan ücretli plana geçiş oranı.
@@ -115,6 +130,23 @@ bellekte süzülür. Kurallar: `lib/admin-business-actions.ts`,
 - Toplam menü görüntüleme, QR tarama ve AI tarama kullanımı.
 
 ### Aşama 5: Sonraki işler (şimdilik yalnızca planla, kodlama)
+Önerilen sıra ve yaklaşım (2026-09-25):
+1. **Admin kullanıcı yönetimi** (`admins.manage`): liste (servis hesabı gizli),
+   davet = `create-admin.mjs` mantığı sunucu ucunda (superuser token gerekir →
+   ya bu işlem script olarak kalır ya da super_admin'in manageRule yetkisiyle
+   yeni hesap için createRule açılır; ikincisi kural değişikliği ister), rol
+   değiştirme ve erişim kaldırma denetim kaydıyla.
+2. **Kayıt hunisi**: OTP gönderildi (buyur_otps.created) → hesap açıldı
+   (businesses.created) → kurulum bitti (slug) → ilk ürün → ilk QR taraması
+   (events qr_scan). Hepsi mevcut veriden; yeni event gerekmez.
+3. **Kayıp takibi**: 14/30 gündür `sessions` = 0 olan yayındaki işletmeler
+   (stats_daily'den); genel bakışta bir liste.
+4. **Rollup durumu**: işletme başına son `stats_daily.date`; elle tetikleme
+   `/api/analytics/rollup` ucunu admin oturumuyla çağırır.
+5. **AI maliyeti**: bugün sayaç var (ai_scans_used) ama maliyet yok; token
+   kullanımını `/api/ai/*` uçlarında yeni bir koleksiyona yazmak gerekir.
+6. **Brevo teslim durumu**: Brevo webhook'u → yeni `buyur_email_events`.
+7. **Görsel denetimi, duyuru, sağlık ekranı**: ayrı ürün kararı ister.
 - Kayıt hunisi (OTP → doğrulama → kurulum → ilk ürün → ilk QR taraması)
 - Kayıp takibi
 - İşletme ve gün bazında AI maliyeti

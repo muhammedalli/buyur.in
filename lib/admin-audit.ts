@@ -31,19 +31,43 @@ export const ADMIN_LOG_ACTION_LABELS: Record<string, string> = {
   "business.unsuspend": "Askıyı kaldırdı",
   "business.slug_change": "Menü adresini değiştirdi",
   "business.password_reset": "Şifre sıfırlama e-postası gönderdi",
+  "plans.edit": "Planı düzenledi",
 };
 
 export function adminLogActionLabel(action: string): string {
   return ADMIN_LOG_ACTION_LABELS[action] ?? action;
 }
 
-/** Değişen alanların okunur özeti: "plan: freemium → premium". */
+const showValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === "") return "boş";
+  if (Array.isArray(value)) return value.length === 0 ? "boş" : value.map(showValue).join(", ");
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+/** Değişen alanların okunur özeti: "plan: freemium → premium". İç içe nesneler
+ *  (plan limitleri gibi) bir düzey açılır ve yalnızca değişen anahtarlar
+ *  yazılır: "limits.menu_views: 5000 → 6000". */
 export function adminLogChangeLines(log: Pick<AdminLog, "before" | "after">): string[] {
   const before = log.before ?? {};
   const after = log.after ?? {};
   const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
-  const show = (value: unknown) => (value === null || value === undefined || value === "" ? "boş" : String(value));
-  return keys.map((key) => `${key}: ${show(before[key])} → ${show(after[key])}`);
+  const lines: string[] = [];
+  for (const key of keys) {
+    const a = before[key];
+    const b = after[key];
+    if (isPlainObject(a) && isPlainObject(b)) {
+      for (const sub of Array.from(new Set([...Object.keys(a), ...Object.keys(b)]))) {
+        if (JSON.stringify(a[sub]) !== JSON.stringify(b[sub])) lines.push(`${key}.${sub}: ${showValue(a[sub])} → ${showValue(b[sub])}`);
+      }
+      continue;
+    }
+    lines.push(`${key}: ${showValue(a)} → ${showValue(b)}`);
+  }
+  return lines;
 }
 
 export interface AdminActionEntry {

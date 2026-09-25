@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/chrome";
-import { FileTextIcon, LayoutIcon, LogoutIcon, UsersIcon } from "@/components/icons";
+import { FileTextIcon, LayoutIcon, LogoutIcon, SparkIcon, UsersIcon } from "@/components/icons";
 import { ToastProvider } from "@/components/panel/toast";
 import { ADMIN_ROLE_LABELS, canPerform, type AdminAction } from "@/lib/admin-roles";
 import type { AdminRole } from "@/lib/types";
@@ -21,6 +21,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: "/admin", label: "Genel bakış", Icon: LayoutIcon },
   { href: "/admin/businesses", label: "İşletmeler", Icon: UsersIcon, action: "business.view" },
+  { href: "/admin/plans", label: "Planlar", Icon: SparkIcon, action: "plans.edit" },
   { href: "/admin/logs", label: "Denetim kaydı", Icon: FileTextIcon, action: "logs.view" },
 ];
 

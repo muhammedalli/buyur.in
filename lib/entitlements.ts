@@ -121,8 +121,9 @@ export function normalizePlan(value: unknown): Plan {
 let liveCatalog: Partial<Record<Plan, PlanEntitlements>> = {};
 
 /** Feature → plan kaydındaki `limits` anahtarı. Var olan alanlar yeniden
- *  kullanıldı (analytics, reports…) ki aynı bilgi iki yerde durmasın. */
-const FEATURE_LIMIT_KEYS: Record<Exclude<Feature, "menu">, string> = {
+ *  kullanıldı (analytics, reports…) ki aynı bilgi iki yerde durmasın. Yönetim
+ *  panelinin plan formu da bu eşlemeden üretilir (lib/admin-plan-edit.ts). */
+export const FEATURE_LIMIT_KEYS: Record<Exclude<Feature, "menu">, string> = {
   basic_analytics: "analytics",
   advanced_analytics: "analytics_advanced",
   insights: "insights",
