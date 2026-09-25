@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBusiness } from "@/components/panel/business-context";
 import { PopupForm } from "@/components/panel/popup-form";
-import { PageHeader, UpgradeNotice } from "@/components/panel/ui";
+import { PageHeader } from "@/components/panel/ui";
 import { isFeatureAvailable } from "@/lib/entitlements";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 export default function NewAnnouncementPage() {
   const { business, isLoading } = useBusiness();
@@ -20,9 +21,10 @@ export default function NewAnnouncementPage() {
 
   if (!campaignsAllowed) {
     return (
-      <UpgradeNotice
-        title="Kampanyalar mevcut planında kapalı"
-        description="Menü açıldığında gösterilecek kampanya/duyuru oluşturmak için planını yükseltmen gerekiyor."
+      <FeatureLocked
+        feature="campaigns"
+        subject="Kampanyalar"
+        description="Menü açıldığında gösterilen kampanya ve duyuru pencereleri."
       />
     );
   }

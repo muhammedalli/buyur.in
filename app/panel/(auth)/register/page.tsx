@@ -9,29 +9,22 @@ import { PLAN_LABELS } from "@/lib/entitlements";
 import { parsePlanIntent, savePlanIntent, type IntentPlan } from "@/lib/plan-intent";
 import { captureAttribution, trackMarketingEvent } from "@/lib/marketing-events";
 import { OTP_RESEND_SECONDS } from "@/lib/otp-client";
+import { checkSignupPhone } from "@/lib/phone";
+import { newPasswordError } from "@/lib/password";
+import { AUTH_CARD_CLASS, errorMessage } from "@/components/panel/auth-card";
+import { BUSINESS_COLLECTION } from "@/lib/business-account";
 
 const START_TITLES: Record<IntentPlan, string> = {
   premium: "Premium'u başlat",
   elite: "Elite'i başlat",
 };
 
-/** Sunucunun Türkçe hata metnini olduğu gibi kullanırız; yoksa genel bir
- *  cümleye düşeriz. Kullanıcıya yığın izi değil, ne yapacağı söylenir. */
-async function errorMessage(res: Response, fallback: string): Promise<string> {
-  try {
-    const data = await res.json();
-    if (typeof data?.error === "string" && data.error) return data.error;
-  } catch {
-    /* gövde okunamadıysa genel mesaj */
-  }
-  return fallback;
-}
-
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<"details" | "code">("details");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [code, setCode] = useState("");
@@ -89,12 +82,15 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (password.length < 8) {
-      setError("Şifre en az 8 karakter olmalı.");
+    const phoneCheck = checkSignupPhone(phone);
+    if (!phoneCheck.ok) {
+      setError(phoneCheck.error);
       return;
     }
-    if (password !== passwordConfirm) {
-      setError("Şifreler eşleşmiyor.");
+    setPhone(phoneCheck.value);
+    const passwordError = newPasswordError(password, passwordConfirm);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     await requestCode();
@@ -109,13 +105,13 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, password, passwordConfirm, code }),
+        body: JSON.stringify({ name, email, phone, password, passwordConfirm, code }),
       });
       if (!res.ok) {
         setError(await errorMessage(res, "Kayıt oluşturulamadı, tekrar dene."));
         return;
       }
-      await pb.collection("buyur_users").authWithPassword(email, password);
+      await pb.collection(BUSINESS_COLLECTION).authWithPassword(email, password);
       trackMarketingEvent("signup_completed", { plan_intent: intent ?? "freemium" });
       router.replace("/panel");
     } catch {
@@ -127,7 +123,7 @@ export default function RegisterPage() {
 
   if (step === "code") {
     return (
-      <div className="rounded-2xl border border-line bg-paper p-8">
+      <div className={AUTH_CARD_CLASS}>
         <h1 className="font-display text-xl font-bold">E-postanı doğrula</h1>
         <p className="mt-1 text-sm text-ink-soft">
           <span className="font-medium text-ink">{email}</span> adresine 6 haneli bir kod gönderdik. Gelen kutunda yoksa
@@ -181,7 +177,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-paper p-8">
+    <div className={AUTH_CARD_CLASS}>
       <h1 className="font-display text-xl font-bold">{intent ? START_TITLES[intent] : "Ücretsiz hesap aç"}</h1>
       <p className="mt-1 text-sm text-ink-soft">
         {intent
@@ -190,8 +186,15 @@ export default function RegisterPage() {
       </p>
       <form onSubmit={handleDetailsSubmit} className="mt-6 space-y-4">
         <div>
-          <Label htmlFor="name">Adın</Label>
-          <Input id="name" required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Label htmlFor="name">İşletme adı</Label>
+          <Input
+            id="name"
+            required
+            autoComplete="organization"
+            placeholder="Alpha Cafe"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="email">E-posta</Label>
@@ -203,6 +206,28 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+        </div>
+        <div>
+          <Label htmlFor="phone">Telefon</Label>
+          <Input
+            id="phone"
+            type="tel"
+            required
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="0532 123 45 67"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onBlur={() => {
+              // Geçerliyse tek biçime getir; değilse kullanıcının yazdığına dokunma.
+              const check = checkSignupPhone(phone);
+              if (check.ok) setPhone(check.value);
+            }}
+            aria-describedby="phone-hint"
+          />
+          <p id="phone-hint" className="mt-1.5 text-xs text-ink-soft">
+            İşletmenin iletişim numarası olarak kaydedilir; ayarlardan değiştirebilirsin.
+          </p>
         </div>
         <div>
           <Label htmlFor="password">Şifre</Label>

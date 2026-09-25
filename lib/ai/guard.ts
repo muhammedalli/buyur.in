@@ -10,6 +10,7 @@ import OpenAI from "openai";
 import { createServerPB } from "@/lib/pocketbase";
 import { isFeatureAvailable, type Feature } from "@/lib/entitlements";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
+import { authenticateBusiness } from "@/lib/business-auth";
 import type { Business } from "@/lib/types";
 
 /** Menü görseli/PDF'i okuyabilen model. Ortamdan değiştirilebilir. */
@@ -40,36 +41,18 @@ export async function guardAiRequest(
 ): Promise<GuardSuccess | GuardFailure> {
   if (!authHeader) return fail("Giriş yapmalısınız.", 401);
 
-  const pb = createServerPB();
-  pb.authStore.save(authHeader, null);
-  try {
-    await pb.collection("buyur_users").authRefresh();
-  } catch {
-    return fail("Oturum geçersiz.", 401);
-  }
-
-  const userId = pb.authStore.record?.id;
-  if (!userId) return fail("Oturum geçersiz.", 401);
+  // Oturumun sahibi işletme kaydının kendisidir; ayrı sahiplik sorgusu yok.
+  const [session] = await Promise.all([authenticateBusiness(authHeader), ensurePlanCatalog(createServerPB())]);
+  if (!session) return fail("Oturum geçersiz.", 401);
 
   if (typeof businessId !== "string" || businessId.trim() === "") {
     return fail("Geçersiz istek.", 400);
   }
-
-  let business: Business;
-  try {
-    // Kota ve özellik kapısı canlı plan kaydından okunur.
-    const [record] = await Promise.all([
-      pb.collection("buyur_businesses").getOne<Business>(businessId),
-      ensurePlanCatalog(pb),
-    ]);
-    business = record;
-  } catch {
-    return fail("İşletme bulunamadı.", 404);
-  }
-
-  if (business.owner !== userId) {
+  if (businessId !== session.business.id) {
     return fail("Bu işletmeye erişiminiz yok.", 403);
   }
+  const { business, pb } = session;
+  const userId = business.id;
 
   if (feature && !isFeatureAvailable(business, feature)) {
     return fail("Bu özellik mevcut planınızda kullanılamıyor.", 403);

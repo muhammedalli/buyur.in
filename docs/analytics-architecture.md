@@ -69,6 +69,13 @@ Bir satır = **gün × boyut × anahtar → metrikler** (`DailyStat`, [`lib/type
 Uzun kuyruklu boyutlar gün başına sınırlıdır (arama 50, geçiş 30, şehir 30 satır) — aksi hâlde
 tek bir günün agregatı binlerce satıra şişer.
 
+**Huni (`funnel`)** tek kaynaktan tanımlanır: [`lib/analytics/funnel.ts`](../lib/analytics/funnel.ts).
+Adımlar `menu_open → product_view → add_to_cart → cart_view`; her adım bir öncekinin alt kümesidir
+(detaya girmeden karttan ekleyen "ürünü görmüş", eklemeden açılan sepet "sepete bakmış" sayılmaz).
+Kategori ve ürün detayı atlanabilen yan dallar olduğu için huniye girmez. Etiketler satırdan değil
+tanımdan okunur; sıfır oturumlu adımın satırı yazılmaz. Bu tanımdan önce hesaplanmış günler için
+rollup ucu bir kez `?days=400` ile çağrılır.
+
 ---
 
 ## §4 — Oturum ve ziyaretçi

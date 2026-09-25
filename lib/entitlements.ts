@@ -382,6 +382,48 @@ export function requiredPlanFor(feature: Feature): Plan | null {
   return PLAN_ORDER.find((plan) => entitlementsFor(plan).features[feature]) ?? null;
 }
 
+// ─── Yükseltme önerisi ─────────────────────────────────────────────────
+//
+// "Hangi plana yükselt" kararı ekranlarda elle yazılmaz. Kilit kartları, plan
+// kullanım kartı ve kota mesajları buradan okur; böylece Elite'te "Premium'a
+// yükselt" gibi geriye dönük bir CTA hiçbir ekranda çıkamaz.
+
+/** Türkçe ek uyumu: "Premium'a yükselt", "Elite'e geç". */
+export const PLAN_LABELS_DATIVE: Record<Plan, string> = {
+  freemium: "Freemium'a",
+  premium: "Premium'a",
+  elite: "Elite'e",
+};
+
+/** Türkçe ek uyumu: "Ürün analitiği Premium'da", "Raporlar Elite'te". */
+export const PLAN_LABELS_LOCATIVE: Record<Plan, string> = {
+  freemium: "Freemium'da",
+  premium: "Premium'da",
+  elite: "Elite'te",
+};
+
+const planRank = (plan: Plan) => PLAN_ORDER.indexOf(plan);
+
+/** Mevcut plandan yüksek planlar, küçükten büyüğe. En üst planda boş. */
+export function upgradePlans(plan: Plan): Plan[] {
+  const current = normalizePlan(plan);
+  return PLAN_ORDER.filter((candidate) => planRank(candidate) > planRank(current));
+}
+
+/** Kilitli bir özellik (ya da genel yükseltme) için önerilecek plan.
+ *  - Özellik daha yüksek bir planda açılıyorsa o plan.
+ *  - Özellik bu planda var ama erişim kapalıysa (ör. Freemium süresi doldu)
+ *    bir üst plan.
+ *  - En üst plandaysa null: gösterilecek bir yükseltme yoktur. */
+export function upgradeTargetFor(business: Pick<Business, "plan">, feature?: Feature): Plan | null {
+  const current = normalizePlan(business.plan);
+  if (feature) {
+    const required = requiredPlanFor(feature);
+    if (required && planRank(required) > planRank(current)) return required;
+  }
+  return upgradePlans(current)[0] ?? null;
+}
+
 const formatCount = (value: number) => value.toLocaleString("tr-TR");
 
 /** Freemium limitlerinin metin hâli — landing, SSS ve panel aynı cümleyi kursun.

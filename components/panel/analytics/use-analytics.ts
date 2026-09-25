@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnalyticsError, fetchAnalytics, type AnalyticsMeta } from "@/lib/analytics/panel-client";
 import { useAnalyticsFilters } from "@/components/panel/analytics/filters";
+import { useBusiness } from "@/components/panel/business-context";
 
 // Filtrelere bağlı analiz sorgusu. Yeniden yüklerken önceki veriyi ekranda
 // tutuyoruz (dataviz kuralı: "refetch keeps the frame") — grafikler iskelete
@@ -23,6 +24,9 @@ export function useAnalyticsQuery<T>(
   extraParams: Record<string, string | undefined> = {}
 ): AnalyticsQueryState<T> {
   const { params } = useAnalyticsFilters();
+  // Plan değişince (ör. Premium → Elite) sunucu önbelleği bayat yetkiyle
+  // yanıt vermesin diye plan sorguya eklenir (bkz. lib/analytics/access.ts).
+  const rev = useBusiness().business?.plan;
   const [data, setData] = useState<T | null>(null);
   const [meta, setMeta] = useState<AnalyticsMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,10 +36,10 @@ export function useAnalyticsQuery<T>(
   const hasData = useRef(false);
 
   const query = useMemo(
-    () => ({ ...params, ...extraParams }),
+    () => ({ ...params, ...extraParams, rev }),
     // Nesne kimliği her render değişiyor; içeriğe göre karşılaştırıyoruz.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(params), JSON.stringify(extraParams)]
+    [JSON.stringify(params), JSON.stringify(extraParams), rev]
   );
 
   useEffect(() => {

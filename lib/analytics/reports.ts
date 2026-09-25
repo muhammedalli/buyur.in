@@ -18,6 +18,7 @@ import {
 import { buildInsights } from "@/lib/analytics/insights";
 import { computeMenuScore, type MenuScore } from "@/lib/analytics/score";
 import { classifyProduct, computeBenchmarks } from "@/lib/analytics/opportunities";
+import { buildFunnel } from "@/lib/analytics/funnel";
 
 // Rapor üretimi (Elite). Raporlar panelde gösterilen verinin aynısından üretilir —
 // ayrı bir "rapor hesabı" yok, dolayısıyla ekrandaki sayı ile rapordaki sayı
@@ -389,9 +390,8 @@ export async function buildReport(
   }
 
   if (wantsBehavior) {
-    const order = ["menu_open", "category_view", "product_view", "product_detail", "add_to_cart", "cart_view"];
-    const funnelByKey = new Map(funnel.map((entry) => [entry.key, entry]));
-    let previousStep: number | null = null;
+    // Sıra ve etiketler lib/analytics/funnel.ts'ten; panel hunisiyle aynı hesap.
+    const steps = buildFunnel(Object.fromEntries(funnel.map((entry) => [entry.key, entry.metrics.sessions ?? 0])));
 
     tables.push({
       key: "funnel",
@@ -401,13 +401,11 @@ export async function buildReport(
         { key: "sessions", label: "Oturum", align: "right" },
         { key: "conversion", label: "Geçiş", align: "right" },
       ],
-      rows: order.map((key) => {
-        const entry = funnelByKey.get(key);
-        const sessions = entry?.metrics.sessions ?? 0;
-        const conversion = previousStep === null ? "—" : percent(ratio(sessions, previousStep), 0);
-        previousStep = sessions;
-        return { step: entry?.label ?? key, sessions, conversion };
-      }),
+      rows: steps.map((step) => ({
+        step: step.label,
+        sessions: step.sessions,
+        conversion: step.conversion === null ? "—" : percent(step.conversion, 0),
+      })),
     });
 
     tables.push({

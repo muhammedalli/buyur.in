@@ -10,7 +10,7 @@ async function getActiveBusinessUrls(): Promise<MetadataRoute.Sitemap> {
       slug: string;
       updated: string;
     }>({
-      filter: "is_active = true",
+      filter: 'is_active = true && slug != ""',
       fields: "slug,updated",
       requestKey: null,
     });

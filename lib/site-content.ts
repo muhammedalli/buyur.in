@@ -1,5 +1,7 @@
 import { mainLocale, tField, type Locale } from "@/lib/i18n";
 import type { Business, Category, Product } from "@/lib/types";
+import { telHref, whatsappDigits } from "@/lib/phone";
+import { publicContactEmail } from "@/lib/business-account";
 
 // Otomatik web sitesinin içerik türetimi.
 //
@@ -87,10 +89,6 @@ function featuredProducts(products: Product[], limit: number): Product[] {
     .map((entry) => entry.product);
 }
 
-function digitsOnly(value: string): string {
-  return value.replace(/[^\d+]/g, "");
-}
-
 function socialUrl(kind: ContactLink["kind"], handle: string): string {
   const clean = handle.trim().replace(/^@/, "");
   if (clean.startsWith("http")) return clean;
@@ -114,13 +112,13 @@ function reservationAction(business: Business): ReservationAction | null {
   if (business.whatsapp) {
     return {
       kind: "whatsapp",
-      href: `https://wa.me/${digitsOnly(business.whatsapp).replace(/^\+/, "")}?text=${encodeURIComponent(
+      href: `https://wa.me/${whatsappDigits(business.whatsapp)}?text=${encodeURIComponent(
         `Merhaba, ${business.name} için rezervasyon yaptırmak istiyorum.`
       )}`,
     };
   }
   if (business.phone) {
-    return { kind: "phone", href: `tel:${digitsOnly(business.phone)}` };
+    return { kind: "phone", href: telHref(business.phone) };
   }
   return null;
 }
@@ -129,17 +127,18 @@ function contactLinks(business: Business): ContactLink[] {
   const links: ContactLink[] = [];
 
   if (business.phone) {
-    links.push({ kind: "phone", value: business.phone, href: `tel:${digitsOnly(business.phone)}` });
+    links.push({ kind: "phone", value: business.phone, href: telHref(business.phone) });
   }
   if (business.whatsapp) {
     links.push({
       kind: "whatsapp",
       value: business.whatsapp,
-      href: `https://wa.me/${digitsOnly(business.whatsapp).replace(/^\+/, "")}`,
+      href: `https://wa.me/${whatsappDigits(business.whatsapp)}`,
     });
   }
-  if (business.email) {
-    links.push({ kind: "email", value: business.email, href: `mailto:${business.email}` });
+  const email = publicContactEmail(business);
+  if (email) {
+    links.push({ kind: "email", value: email, href: `mailto:${email}` });
   }
   if (business.instagram) {
     links.push({ kind: "instagram", value: business.instagram, href: socialUrl("instagram", business.instagram) });

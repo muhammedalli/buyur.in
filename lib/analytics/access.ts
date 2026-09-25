@@ -3,6 +3,7 @@ import { PB_URL } from "@/lib/pocketbase";
 import { getServicePB } from "@/lib/pocketbase-server";
 import { isFeatureAvailable, type Feature } from "@/lib/entitlements";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
+import { BUSINESS_COLLECTION, isBusinessSetUp } from "@/lib/business-account";
 import type { Business, PlanLimits, PlanRecord } from "@/lib/types";
 
 // Analytics API'nin yetki katmanı. İki kural pazarlıksız:
@@ -17,7 +18,7 @@ export type Permission =
   | "reports.view"
   | "reports.export";
 
-/** Buyur'da bir kullanıcı bir işletmeyi yönetir: rol/ekip kavramı yok.
+/** Buyur'da oturum = işletme hesabı: rol/ekip kavramı yok.
  *  İzinler yalnızca plana bağlıdır. */
 const ALL_PERMISSIONS: Permission[] = [
   "analytics.view",
@@ -98,42 +99,30 @@ function bearerToken(request: Request): string {
   return match?.[1]?.trim() ?? "";
 }
 
-/** Token'ı PocketBase'e doğrulatır; sahte/expired token burada elenir. */
-async function authenticate(token: string): Promise<string> {
+/** Token'ı PocketBase'e doğrulatır; sahte/expired token burada elenir.
+ *  Oturumun sahibi işletme kaydının kendisidir (buyur_businesses, auth). */
+async function authenticate(token: string): Promise<Business> {
   if (!token) throw new AccessError(401, "unauthenticated");
 
   const pb = new PocketBase(PB_URL);
   pb.authStore.save(token, null);
 
   try {
-    const auth = await pb.collection("buyur_users").authRefresh({ requestKey: null });
-    const userId = auth.record?.id;
-    if (!userId) throw new AccessError(401, "unauthenticated");
-    return userId;
+    const auth = await pb.collection(BUSINESS_COLLECTION).authRefresh<Business>({ requestKey: null });
+    if (!auth.record?.id) throw new AccessError(401, "unauthenticated");
+    return auth.record;
   } catch (err) {
     if (err instanceof AccessError) throw err;
     throw new AccessError(401, "unauthenticated");
   }
 }
 
-/** Kullanıcının işletmesini bulur. Buyur'da tek ilişki geçerli: bir kullanıcı,
- *  sahibi olduğu işletmeyi yönetir. `requestedId` verilmişse yalnızca sahiplik
- *  doğrulamasında kullanılır — istemciden gelen kimliğe asla güvenilmez. */
-async function resolveBusiness(service: PocketBase, userId: string, requestedId: string | null) {
-  const owned = await service.collection("buyur_businesses").getFullList<Business>({
-    filter: service.filter("owner = {:owner}", { owner: userId }),
-    sort: "created",
-    batch: 50,
-    requestKey: null,
-  });
-
-  if (owned.length === 0) throw new AccessError(404, "no_business");
-
-  if (!requestedId) return { business: owned[0]! };
-
-  const match = owned.find((business) => business.id === requestedId);
-  if (!match) throw new AccessError(403, "forbidden");
-  return { business: match };
+/** Oturumdaki işletmeyi doğrular. `requestedId` verilmişse yalnızca eşitlik
+ *  kontrolünde kullanılır — istemciden gelen kimliğe asla güvenilmez. */
+function resolveBusiness(account: Business, requestedId: string | null): Business {
+  if (!isBusinessSetUp(account)) throw new AccessError(404, "no_business");
+  if (requestedId && requestedId !== account.id) throw new AccessError(403, "forbidden");
+  return account;
 }
 
 function effectivePermissions(business: Business): Set<Permission> {
@@ -147,16 +136,21 @@ function effectivePermissions(business: Business): Set<Permission> {
 /** Analytics uçlarının ortak giriş kapısı: kimlik → işletme → plan → izinler. */
 export async function resolveAnalyticsContext(request: Request, requestedBusinessId?: string | null): Promise<AnalyticsContext> {
   const token = bearerToken(request);
-  const cacheKey = `${token}\u0000${requestedBusinessId ?? ""}`;
+  // `rev` panelin bildiği plandır ve YALNIZCA önbellek anahtarına girer: plan
+  // değişince bağlam 60 sn beklemeden yeniden çözülür. Yetki kararı her zaman
+  // aşağıda sunucudan okunan işletme kaydıyla verilir; istemci değeri
+  // yanlış gelse bile yalnızca önbellek ıskalanır.
+  const rev = new URL(request.url).searchParams.get("rev") ?? "";
+  const cacheKey = `${token}\u0000${requestedBusinessId ?? ""}\u0000${rev}`;
   const now = Date.now();
 
   const cached = contextCache.get(cacheKey);
   if (cached && cached.expiresAt > now) return cached.context;
 
-  const userId = await authenticate(token);
+  const account = await authenticate(token);
+  const business = resolveBusiness(account, requestedBusinessId ?? null);
+  const userId = account.id;
   const service = await getServicePB();
-
-  const { business } = await resolveBusiness(service, userId, requestedBusinessId ?? null);
 
   // Özellik kapıları (insights, raporlar…) canlı plan kaydından okunur.
   await ensurePlanCatalog(service);

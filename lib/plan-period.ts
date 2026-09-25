@@ -24,6 +24,26 @@ export function addMonths(date: Date, months: number): Date {
   return result;
 }
 
+/** Yeni hesabın plan alanları. Varsayılan plan admin panelinden değişebilir
+ *  (buyur_plans.is_default); kayıt okunamazsa "freemium"a düşülür ve süre
+ *  yazılmaz — yanlış bir tarihle işletmeyi "süresi dolmuş" göstermektense
+ *  süresiz kabul etmek daha az zararlıdır. Süre kayıt anında sabitlenir:
+ *  plan kaydındaki süre sonradan değişse bile mevcut işletmenin hakkı değişmez.
+ *  Bu alanlar hesap sahibine kapalıdır (scripts/business-schema.mjs), bu
+ *  yüzden yalnızca sunucu yazar. */
+export function initialPlanFields(
+  defaultPlan: { key?: string; trial_months?: number } | null,
+  now: Date = new Date()
+): { plan: string; freemium_started_at: string; plan_expires_at: string; menu_views: number } {
+  const trialMonths = defaultPlan?.trial_months ?? 0;
+  return {
+    plan: defaultPlan?.key || "freemium",
+    freemium_started_at: trialMonths > 0 ? now.toISOString() : "",
+    plan_expires_at: trialMonths > 0 ? addMonths(now, trialMonths).toISOString() : "",
+    menu_views: 0,
+  };
+}
+
 export interface TrialStatus {
   expiresAt: Date;
   /** Bitişe kalan tam gün; süre dolduysa 0. */

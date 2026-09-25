@@ -47,13 +47,23 @@ export type Highlight =
   | "sigara_alani"
   | "kahvalti";
 
+/** İşletme hesabı: 1 işletme = 1 buyur_businesses kaydı = 1 kimlik (auth
+ *  koleksiyonu). Giriş e-postası/şifre bu kaydın auth alanlarıdır; ayrı bir
+ *  kullanıcı tablosu yoktur. Ad ve slug kurulum ekranında doldurulana kadar
+ *  boştur (bkz. isBusinessSetUp). */
 export interface Business {
   id: string;
-  owner: string;
+  /** İşletme adı. */
   name: string;
   slug: string;
   description: string;
-  email: string;
+  /** Giriş e-postası. Herkese açık okumada yalnızca emailVisibility açıksa gelir;
+   *  sahibinin kendi oturumunda her zaman vardır. */
+  email?: string;
+  /** Giriş e-postası menüde iletişim adresi olarak gösterilsin mi. */
+  emailVisibility?: boolean;
+  /** Menüde görünen iletişim e-postası — giriş e-postasından farklıysa. */
+  contact_email?: string;
   logo_url: string;
   cover_url: string;
   theme: string;

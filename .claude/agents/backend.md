@@ -49,7 +49,7 @@ Koleksiyonlar (hepsi `buyur_` önekli): `businesses`, `categories`, `products`,
 // 1) Authorization başlığı yok            → 401
 // 2) authRefresh() başarısız              → 401
 // 3) Girdi doğrulaması (tip/boyut/liste)  → 400
-// 4) business.owner === userId değil      → 403
+// 4) businessId !== oturumdaki kayıt kimliği → 403
 // 5) Kaynak yok                           → 404
 // 6) Plan/kota kontrolü (entitlements)
 // 7) İş

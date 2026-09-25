@@ -48,7 +48,10 @@ import { UpsellSheet } from "@/components/menu/upsell-sheet";
 import { MenuSplash } from "@/components/menu/menu-splash";
 import { FadeImg } from "@/components/menu/fade-img";
 import { upsellSuggestions } from "@/lib/upsell";
-import { ArrowLeftIcon, MenuIcon, SearchIcon, ShoppingBagIcon, StarIcon } from "@/components/icons";
+import { BusinessInfoSheet, hasBusinessInfo } from "@/components/menu/business-info";
+import { PoweredBy } from "@/components/powered-by";
+import { PLATFORM_BRANDING, showsPlatformSignature } from "@/lib/branding";
+import { ArrowLeftIcon, InfoIcon, MenuIcon, SearchIcon, ShoppingBagIcon, StarIcon } from "@/components/icons";
 
 /** Sepete eklemenin nereden geldiği: menüdeki ürün kartı ya da "yanına içecek" önerisi. */
 type AddSource = "menu" | "upsell";
@@ -74,6 +77,8 @@ interface MenuContextValue {
   categoriesLoading: boolean;
   imageByCategory: Map<string, string>;
   productCountByCategory: Map<string, number>;
+  /** İşletme bilgileri yaprağını açar (adres, saatler, WiFi, iletişim…). */
+  openInfo: () => void;
 }
 
 const MenuContext = createContext<MenuContextValue | null>(null);
@@ -137,8 +142,9 @@ function MenuHeader({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { locale, t, tf } = useMenu();
+  const { locale, t, tf, openInfo } = useMenu();
   const isSubPage = pathname.startsWith(`${base}/products/`) || pathname.startsWith(`${base}/categories/`);
+  const showInfo = hasBusinessInfo(business);
 
   function goBack() {
     if (window.history.length > 1) router.back();
@@ -148,7 +154,7 @@ function MenuHeader({
   return (
     <header className="sticky top-0 z-40 border-b border-line/40 bg-paper/90 backdrop-blur-md">
       <div className="relative mx-auto flex h-[var(--header-h)] max-w-3xl items-center justify-between px-4">
-        {/* Sol Alan: Alt sayfalarda Geri butonu, anasayfada temiz görünüm */}
+        {/* Sol alan: alt sayfalarda geri, diğerlerinde işletme bilgileri */}
         <div className="flex w-9 shrink-0 items-center justify-start">
           {isSubPage ? (
             <button
@@ -159,12 +165,24 @@ function MenuHeader({
             >
               <ArrowLeftIcon size={18} className={isRTLLocale(locale) ? "rotate-180" : undefined} />
             </button>
+          ) : showInfo ? (
+            <button
+              type="button"
+              onClick={openInfo}
+              aria-label={t("businessInfo")}
+              title={t("businessInfo")}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line/50 bg-paper/90 text-ink shadow-xs transition-colors hover:bg-crema active:scale-95"
+            >
+              <InfoIcon size={18} />
+            </button>
           ) : null}
         </div>
 
-        {/* Tam Merkez: Logo ve İsim (Ekrana göre matematiksel tam ortalama) */}
-        <Link
-          href={`${base}/menu`}
+        {/* Merkez: logo ve isim. Logo platformun ana sayfasına götürür
+            (lib/branding.ts); menünün başına alttaki "Menü" sekmesi döner. */}
+        <a
+          href={PLATFORM_BRANDING.href}
+          aria-label={`${tf(business, "name")} — ${t("platformHomeAria", { brand: PLATFORM_BRANDING.name })}`}
           className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 max-w-[60%] flex-col items-center gap-1 text-center transition-opacity hover:opacity-85"
         >
           {business.logo_url ? (
@@ -177,7 +195,7 @@ function MenuHeader({
           <span className="max-w-full truncate font-display text-[15px] font-bold leading-tight text-ink">
             {tf(business, "name")}
           </span>
-        </Link>
+        </a>
 
         {/* Sağ Alan: Dil Seçici */}
         <div className="flex w-9 shrink-0 items-center justify-end">
@@ -188,10 +206,11 @@ function MenuHeader({
   );
 }
 
-/** Menü altbilgisi: Alt sayfalarda değerlendirme bağlantısı ve görsel künye linki. */
+/** Menü altbilgisi: alt sayfalarda değerlendirme bağlantısı, görsel künye
+ *  bağlantısı ve (markasız plan değilse) platform imzası. */
 function MenuFooter({ base, products, locale }: { base: string; products: Product[]; locale: Locale }) {
   const pathname = usePathname();
-  const { t } = useMenu();
+  const { business, t } = useMenu();
   // Ana menü sayfasında zaten zengin değerlendirme banner'ı bulunur; alt sayfalarda hafif bir hap buton sunulur.
   const isMenuHome = pathname.endsWith("/menu") || pathname.endsWith("/menu/") || pathname === base || pathname === `${base}/`;
   const isReviewPage = pathname.includes("/review");
@@ -208,6 +227,9 @@ function MenuFooter({ base, products, locale }: { base: string; products: Produc
         </Link>
       )}
       <ImageCreditsLink products={products} base={base} locale={locale} />
+      {showsPlatformSignature(business) && (
+        <PoweredBy label={t("poweredByBuyur", { brand: PLATFORM_BRANDING.name })} />
+      )}
     </div>
   );
 }
@@ -338,6 +360,9 @@ export function MenuProvider({
   const [products] = useState<Product[]>(initialProducts);
   const categoriesLoading = false;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const openInfo = useCallback(() => setInfoOpen(true), []);
+  const closeInfo = useCallback(() => setInfoOpen(false), []);
   // Sepete ekleme sonrası "yanına içecek" önerisi — oturum başına bir kez.
   const [upsell, setUpsell] = useState<{ addedName: string; items: Product[] } | null>(null);
   // Seçenekli bir ürün öneriden eklenirse, seçim penceresi onaylanınca kaynak korunur.
@@ -586,6 +611,7 @@ export function MenuProvider({
         categoriesLoading,
         imageByCategory,
         productCountByCategory,
+        openInfo,
       }}
     >
       <div
@@ -618,6 +644,7 @@ export function MenuProvider({
 
         <MenuHeader business={business} base={basePath} />
         {drawerOpen && <CategoryDrawer onClose={() => setDrawerOpen(false)} />}
+        {infoOpen && <BusinessInfoSheet business={business} onClose={closeInfo} />}
         <main className="mx-auto max-w-3xl">{children}</main>
         <MenuFooter base={basePath} products={products} locale={locale} />
 

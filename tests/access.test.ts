@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // testidir: B işletmesinin verisini A kullanıcısı olarak istemek MUTLAKA
 // başarısız olmalı.
 
+// Oturum = işletme hesabı: token'ın sahibi olan kayıt işletmenin kendisidir.
 const CURRENT_USER = "user_a_00000001";
 const OTHER_BUSINESS = "biz_b_000000001";
 
 let authShouldFail = false;
+/** Oturumdaki hesap. Boş dizi = kurulumu (ad/slug) tamamlanmamış hesap. */
 let ownedBusinesses: { id: string; name: string; plan: string; menu_views?: number }[] = [];
 
 vi.mock("pocketbase", () => {
@@ -20,7 +22,12 @@ vi.mock("pocketbase", () => {
       return {
         authRefresh: async () => {
           if (authShouldFail) throw new Error("invalid token");
-          return { record: { id: CURRENT_USER, email: "a@example.com" } };
+          const account = ownedBusinesses[0];
+          return {
+            record: account
+              ? { slug: "alpha", email: "a@example.com", ...account }
+              : { id: CURRENT_USER, email: "a@example.com", slug: "" },
+          };
         },
       };
     }
@@ -88,7 +95,7 @@ describe("kiracı izolasyonu", () => {
     });
   });
 
-  it("hiç işletmesi ve üyeliği olmayan kullanıcı veri alamaz", async () => {
+  it("kurulumu tamamlanmamış hesap (slug yok) veri alamaz", async () => {
     ownedBusinesses = [];
     await expect(resolveAnalyticsContext(request())).rejects.toMatchObject({ status: 404, code: "no_business" });
   });

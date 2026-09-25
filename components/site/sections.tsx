@@ -8,6 +8,8 @@ import { ClockIcon, MapPinIcon, PhoneIcon, WhatsappIcon } from "@/components/ico
 import { useSiteLocale } from "@/components/site/site-locale";
 import { ImageCreditList, productsNeedingCredit } from "@/components/menu/image-credit";
 import type { UIKey } from "@/lib/i18n";
+import { PLATFORM_BRANDING, showsPlatformSignature } from "@/lib/branding";
+import { PoweredBy } from "@/components/powered-by";
 
 // Otomatik web sitesinin bölümleri. Metin, seçili dile göre `useSiteLocale()`
 // (tf/t) üzerinden okunur — bkz. components/site/site-locale.tsx. Yalnızca
@@ -387,7 +389,9 @@ export function SiteFooter({ content, menuHref }: { content: SiteContent; menuHr
         >
           {t("openDigitalMenu")}
         </Link>
-        <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft/60">{t("poweredByBuyur")}</p>
+        {showsPlatformSignature(content.business) && (
+          <PoweredBy label={t("poweredByBuyur", { brand: PLATFORM_BRANDING.name })} />
+        )}
       </div>
     </footer>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { pb } from "@/lib/pocketbase";
 import { useToast } from "@/components/panel/toast";
+import { useConfirm } from "@/components/panel/confirm-dialog";
 import { Button, Card, Input, Label } from "@/components/panel/ui";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { activeLocales, mainLocale, tField, type TranslatableField, type Translations } from "@/lib/i18n";
@@ -17,6 +18,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const [confirm, confirmDialog] = useConfirm();
 
   const main = mainLocale(business);
 
@@ -24,14 +26,22 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
     load();
   }, [productId]);
 
+  // requestKey: null — tekrarlanan istek SDK tarafından iptal edilip yakalanmamış
+  // hataya dönmesin; hata olursa editör "yükleniyor"da asılı kalmasın.
   async function load() {
     setLoading(true);
-    const list = await pb.collection("buyur_product_options").getFullList<ProductOption>({
-      filter: pb.filter("product = {:id}", { id: productId }),
-      sort: "order,created",
-    });
-    setOptions(list);
-    setLoading(false);
+    try {
+      const list = await pb.collection("buyur_product_options").getFullList<ProductOption>({
+        filter: pb.filter("product = {:id}", { id: productId }),
+        sort: "order,created",
+        requestKey: null,
+      });
+      setOptions(list);
+    } catch {
+      toast("Seçenekler yüklenemedi, sayfayı yenile.", "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function startEdit(option: ProductOption) {
@@ -74,16 +84,28 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
       setForm(emptyForm);
       await load();
       toast(editing ? "Seçenek güncellendi" : "Seçenek eklendi");
+    } catch {
+      toast("Seçenek kaydedilemedi, tekrar dene.", "error");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Bu seçeneği silmek istediğine emin misin?")) return;
-    await pb.collection("buyur_product_options").delete(id);
-    await load();
-    toast("Seçenek silindi");
+  async function handleDelete(option: ProductOption) {
+    const ok = await confirm({
+      title: "Seçenek silinsin mi?",
+      description: `“${option.group_name}: ${option.name}” menüden kaldırılır.`,
+      confirmLabel: "Sil",
+      tone: "danger",
+    });
+    if (!ok) return;
+    try {
+      await pb.collection("buyur_product_options").delete(option.id, { requestKey: null });
+      setOptions((list) => list.filter((item) => item.id !== option.id));
+      toast("Seçenek silindi");
+    } catch {
+      toast("Seçenek silinemedi, tekrar dene.", "error");
+    }
   }
 
   return (
@@ -125,7 +147,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
               <button type="button" onClick={() => startEdit(opt)} className="text-xs text-ink-soft hover:text-paprika">
                 Düzenle
               </button>
-              <button type="button" onClick={() => handleDelete(opt.id)} className="text-xs text-ink-soft hover:text-paprika">
+              <button type="button" onClick={() => handleDelete(opt)} className="text-xs text-ink-soft hover:text-paprika">
                 Sil
               </button>
             </div>
@@ -169,6 +191,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
           </div>
         </form>
       )}
+      {confirmDialog}
     </Card>
   );
 }

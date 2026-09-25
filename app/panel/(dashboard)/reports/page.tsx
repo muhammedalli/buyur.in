@@ -4,10 +4,11 @@ import Link from "next/link";
 import { PageHeader } from "@/components/panel/ui";
 import { AnalyticsFilterBar } from "@/components/panel/analytics/filters";
 import { useAnalyticsQuery } from "@/components/panel/analytics/use-analytics";
-import { AnalyticsErrorState, PlanLocked } from "@/components/panel/analytics/states";
+import { AnalyticsErrorState } from "@/components/panel/analytics/states";
 import { FileTextIcon } from "@/components/icons";
 import { formatDateRange } from "@/components/panel/charts/chart-utils";
 import type { ReportDefinition } from "@/lib/analytics/reports";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 export default function ReportsPage() {
   const { data, meta, loading, error, reload } = useAnalyticsQuery<{
@@ -25,10 +26,10 @@ export default function ReportsPage() {
       <AnalyticsFilterBar />
 
       {error?.isPlanLocked && (
-        <PlanLocked
-          plan="Elite"
-          title="Rapor merkezi Elite'te"
-          description="Menü, ürün, kategori, müşteri davranışı ve trafik raporları ile yönetici özeti; PDF/CSV dışa aktarma Elite planla açılıyor."
+        <FeatureLocked
+          feature="advanced_reports"
+          subject="Rapor merkezi"
+          description="Menü, ürün, kategori, müşteri davranışı ve trafik raporları ile yönetici özeti; PDF/CSV dışa aktarma."
         />
       )}
       {error && !error.isPlanLocked && <AnalyticsErrorState error={error} onRetry={reload} />}

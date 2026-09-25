@@ -49,12 +49,12 @@ export async function POST(req: NextRequest) {
 
   const pb = createServerPB();
   pb.authStore.save(authHeader, null);
-  try { await pb.collection("buyur_users").authRefresh(); }
+  try { await pb.collection("buyur_businesses").authRefresh(); } // oturum = işletme hesabı
   catch { return NextResponse.json({ error: "Oturum geçersiz." }, { status: 401 }); }
   const userId = pb.authStore.record?.id;
 
   // 2) Girdi doğrulaması + sınır (ör. tek seferde en fazla 10 sayfa)
-  // 3) Sahiplik: business.owner === userId → değilse 403
+  // 3) Sahiplik: businessId === oturumdaki kayıt kimliği → değilse 403
   // 4) Plan/kota: entitlements üzerinden, elle plan karşılaştırması YOK
   // 5) Anahtar yoksa 500 + eyleme dönük Türkçe mesaj
   // 6) Model çağrısı

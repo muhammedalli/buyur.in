@@ -25,7 +25,7 @@ istenmiş olmalı.
 
 **Güvenlik — en yüksek öncelik**
 - [ ] `NEXT_PUBLIC_` önekiyle sızan gizli anahtar (`OPENAI_API_KEY`, MinIO, `PB_SERVICE_*`, cron secret)
-- [ ] Route handler'da eksik `authRefresh()` **veya** eksik sahiplik kontrolü (`business.owner === userId`)
+- [ ] Route handler'da eksik `authRefresh()` **veya** eksik sahiplik kontrolü (`businessId === oturumdaki işletme kaydının kimliği`, bkz. `lib/business-auth.ts`)
 - [ ] Sunucuda paylaşılan `pb` kullanımı — `createServerPB()` / `getServicePB()` olmalı
 - [ ] Filtrede string birleştirme — `pb.filter()` parametreli olmalı
 - [ ] Yükleme uçlarında eksik boyut / MIME / `kind` doğrulaması

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerPB } from "@/lib/pocketbase";
+import { authenticateBusiness } from "@/lib/business-auth";
 import { buildObjectPath, uploadImage, type UploadKind } from "@/lib/minio";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
@@ -15,15 +15,11 @@ export async function POST(req: NextRequest) {
   if (!authHeader) {
     return NextResponse.json({ error: "Giriş yapmalısınız." }, { status: 401 });
   }
-
-  const pb = createServerPB();
-  pb.authStore.save(authHeader, null);
-  try {
-    await pb.collection("buyur_users").authRefresh();
-  } catch {
+  // Oturumun sahibi işletme kaydının kendisidir.
+  const session = await authenticateBusiness(authHeader);
+  if (!session) {
     return NextResponse.json({ error: "Oturum geçersiz." }, { status: 401 });
   }
-  const userId = pb.authStore.record?.id;
 
   const form = await req.formData();
   const file = form.get("file");
@@ -44,15 +40,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Dosya en fazla 5MB olabilir." }, { status: 400 });
   }
 
-  let businessSlug: string;
-  try {
-    const business = await pb.collection("buyur_businesses").getOne(businessId);
-    if (business.owner !== userId) {
-      return NextResponse.json({ error: "Bu işletmeye erişiminiz yok." }, { status: 403 });
-    }
-    businessSlug = business.slug;
-  } catch {
-    return NextResponse.json({ error: "İşletme bulunamadı." }, { status: 404 });
+  if (businessId !== session.business.id) {
+    return NextResponse.json({ error: "Bu işletmeye erişiminiz yok." }, { status: 403 });
+  }
+  const businessSlug = session.business.slug;
+  if (!businessSlug) {
+    return NextResponse.json({ error: "Önce işletme kurulumunu tamamla." }, { status: 409 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useMenu } from "@/components/menu/menu-provider";
 import { CategoryTabs } from "@/components/menu/category-tabs";
+import { BusinessInfoCard } from "@/components/menu/business-info";
+import { HorizontalScroll } from "@/components/horizontal-scroll";
 import { FadeImg } from "@/components/menu/fade-img";
 import { BadgeIcon, ChevronRightIcon, MessageIcon, SearchIcon, SparklesIcon, StarIcon } from "@/components/icons";
 import { CategoryPlaceholder, ProductPlaceholder } from "@/components/menu/placeholder-art";
@@ -44,7 +46,7 @@ function CategoryTile({ category, image, count }: { category: Category; image?: 
 
       <div className="flex items-center justify-between gap-2 p-3 sm:p-3.5">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-[15px] font-bold leading-tight text-ink transition-colors group-hover:text-[var(--brand-text)]">
+          <p className="line-clamp-2 break-words font-display text-[15px] font-bold leading-tight text-ink transition-colors group-hover:text-[var(--brand-text)]">
             {tf(category, "name")}
           </p>
           {description && <p className="mt-0.5 line-clamp-1 text-xs text-ink-soft">{description}</p>}
@@ -169,7 +171,7 @@ function ReviewBanner() {
 }
 
 export default function MenuCategoriesPage() {
-  const { base, business, categories, products, categoriesLoading, imageByCategory, productCountByCategory, t, tf } =
+  const { base, categories, products, categoriesLoading, imageByCategory, productCountByCategory, openInfo, t } =
     useMenu();
 
   const featured = useMemo(
@@ -182,21 +184,25 @@ export default function MenuCategoriesPage() {
   }
 
   if (categories.length === 0) {
-    return <p className="py-20 text-center text-ink-soft">{t("menuPreparing")}</p>;
+    // Menü henüz boşken de işletme bilgilerine (adres, saat, WiFi) ulaşılabilsin.
+    return (
+      <div className="px-4 pt-4">
+        <BusinessInfoCard onOpen={openInfo} />
+        <p className="py-20 text-center text-ink-soft">{t("menuPreparing")}</p>
+      </div>
+    );
   }
-
-  const description = tf(business, "description");
 
   return (
     <div className="pb-8">
       <CategoryTabs />
 
-      {/* Tanıtım + arama çubuğu */}
-      <div className="px-4 pt-4">
-        {description && <p className="text-sm leading-relaxed text-ink-soft">{description}</p>}
+      {/* İşletme özeti (açıklama, saat, adres — dokununca tüm bilgiler) + arama */}
+      <div className="space-y-3.5 px-4 pt-4">
+        <BusinessInfoCard onOpen={openInfo} />
         <Link
           href={`${base}/search`}
-          className="mt-3.5 flex items-center gap-2.5 rounded-2xl border border-line/60 bg-crema/40 px-4 py-3 text-sm text-ink-soft shadow-xs transition-all duration-200 hover:border-[var(--brand)]/50 hover:bg-crema/70"
+          className="flex items-center gap-2.5 rounded-2xl border border-line/60 bg-crema/40 px-4 py-3 text-sm text-ink-soft shadow-xs transition-all duration-200 hover:border-[var(--brand)]/50 hover:bg-crema/70"
         >
           <SearchIcon size={18} className="text-ink-soft/70" />
           <span className="flex-1 text-ink-soft/80">{t("menuSearchCta")}…</span>
@@ -208,11 +214,15 @@ export default function MenuCategoriesPage() {
           <div className="flex items-center justify-between px-4">
             <h2 className="font-display text-lg font-bold tracking-tight">{t("menuFeatured")}</h2>
           </div>
-          <div className="mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <HorizontalScroll
+            className="mt-3"
+            innerClassName="flex snap-x snap-mandatory scroll-px-4 gap-3 px-4 pb-1"
+            moreLabel={t("scrollMore")}
+          >
             {featured.map((product) => (
               <FeaturedCard key={product.id} product={product} />
             ))}
-          </div>
+          </HorizontalScroll>
         </section>
       )}
 

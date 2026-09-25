@@ -14,7 +14,7 @@ export function TrialBanner() {
   if (!business) return null;
 
   const usage = freemiumUsage(business);
-  const message = planUsageMessage(usage);
+  const message = planUsageMessage(usage, business.plan);
   if (!message) return null;
 
   return (

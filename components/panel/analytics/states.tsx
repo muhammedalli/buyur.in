@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LockIcon } from "@/components/icons";
 import { ChartSkeleton } from "@/components/panel/charts/frame";
 import type { AnalyticsError } from "@/lib/analytics/panel-client";
 
@@ -21,31 +20,6 @@ export function AnalyticsSkeleton() {
       <div className="rounded-2xl border border-line bg-paper p-5">
         <ChartSkeleton height={240} />
       </div>
-    </div>
-  );
-}
-
-/** Plana dahil olmayan bölümlerin yerine geçen yükseltme kartı. */
-export function PlanLocked({
-  title,
-  description,
-  plan = "Premium",
-}: {
-  title: string;
-  description: string;
-  plan?: string;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-paprika/40 bg-paprika/5 px-6 py-14 text-center">
-      <LockIcon size={22} className="text-paprika" />
-      <p className="font-display text-lg font-bold">{title}</p>
-      <p className="max-w-md text-sm text-ink-soft">{description}</p>
-      <Link
-        href="/panel/plan"
-        className="mt-1 inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 font-mono text-[13px] uppercase tracking-wider text-paper transition-colors hover:bg-paprika"
-      >
-        {plan}&apos;a yükselt
-      </Link>
     </div>
   );
 }

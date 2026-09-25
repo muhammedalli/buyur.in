@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useBusiness } from "@/components/panel/business-context";
-import { Card, PageHeader, Spinner, UpgradeNotice } from "@/components/panel/ui";
+import { buttonClass, Card, PageHeader, Spinner } from "@/components/panel/ui";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 import { MenuImport } from "@/components/panel/ai/menu-import";
-import { aiUsage, isFeatureAvailable } from "@/lib/entitlements";
+import { PLAN_LABELS_DATIVE, aiUsage, entitlementsFor, isFeatureAvailable, upgradePlans } from "@/lib/entitlements";
 import { SparklesIcon } from "@/components/icons";
 
 // Yapay Zeka — fiziksel menüyü dijitale taşıyan tek ekran.
@@ -28,15 +30,22 @@ export default function AiPage() {
     return (
       <>
         <PageHeader title="Yapay Zeka" description="Menünüzü yapay zekâ ile hazırlayın." />
-        <UpgradeNotice
-          title="Yapay zekâ araçları planınızda kapalı"
-          description="Fiziksel menünüzü fotoğraftan otomatik aktarmak için planınızı yükseltin."
+        <FeatureLocked
+          feature="ai_menu_import"
+          subject="Yapay zekâ ile menü aktarımı"
+          description="Fiziksel menünüzün fotoğrafından ürünler otomatik okunup listeye eklenir."
         />
       </>
     );
   }
 
   const usage = aiUsage(business);
+  // "Daha fazlası için yükselt" yalnızca gerçekten daha çok hak veren bir üst
+  // plan varsa söylenir — en üst planda (Elite) böyle bir yol yok.
+  const moreScansPlan = upgradePlans(business.plan).find((plan) => {
+    const limit = entitlementsFor(plan).limits.aiScansPerMonth;
+    return limit === null || (usage.limit !== null && limit > usage.limit);
+  });
 
   return (
     <>
@@ -59,9 +68,14 @@ export default function AiPage() {
         <Card className="border-paprika/40 bg-paprika/5 text-center">
           <p className="font-display text-lg font-bold">Bu ayki tarama hakkınız doldu</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-            {usage.limit} taramanın tamamını kullandınız. Hakkınız gelecek ay yenilenir; daha fazlası için
-            planınızı yükseltebilirsiniz.
+            {usage.limit} taramanın tamamını kullandınız. Hakkınız gelecek ay yenilenir.
+            {moreScansPlan && ` Daha fazla tarama için ${PLAN_LABELS_DATIVE[moreScansPlan]} yükseltebilirsiniz.`}
           </p>
+          {moreScansPlan && (
+            <Link href="/panel/plan" className={buttonClass("primary", "mt-4")}>
+              {PLAN_LABELS_DATIVE[moreScansPlan]} yükselt
+            </Link>
+          )}
         </Card>
       ) : (
         <MenuImport business={business} />

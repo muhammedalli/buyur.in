@@ -6,6 +6,8 @@
 // kullanıcının onayından sonra panelde gerçekleşir.
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServicePB } from "@/lib/pocketbase-server";
+import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { guardAiRequest, openaiClient, isGuardFailure, MENU_MODEL } from "@/lib/ai/guard";
 import { localeLabels, mainLocale } from "@/lib/i18n";
 import { buildScanPrompt, normalizeScanResult } from "@/lib/ai/menu-scan";
@@ -79,7 +81,7 @@ export async function POST(req: NextRequest) {
 
   const guard = await guardAiRequest(req.headers.get("authorization"), body.businessId, "ai_menu_import");
   if (isGuardFailure(guard)) return guard.response;
-  const { business, pb } = guard;
+  const { business } = guard;
 
   // Kota: plan başına aylık tarama hakkı (lib/entitlements.ts → aiUsage).
   const usage = aiUsage(business);
@@ -163,10 +165,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Kota yalnızca gerçekten sonuç üreten tarama için harcanır.
+    // Kota yalnızca gerçekten sonuç üreten tarama için harcanır. Sayaç
+    // servis hesabıyla yazılır: hesap sahibi kendi kaydında kota alanlarını
+    // değiştiremez (aksi hâlde sayacı sıfırlayıp kotayı aşabilirdi).
     const period = aiPeriodKey();
     try {
-      await pb.collection("buyur_businesses").update(business.id, {
+      const service = await getServicePB();
+      await service.collection(BUSINESS_COLLECTION).update(business.id, {
         ai_scans_used: usage.used + 1,
         ai_scans_period: period,
       });

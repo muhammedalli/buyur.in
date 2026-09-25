@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getServicePB, hasServiceCredentials } from "@/lib/pocketbase-server";
+import { findBusinessByEmail } from "@/lib/business-auth";
 import { isEmailConfigured, sendOtpEmail } from "@/lib/email";
 import {
   OTP_TTL_MINUTES,
@@ -9,6 +10,7 @@ import {
   normalizeEmail,
 } from "@/lib/otp";
 import { clearOtpRecords, createOtpRecord, findOtpRecord } from "@/lib/otp-store";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 // Kayıt akışının ilk adımı: adrese 6 haneli doğrulama kodu gönderir.
 // Kod burada üretilir ve yalnızca özeti saklanır; yanıt hiçbir koşulda kodu
@@ -19,31 +21,7 @@ export const dynamic = "force-dynamic";
 
 /** Aynı IP'den saatte gönderilebilecek kod sayısı. Gerçek bir kullanıcı bir
  *  kayıt için 1-2 kod ister; üstü deneme/spam demektir. */
-const RATE_LIMIT_PER_HOUR = 10;
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
-
-function clientIp(req: NextRequest): string {
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]!.trim();
-  return req.headers.get("x-real-ip") ?? "unknown";
-}
-
-function withinRateLimit(ip: string): boolean {
-  const now = Date.now();
-  if (rateBuckets.size > 500) {
-    for (const [key, bucket] of rateBuckets) {
-      if (bucket.resetAt <= now) rateBuckets.delete(key);
-    }
-  }
-  const bucket = rateBuckets.get(ip);
-  if (!bucket || bucket.resetAt <= now) {
-    rateBuckets.set(ip, { count: 1, resetAt: now + 3_600_000 });
-    return true;
-  }
-  if (bucket.count >= RATE_LIMIT_PER_HOUR) return false;
-  bucket.count += 1;
-  return true;
-}
+const withinRateLimit = createRateLimiter(10, 3_600_000);
 
 export async function POST(req: NextRequest) {
   if (!hasServiceCredentials() || !isEmailConfigured()) {
@@ -71,13 +49,8 @@ export async function POST(req: NextRequest) {
     const pb = await getServicePB();
 
     // Zaten kayıtlı adrese kod göndermeyiz: kullanıcı kayıt yerine giriş yapmalı.
-    try {
-      await pb
-        .collection("buyur_users")
-        .getFirstListItem(pb.filter("email = {:email}", { email }), { requestKey: null });
+    if (await findBusinessByEmail(pb, email)) {
       return NextResponse.json({ error: "Bu e-posta zaten kayıtlı. Giriş yapmayı dene." }, { status: 409 });
-    } catch (err) {
-      if ((err as { status?: number })?.status !== 404) throw err;
     }
 
     const existing = await findOtpRecord(pb, email);

@@ -7,7 +7,6 @@ import {
   AnalyticsErrorState,
   AnalyticsSkeleton,
   NoDataYet,
-  PlanLocked,
   Refreshable,
 } from "@/components/panel/analytics/states";
 import { InsightsPanel } from "@/components/panel/analytics/insights-panel";
@@ -19,6 +18,7 @@ import { FunnelChart, type FunnelStep } from "@/components/panel/charts/funnel-c
 import { StatTile } from "@/components/panel/charts/stat-tile";
 import { formatCompact, formatDateRange, formatDuration, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 interface SeriesPoint {
   date: string;
@@ -276,9 +276,10 @@ export default function AnalyticsOverviewPage() {
                   </ChartFrame>
                 </>
               ) : (
-                <PlanLocked
-                  title="Gelişmiş analizler Premium'da"
-                  description="Dönem karşılaştırması, müşteri yolculuğu hunisi, trafik kaynakları, ürün ve kategori performansı, saat/gün analizi ve drill-down Premium planla açılıyor."
+                <FeatureLocked
+                  feature="advanced_analytics"
+                  subject="Gelişmiş analizler"
+                  description="Dönem karşılaştırması, müşteri yolculuğu hunisi, trafik kaynakları, ürün ve kategori performansı, saat/gün analizi ve drill-down."
                 />
               )}
             </div>

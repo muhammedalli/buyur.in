@@ -11,13 +11,13 @@ import {
   AnalyticsErrorState,
   AnalyticsSkeleton,
   NoDataYet,
-  PlanLocked,
   Refreshable,
 } from "@/components/panel/analytics/states";
 import { OpportunityBadge } from "@/components/panel/analytics/opportunity-badge";
 import { formatChange, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import type { Opportunity } from "@/lib/analytics/opportunities";
 import type { Category } from "@/lib/types";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 interface ProductRow {
   key: string;
@@ -126,9 +126,10 @@ export default function ProductAnalyticsPage() {
 
       {loading && !data && <AnalyticsSkeleton />}
       {error?.isPlanLocked && (
-        <PlanLocked
-          title="Ürün analitiği Premium'da"
-          description="Ürün bazında görüntülenme, sepete ekleme, dönüşüm ve fırsat analizi Premium planla açılıyor."
+        <FeatureLocked
+          feature="advanced_analytics"
+          subject="Ürün analitiği"
+          description="Ürün bazında görüntülenme, sepete ekleme, dönüşüm ve fırsat analizi."
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}

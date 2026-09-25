@@ -158,8 +158,10 @@ describe("günlük agregasyon", () => {
     );
 
     expect(find(rows, "funnel", "menu_open")!.metrics.sessions).toBe(2);
-    expect(find(rows, "funnel", "category_view")!.metrics.sessions).toBe(1);
+    expect(find(rows, "funnel", "product_view")!.metrics.sessions).toBe(1);
     expect(find(rows, "funnel", "add_to_cart")!.metrics.sessions).toBe(1);
+    // Kategori yan daldır, huni adımı değildir (bkz. lib/analytics/funnel.ts).
+    expect(find(rows, "funnel", "category_view")).toBeUndefined();
     expect(find(rows, "funnel", "cart_view")).toBeUndefined(); // sıfır metrikli satır yazılmaz
   });
 

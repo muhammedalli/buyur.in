@@ -1,5 +1,6 @@
 import type PocketBase from "pocketbase";
 import { businessTimezone, dayBoundsUtc, dayKey, zonedParts } from "@/lib/analytics/time";
+import { FUNNEL_STEPS, FunnelTracker } from "@/lib/analytics/funnel";
 import type { Business, DailyStat, MenuEvent, MenuSession, StatDimension } from "@/lib/types";
 
 // Günlük agregasyon. Panel sorguları ham event taramaz; her işletme-günü için
@@ -121,15 +122,6 @@ const PRODUCT_EVENTS = new Set<MenuEvent["type"]>([
   "remove_from_cart",
 ]);
 
-const FUNNEL_STEPS: { key: string; label: string; types: MenuEvent["type"][] }[] = [
-  { key: "menu_open", label: "Menü açıldı", types: ["session_start", "page_view"] },
-  { key: "category_view", label: "Kategori görüntülendi", types: ["category_view"] },
-  { key: "product_view", label: "Ürün görüntülendi", types: ["product_view"] },
-  { key: "product_detail", label: "Ürün detayı açıldı", types: ["product_detail_view"] },
-  { key: "add_to_cart", label: "Sepete eklendi", types: ["add_to_cart"] },
-  { key: "cart_view", label: "Sepet görüntülendi", types: ["cart_view"] },
-];
-
 const TOTAL_EVENT_METRIC: Partial<Record<MenuEvent["type"], string>> = {
   page_view: "page_views",
   qr_scan: "qr_scans",
@@ -191,7 +183,7 @@ export function buildDailyRows(events: MenuEvent[], sessions: MenuSession[], tim
   builder.add("total", "", "Toplam", "duration_sum", durationSum);
 
   // ─── Event tabanlı metrikler ───
-  const funnelSeen = new Map<string, Set<string>>();
+  const funnel = new FunnelTracker();
   const lastCategoryBySession = new Map<string, { id: string; label: string }>();
 
   const ordered = events
@@ -221,16 +213,9 @@ export function buildDailyRows(events: MenuEvent[], sessions: MenuSession[], tim
       builder.add("hour", "engagement", "Ürün etkileşimi (saat)", String(hour));
     }
 
-    // Funnel: adım başına tekil oturum sayısı.
-    for (const step of FUNNEL_STEPS) {
-      if (!step.types.includes(event.type)) continue;
-      let seen = funnelSeen.get(step.key);
-      if (!seen) {
-        seen = new Set();
-        funnelSeen.set(step.key, seen);
-      }
-      if (event.session) seen.add(event.session);
-    }
+    // Huni: adım başına tekil oturum (kural lib/analytics/funnel.ts'te; event'ler
+    // zaman sırasıyla geldiği için "ekledikten sonra sepeti açtı" ayrımı yapılabiliyor).
+    funnel.observe(event.type, event.session);
 
     const source = event.source || "direct";
     const device = event.device || "mobile";
@@ -309,8 +294,9 @@ export function buildDailyRows(events: MenuEvent[], sessions: MenuSession[], tim
     }
   }
 
+  const funnelCounts = funnel.counts();
   for (const step of FUNNEL_STEPS) {
-    builder.add("funnel", step.key, step.label, "sessions", funnelSeen.get(step.key)?.size ?? 0);
+    builder.add("funnel", step.key, step.label, "sessions", funnelCounts[step.key]);
   }
 
   return builder.finalize();

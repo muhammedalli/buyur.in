@@ -2,12 +2,12 @@
 
 import { useAnalyticsQuery } from "@/components/panel/analytics/use-analytics";
 import { ChartFrame } from "@/components/panel/charts/frame";
-import { PlanLocked } from "@/components/panel/analytics/states";
 import { STATUS } from "@/components/panel/charts/palette";
 import { formatNumber } from "@/components/panel/charts/chart-utils";
 import type { Insight, InsightKind } from "@/lib/analytics/insights";
 import type { MenuScore } from "@/lib/analytics/score";
 import { MIN_SESSIONS_FOR_SCORE } from "@/lib/analytics/score";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 // İçgörüler ve menü performans skoru. Skor kara kutu değil: bileşenleri,
 // hedefleri ve ağırlıkları ekranda açık.
@@ -108,9 +108,10 @@ export function InsightsPanel() {
 
   if (error?.isPlanLocked) {
     return (
-      <PlanLocked
-        title="Otomatik içgörüler Premium'da"
-        description="Menünüzdeki anlamlı değişimleri yakalayan içgörüler ve menü performans skoru Premium planla açılıyor."
+      <FeatureLocked
+        feature="insights"
+        subject="Otomatik içgörüler"
+        description="Menünüzdeki anlamlı değişimleri yakalayan içgörüler ve menü performans skoru."
       />
     );
   }

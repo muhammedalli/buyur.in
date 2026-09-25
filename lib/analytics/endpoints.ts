@@ -21,6 +21,7 @@ import {
   type OverviewTotals,
 } from "@/lib/analytics/query";
 import { classifyProduct, computeBenchmarks } from "@/lib/analytics/opportunities";
+import { buildFunnel, type FunnelStepResult } from "@/lib/analytics/funnel";
 import { isFeatureAvailable } from "@/lib/entitlements";
 import { REPORT_DEFINITIONS, buildReport, isReportType } from "@/lib/analytics/reports";
 import type { DailyStat, StatDimension } from "@/lib/types";
@@ -85,20 +86,13 @@ function changesBetween(current: OverviewTotals, previous: OverviewTotals | null
   return changes;
 }
 
-const FUNNEL_ORDER = ["menu_open", "category_view", "product_view", "product_detail", "add_to_cart", "cart_view"];
-
-function funnelFrom(rows: DailyStat[]): { key: string; label: string; sessions: number; conversion: number | null; dropoff: number | null }[] {
-  const entries = new Map(groupDimension(rows, "funnel").map((entry) => [entry.key, entry]));
-
-  let previousValue: number | null = null;
-  return FUNNEL_ORDER.map((key) => {
-    const entry = entries.get(key);
-    const sessions = entry?.metrics.sessions ?? 0;
-    const conversion = previousValue === null ? null : previousValue > 0 ? sessions / previousValue : 0;
-    const dropoff = conversion === null ? null : 1 - conversion;
-    previousValue = sessions;
-    return { key, label: entry?.label || key, sessions, conversion, dropoff };
-  });
+/** Adım sırası ve etiketleri lib/analytics/funnel.ts'ten gelir; satırlardan
+ *  yalnızca sayı okunur (sıfır oturumlu adımın satırı hiç yazılmaz). */
+function funnelFrom(rows: DailyStat[]): FunnelStepResult[] {
+  const counts = Object.fromEntries(
+    groupDimension(rows, "funnel").map((entry) => [entry.key, entry.metrics.sessions ?? 0])
+  );
+  return buildFunnel(counts);
 }
 
 // ─── Uçlar ────────────────────────────────────────────────────────────

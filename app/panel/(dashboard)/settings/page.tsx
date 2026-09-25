@@ -11,6 +11,8 @@ import { surfaces, DEFAULT_SURFACE } from "@/lib/surfaces";
 import { isValidHex } from "@/lib/color";
 import { fonts, DEFAULT_FONT, getFontStack } from "@/lib/fonts";
 import { ROOT_DOMAIN } from "@/lib/site";
+import { checkBusinessPhone } from "@/lib/phone";
+import { BUSINESS_COLLECTION, contactEmailPatch, publicContactEmail } from "@/lib/business-account";
 import { highlightLabels } from "@/lib/labels";
 import { HighlightIcon } from "@/components/icons";
 import { Card, ErrorText, FormActions, FormStatusFooter, Input, Label, PageHeader, SaveStatus, Select, Spinner, Tabs, Textarea } from "@/components/panel/ui";
@@ -153,7 +155,9 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
   const [name, setName] = useState(business.name);
   const [slug, setSlug] = useState(business.slug);
   const [description, setDescription] = useState(business.description);
-  const [email, setEmail] = useState(business.email);
+  // Menüde görünen e-posta: ayrı bir iletişim adresi ya da (görünürlüğü
+  // açıksa) giriş e-postası. Tek kaynak kuralı lib/business-account.ts'te.
+  const [email, setEmail] = useState(publicContactEmail(business));
   const [phone, setPhone] = useState(business.phone);
   const [address, setAddress] = useState(business.address);
   const [workingHours, setWorkingHours] = useState(business.working_hours);
@@ -222,6 +226,18 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
       setError("Bu menü adresi sisteme ayrılmış, başka bir tane seç.");
       return;
     }
+    // Numaralar tek biçimde saklanır ki menüdeki arama/WhatsApp bağlantıları kırılmasın.
+    const phoneCheck = checkBusinessPhone(phone);
+    const whatsappCheck = checkBusinessPhone(whatsapp);
+    if (!phoneCheck.ok || !whatsappCheck.ok) {
+      const message = !phoneCheck.ok
+        ? `Telefon: ${phoneCheck.error}`
+        : `WhatsApp: ${!whatsappCheck.ok ? whatsappCheck.error : ""}`;
+      setTab(!phoneCheck.ok ? "genel" : "sosyal");
+      setError(message);
+      toast(message, "error");
+      return;
+    }
     setSaving(true);
     try {
       // Ana dil değiştiyse önce menü içeriği (kategori/ürün/seçenek/popup) yeni
@@ -252,16 +268,16 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         baseTranslations = rebased.translations;
       }
 
-      const updated = await pb.collection("buyur_businesses").update<Business>(business.id, {
+      const updated = await pb.collection(BUSINESS_COLLECTION).update<Business>(business.id, {
         name,
         slug: slugify(slug),
         description: baseDescription,
-        email,
-        phone,
+        ...contactEmailPatch(email, business.email),
+        phone: phoneCheck.value,
         address,
         working_hours: workingHours,
         highlights,
-        whatsapp,
+        whatsapp: whatsappCheck.value,
         instagram,
         tiktok,
         youtube,
@@ -282,6 +298,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
       });
       // Taşıma sonrası form da yeni baz dile göre görünmeli.
       setDescription(baseDescription);
+      setPhone(phoneCheck.value);
+      setWhatsapp(whatsappCheck.value);
       setTranslations(baseTranslations);
       onSaved(updated);
       setSavedAt(Date.now());
@@ -365,14 +383,25 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="b-email">E-posta</Label>
+                  <Label htmlFor="b-email">Menüde görünen e-posta</Label>
                   <Input id="b-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="merhaba@isletme.com" />
                 </div>
                 <div>
                   <Label htmlFor="b-phone">Telefon</Label>
-                  <Input id="b-phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0555 123 45 67" />
+                  <Input
+                    id="b-phone"
+                    type="tel"
+                    inputMode="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0532 123 45 67"
+                  />
                 </div>
               </div>
+              <p className="text-xs text-ink-soft">
+                Bu bilgiler menüdeki &ldquo;İşletme bilgileri&rdquo; bölümünde müşterilere görünür. E-posta boşsa
+                gösterilmez; giriş e-postanı yazarsan onu gösteririz{business.email ? ` (${business.email})` : ""}.
+              </p>
             </Card>
           </div>
         )}
@@ -694,7 +723,14 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="b-whatsapp">WhatsApp</Label>
-                <Input id="b-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="+90 555 123 45 67" />
+                <Input
+                  id="b-whatsapp"
+                  type="tel"
+                  inputMode="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="0532 123 45 67"
+                />
               </div>
               <div>
                 <Label htmlFor="b-instagram">Instagram</Label>

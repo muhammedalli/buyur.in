@@ -8,7 +8,7 @@ description: PocketBase şemasına yeni alan veya koleksiyon eklerken, mevcut ku
 ## Koleksiyonlar
 
 `buyur_businesses`, `buyur_categories`, `buyur_products`,
-`buyur_product_options`, `buyur_popups`, `buyur_users`, `buyur_admins`,
+`buyur_product_options`, `buyur_popups`, `buyur_admins`,
 `buyur_plans`, `buyur_events`, `buyur_sessions`, `buyur_stats_daily`,
 `buyur_qr_codes`, `buyur_reviews`, `buyur_admin_logs`
 
@@ -71,14 +71,14 @@ export async function POST(req: NextRequest) {
   const pb = createServerPB();
   pb.authStore.save(authHeader, null);
   try {
-    await pb.collection("buyur_users").authRefresh();
+    await pb.collection("buyur_businesses").authRefresh(); // oturum = işletme hesabı (lib/business-auth.ts)
   } catch {
     return NextResponse.json({ error: "Oturum geçersiz." }, { status: 401 });
   }
   const userId = pb.authStore.record?.id;
 
   // 3) Girdi doğrulaması → 400
-  // 4) Sahiplik: business.owner === userId → değilse 403
+  // 4) Sahiplik: istenen işletme kimliği === oturumdaki kayıt kimliği → değilse 403
   // 5) Kaynak yoksa 404
   // 6) İş
 }

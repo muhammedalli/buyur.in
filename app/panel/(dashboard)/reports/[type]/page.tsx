@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { buttonClass, PageHeader } from "@/components/panel/ui";
 import { AnalyticsFilterBar } from "@/components/panel/analytics/filters";
 import { useAnalyticsQuery } from "@/components/panel/analytics/use-analytics";
-import { AnalyticsErrorState, AnalyticsSkeleton, NoDataYet, PlanLocked } from "@/components/panel/analytics/states";
+import { AnalyticsErrorState, AnalyticsSkeleton, NoDataYet } from "@/components/panel/analytics/states";
 import { LineChart } from "@/components/panel/charts/line-chart";
 import { ArrowLeftIcon, FileTextIcon } from "@/components/icons";
 import { buildCsv, downloadCsv } from "@/lib/analytics/export-csv";
@@ -18,6 +18,7 @@ import {
   formatPercent,
 } from "@/components/panel/charts/chart-utils";
 import type { ReportPayload } from "@/lib/analytics/reports";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 // Rapor görünümü aynı zamanda yazdırma çıktısıdır: @media print kuralları
 // (app/globals.css) panel kabuğunu gizler, kartları sayfaya böler. Böylece PDF
@@ -93,10 +94,10 @@ export default function ReportDetailPage() {
 
       {loading && !data && <AnalyticsSkeleton />}
       {error?.isPlanLocked && (
-        <PlanLocked
-          plan="Elite"
-          title="Raporlar Elite'te"
-          description="Hazır iş raporları ve dışa aktarma Elite planla açılıyor."
+        <FeatureLocked
+          feature="advanced_reports"
+          subject="Raporlar"
+          description="Hazır iş raporları ve dışa aktarma."
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}

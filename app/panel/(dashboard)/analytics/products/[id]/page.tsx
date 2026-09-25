@@ -9,7 +9,6 @@ import {
   AnalyticsErrorState,
   AnalyticsSkeleton,
   NoDataYet,
-  PlanLocked,
   Refreshable,
 } from "@/components/panel/analytics/states";
 import { ChartFrame } from "@/components/panel/charts/frame";
@@ -19,6 +18,7 @@ import { BarList } from "@/components/panel/charts/bar-chart";
 import { formatCompact, formatDateRange, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { ArrowLeftIcon } from "@/components/icons";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 interface SeriesPoint {
   date: string;
@@ -70,9 +70,10 @@ export default function ProductPerformancePage() {
 
       {loading && !data && <AnalyticsSkeleton />}
       {error?.isPlanLocked && (
-        <PlanLocked
-          title="Ürün performansı Premium'da"
-          description="Tek ürün bazında zaman serisi, dönüşüm ve kategori kıyası Premium planla açılıyor."
+        <FeatureLocked
+          feature="advanced_analytics"
+          subject="Ürün performansı"
+          description="Tek ürün bazında zaman serisi, dönüşüm ve kategori kıyası."
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}

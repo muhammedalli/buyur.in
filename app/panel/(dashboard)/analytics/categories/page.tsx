@@ -8,13 +8,13 @@ import {
   AnalyticsErrorState,
   AnalyticsSkeleton,
   NoDataYet,
-  PlanLocked,
   Refreshable,
 } from "@/components/panel/analytics/states";
 import { ChartFrame } from "@/components/panel/charts/frame";
 import { BarList } from "@/components/panel/charts/bar-chart";
 import { formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 interface CategoryRow {
   key: string;
@@ -47,9 +47,10 @@ export default function CategoryAnalyticsPage() {
 
       {loading && !data && <AnalyticsSkeleton />}
       {error?.isPlanLocked && (
-        <PlanLocked
-          title="Kategori analitiği Premium'da"
-          description="Kategori bazında görüntülenme, dönüşüm ve karşılaştırma Premium planla açılıyor."
+        <FeatureLocked
+          feature="advanced_analytics"
+          subject="Kategori analitiği"
+          description="Kategori bazında görüntülenme, dönüşüm ve karşılaştırma."
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}

@@ -10,14 +10,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  // Sıfırlama bağlantısı oturum açıkken de çalışmalı: kullanıcı şifresini
+  // unuttuğu cihazdan başka bir cihazda hâlâ girişli olabilir.
+  const allowSignedIn = pathname?.startsWith("/panel/reset-password") ?? false;
 
   useEffect(() => {
-    if (!isLoading && user) {
+    if (!isLoading && user && !allowSignedIn) {
       router.replace("/panel");
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user, router, allowSignedIn]);
 
-  if (isLoading || user) {
+  if (isLoading || (user && !allowSignedIn)) {
     return null;
   }
 

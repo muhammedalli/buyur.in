@@ -6,7 +6,7 @@ import Link from "next/link";
 import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { ProductForm } from "@/components/panel/product-form";
-import { Button, EmptyState, PageHeader } from "@/components/panel/ui";
+import { buttonClass, EmptyState, PageHeader } from "@/components/panel/ui";
 import type { Category } from "@/lib/types";
 
 export default function NewProductPage() {
@@ -35,8 +35,8 @@ export default function NewProductPage() {
         title="Önce bir kategori oluştur"
         description="Ürün eklemeden önce en az bir kategori gerekiyor."
         action={
-          <Link href="/panel/categories">
-            <Button>Kategori oluştur</Button>
+          <Link href="/panel/categories" className={buttonClass("primary")}>
+            Kategori oluştur
           </Link>
         }
       />

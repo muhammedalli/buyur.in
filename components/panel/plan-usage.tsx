@@ -5,8 +5,17 @@ import type { ReactNode } from "react";
 import { ClockIcon, EyeIcon, LockIcon } from "@/components/icons";
 import { STATUS } from "@/components/panel/charts/palette";
 import { formatNumber } from "@/components/panel/charts/chart-utils";
-import { PLAN_LABELS, entitlementsFor, freemiumLimits, freemiumUsage, type FreemiumUsage } from "@/lib/entitlements";
-import type { Business } from "@/lib/types";
+import {
+  PLAN_LABELS,
+  PLAN_LABELS_DATIVE,
+  entitlementsFor,
+  freemiumLimits,
+  freemiumUsage,
+  normalizePlan,
+  upgradePlans,
+  type FreemiumUsage,
+} from "@/lib/entitlements";
+import type { Business, Plan } from "@/lib/types";
 import { buttonClass } from "@/components/panel/ui";
 
 // Freemium kullanımının tek görsel kaynağı: süre ve menü görüntülenme, yan yana.
@@ -44,8 +53,9 @@ function Meter({ label, value, hint, ratio, icon }: { label: string; value: stri
   );
 }
 
-export function planUsageMessage(usage: FreemiumUsage): { title: string; detail: string } | null {
+export function planUsageMessage(usage: FreemiumUsage, plan: Plan): { title: string; detail: string } | null {
   if (!usage.limited) return null;
+  const next = upgradePlans(plan)[0];
 
   if (usage.exhausted) {
     return usage.reason === "menu_views"
@@ -63,7 +73,9 @@ export function planUsageMessage(usage: FreemiumUsage): { title: string; detail:
     case 90:
       return {
         title: "Freemium limitinize yaklaşıyorsunuz",
-        detail: "Premium'a geçerek sınırsız menü görüntülenmesiyle kesintisiz devam edin.",
+        detail: next
+          ? `${PLAN_LABELS_DATIVE[next]} geçerek kesintisiz devam edin.`
+          : "Limit dolmadan bizimle iletişime geçin.",
       };
     case 75:
       return {
@@ -83,7 +95,7 @@ export function planUsageMessage(usage: FreemiumUsage): { title: string; detail:
 /** Panelde plan durumunu ve Freemium kullanımını gösteren kart. */
 export function PlanUsageCard({ business, compact = false }: { business: Business; compact?: boolean }) {
   const usage = freemiumUsage(business);
-  const plan = business.plan;
+  const plan = normalizePlan(business.plan);
   const entitlements = entitlementsFor(plan);
 
   if (!usage.limited) {
@@ -108,8 +120,11 @@ export function PlanUsageCard({ business, compact = false }: { business: Busines
   }
 
   const viewRatio = usage.menuViewLimit ? usage.menuViews / usage.menuViewLimit : 0;
-  const timeRatio = usage.daysLeft === null ? 0 : 1 - Math.min(1, usage.daysLeft / 90);
-  const message = planUsageMessage(usage);
+  // Süre çubuğu planın gerçek süresine göre dolar (sabit 90 gün değil).
+  const totalDays = entitlements.limits.durationMonths ? entitlements.limits.durationMonths * 30 : null;
+  const timeRatio = usage.daysLeft === null || !totalDays ? 0 : 1 - Math.min(1, usage.daysLeft / totalDays);
+  const message = planUsageMessage(usage, plan);
+  const upgrades = upgradePlans(plan);
 
   return (
     <div className="rounded-2xl border border-line bg-paper p-5">
@@ -152,20 +167,15 @@ export function PlanUsageCard({ business, compact = false }: { business: Busines
             {message.title}
           </p>
           <p className="mt-0.5 text-sm text-ink-soft">{message.detail}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link
-              href="/panel/plan"
-              className={buttonClass("primary")}
-            >
-              Premium&apos;a geç
-            </Link>
-            <Link
-              href="/panel/plan"
-              className="rounded-md border border-line px-4 py-2 font-mono text-[12px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika"
-            >
-              Elite&apos;e geç
-            </Link>
-          </div>
+          {upgrades.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {upgrades.map((target, index) => (
+                <Link key={target} href="/panel/plan" className={buttonClass(index === 0 ? "primary" : "outline")}>
+                  {PLAN_LABELS_DATIVE[target]} geç
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

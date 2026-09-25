@@ -4,14 +4,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
-import { useAuth } from "@/lib/use-auth";
 import { useBusiness } from "@/components/panel/business-context";
 import { isReservedSlug, slugify } from "@/lib/slug";
-import { Button, buttonClass, Card, ErrorText, FooterNote, Input, Label, PageHeader, UpdatedAt, UpgradeNotice } from "@/components/panel/ui";
+import { Button, buttonClass, Card, ErrorText, FooterNote, Input, Label, PageHeader, UpdatedAt } from "@/components/panel/ui";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 import { QrShare } from "@/components/panel/qr-share";
 import { PlanUsageCard } from "@/components/panel/plan-usage";
 import { LaunchChecklist } from "@/components/panel/launch-checklist";
-import { addMonths } from "@/lib/plan-period";
 import { ROOT_DOMAIN, menuHost } from "@/lib/site";
 import { AnalyticsError, fetchAnalytics } from "@/lib/analytics/panel-client";
 import { PLAN_LABELS, isFeatureAvailable, normalizePlan } from "@/lib/entitlements";
@@ -19,7 +18,8 @@ import { SECTOR_TEMPLATES, sectorTemplate, type SectorKey } from "@/lib/sector-t
 import { saveActivation } from "@/lib/activation";
 import { trackMarketingEvent } from "@/lib/marketing-events";
 import { readPlanIntent, type PlanIntent } from "@/lib/plan-intent";
-import type { Business, Plan, PlanRecord } from "@/lib/types";
+import { BUSINESS_COLLECTION } from "@/lib/business-account";
+import type { Business } from "@/lib/types";
 
 /** Karşılama maili kurulumun bir parçası değil, sonrası. Bilerek beklenmiyor
  *  ve hatası yutuluyor: Brevo'ya gidilemediği için kullanıcı menüsünün
@@ -27,19 +27,17 @@ import type { Business, Plan, PlanRecord } from "@/lib/types";
  *
  *  keepalive şart: hemen ardından setBusiness() onboarding ekranını söküyor ve
  *  tarayıcı, bekleyen isteği iptal ediyor. Canlıda mail bu yüzden gitmiyordu. */
-function sendWelcomeEmail(businessId: string) {
+function sendWelcomeEmail() {
   void fetch("/api/emails/welcome", {
     method: "POST",
-    headers: { "content-type": "application/json", Authorization: pb.authStore.token },
-    body: JSON.stringify({ businessId }),
+    headers: { Authorization: pb.authStore.token },
     keepalive: true,
   }).catch(() => undefined);
 }
 
 function Onboarding() {
-  const { user } = useAuth();
-  const { setBusiness } = useBusiness();
-  const [name, setName] = useState("");
+  const { account, setBusiness } = useBusiness();
+  const [name, setName] = useState(account?.name ?? "");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
   const [sector, setSector] = useState<SectorKey | null>(null);
@@ -52,9 +50,13 @@ function Onboarding() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!account) return;
     setError("");
 
+    if (!name.trim()) {
+      setError("İşletme adını gir.");
+      return;
+    }
     if (!slug) {
       setError("Menü adresi boş olamaz.");
       return;
@@ -71,32 +73,13 @@ function Onboarding() {
     const template = sectorTemplate(sector);
     setLoading(true);
     try {
-      // Varsayılan kayıt paketi admin panelinden değiştirilebilir (plans.is_default) —
-      // burada sabit bir plan anahtarı gömmek yerine canlı değeri okuyoruz.
-      let defaultPlan: Plan = "freemium";
-      let trialMonths = 0;
-      try {
-        const plan = await pb.collection("buyur_plans").getFirstListItem<PlanRecord>("is_default = true");
-        defaultPlan = plan.key;
-        trialMonths = plan.trial_months ?? 0;
-      } catch {
-        // plans koleksiyonu boşsa (ör. yeni ortamda migrate-plans.mjs henüz çalıştırılmadıysa) sessizce
-        // "freemium"a düşer — kayıt akışını bu yüzden kilitlemiyoruz. Süre de
-        // yazılmaz: yanlış bir tarihle işletmeyi "süresi dolmuş" göstermektense
-        // süresiz kabul etmek daha az zararlı.
-      }
-
-      const business = await pb.collection("buyur_businesses").create<Business>({
-        owner: user.id,
-        name,
+      // Hesap kayıtta açıldı (telefon, plan ve deneme süresi sunucuda yazıldı);
+      // burada yalnızca işletmenin adı, adresi ve menü şablonu tamamlanır ve
+      // menü yayına girer.
+      const business = await pb.collection(BUSINESS_COLLECTION).update<Business>(account.id, {
+        name: name.trim(),
         slug,
         template: template.template,
-        plan: defaultPlan,
-        // Freemium penceresi kayıt anında sabitleniyor: plan kaydındaki süre
-        // sonradan değişse bile mevcut işletmenin hakkı değişmesin.
-        freemium_started_at: trialMonths > 0 ? new Date().toISOString() : "",
-        plan_expires_at: trialMonths > 0 ? addMonths(new Date(), trialMonths).toISOString() : "",
-        menu_views: 0,
         is_active: true,
       });
 
@@ -133,7 +116,7 @@ function Onboarding() {
 
       const withSector = await saveActivation(business, { sector });
       trackMarketingEvent("business_created", { sector });
-      sendWelcomeEmail(business.id);
+      sendWelcomeEmail();
       setBusiness(withSector ?? business);
     } catch (err) {
       if (err instanceof ClientResponseError && err.response?.data?.slug) {
@@ -261,7 +244,11 @@ function StatsSection({ business }: { business: Business }) {
     setData(null);
     setFailed(false);
 
-    fetchAnalytics<OverviewSummary>("overview", { preset: "last_30", compare: "none" }, controller.signal)
+    fetchAnalytics<OverviewSummary>(
+      "overview",
+      { preset: "last_30", compare: "none", rev: business.plan },
+      controller.signal
+    )
       .then((response) => setData(response.data))
       .catch((err) => {
         // Sayfadan çıkınca istek iptal edilir; bu bir hata değil.
@@ -271,7 +258,7 @@ function StatsSection({ business }: { business: Business }) {
       });
 
     return () => controller.abort();
-  }, [business.id, nonce]);
+  }, [business.id, business.plan, nonce]);
 
   if (failed) {
     return (
@@ -292,9 +279,9 @@ function StatsSection({ business }: { business: Business }) {
 
   return (
     <div className="mt-10">
-      <div className="mb-4 flex items-baseline justify-between">
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="font-display text-xl font-bold">Ziyaretçi istatistikleri</h2>
-        <div className="flex items-baseline gap-3">
+        <div className="flex items-baseline gap-3 whitespace-nowrap">
           <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Son 30 gün</span>
           <Link
             href="/panel/analytics"
@@ -305,7 +292,8 @@ function StatsSection({ business }: { business: Business }) {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Mobilde iki sütun: tek tek tam genişlik kartlar gereksiz kaydırma yaratıyordu. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <Card>
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sayfa görüntülenme</p>
           <p className="mt-2 font-display text-3xl font-extrabold">{totals.page_views ?? 0}</p>
@@ -314,7 +302,7 @@ function StatsSection({ business }: { business: Business }) {
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Bugün</p>
           <p className="mt-2 font-display text-3xl font-extrabold">{todayViews}</p>
         </Card>
-        <Card>
+        <Card className="col-span-2 sm:col-span-1">
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sepete ekleme</p>
           <p className="mt-2 font-display text-3xl font-extrabold">{totals.cart_adds ?? 0}</p>
         </Card>
@@ -399,7 +387,7 @@ function Overview({ business }: { business: Business }) {
       <PageHeader title={business.name} description={menuHost(business.slug)} />
       <PlanIntentNotice business={business} />
       <LaunchChecklist business={business} counts={counts} />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         <Card>
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Kategori</p>
           <p className="mt-2 font-display text-3xl font-extrabold">{counts?.categories ?? "—"}</p>
@@ -408,16 +396,19 @@ function Overview({ business }: { business: Business }) {
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Ürün</p>
           <p className="mt-2 font-display text-3xl font-extrabold">{counts?.products ?? "—"}</p>
         </Card>
-        <PlanUsageCard business={business} compact />
+        <div className="col-span-2 sm:col-span-1">
+          <PlanUsageCard business={business} compact />
+        </div>
       </div>
       <QrShare business={business} />
       {analyticsAllowed ? (
         <StatsSection business={business} />
       ) : (
         <div className="mt-10">
-          <UpgradeNotice
-            title="Ziyaretçi istatistikleri kilitli"
-            description="Sayfa görüntülenme, en çok bakılan ürün/kategori gibi istatistikler şu an kapalı. Görmek için planını yükselt."
+          <FeatureLocked
+            feature="basic_analytics"
+            subject="Ziyaretçi istatistikleri"
+            description="Sayfa görüntülenme, en çok bakılan ürün ve kategori gibi istatistikler."
           />
         </div>
       )}

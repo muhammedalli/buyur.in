@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { ClientResponseError, type AuthRecord } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
+import { BUSINESS_COLLECTION } from "@/lib/business-account";
 
 interface AuthContextType {
   user: AuthRecord;
@@ -39,15 +40,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // requestKey: null -> React StrictMode'un dev'de effect'i iki kez
             // çalıştırması gibi durumlarda SDK'nın bu isteği "aynı isteğin
             // tekrarı" sanıp otomatik iptal etmesini engeller.
-            refreshPromise = pb.collection("buyur_users").authRefresh({ requestKey: null })
+            // Oturum sahibi işletme kaydının kendisidir (buyur_businesses, auth).
+            refreshPromise = pb.collection(BUSINESS_COLLECTION).authRefresh({ requestKey: null })
               .finally(() => {
                 refreshPromise = null;
               });
           }
           await refreshPromise;
         } catch (err) {
-          const isCancelled = err instanceof ClientResponseError && err.isAbort;
-          if (!isCancelled) {
+          // Yalnızca sunucu oturumu reddederse çıkış yapılır. Ağ hatası
+          // oturumu silmez: geçici bir kesinti kullanıcıyı panelden atmasın.
+          const rejected = err instanceof ClientResponseError && !err.isAbort && err.status >= 400 && err.status < 500;
+          if (rejected) {
             pb.authStore.clear();
           }
         }

@@ -7,7 +7,6 @@ import {
   AnalyticsErrorState,
   AnalyticsSkeleton,
   NoDataYet,
-  PlanLocked,
   Refreshable,
 } from "@/components/panel/analytics/states";
 import { ChartFrame } from "@/components/panel/charts/frame";
@@ -16,6 +15,7 @@ import { Heatmap } from "@/components/panel/charts/heatmap";
 import { StatTile } from "@/components/panel/charts/stat-tile";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
 import { WEEKDAY_LABELS, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 interface ActivityData {
   hourly: number[];
@@ -47,9 +47,10 @@ export default function ActivityPage() {
 
       {activity.loading && !data && <AnalyticsSkeleton />}
       {planLocked && (
-        <PlanLocked
-          title="Aktivite analizi Premium'da"
-          description="Gün ve saat kırılımı, yoğunluk haritası ve arama analizi Premium planla açılıyor."
+        <FeatureLocked
+          feature="advanced_analytics"
+          subject="Aktivite analizi"
+          description="Gün ve saat kırılımı, yoğunluk haritası ve arama analizi."
         />
       )}
       {activity.error && !planLocked && !data && (

@@ -38,3 +38,6 @@ yarn-error.log*
 # editor
 .vscode/
 .idea/
+
+# Göç anlık görüntüleri (scripts/migrate-merge-business-auth.mjs) — kişisel veri içerir
+merge-snapshots/

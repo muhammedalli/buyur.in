@@ -6,7 +6,7 @@ import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { useToast } from "@/components/panel/toast";
 import { useConfirm } from "@/components/panel/confirm-dialog";
-import { AiButton, Button, Card, EmptyState, FooterNote, PageHeader, UpdatedAt } from "@/components/panel/ui";
+import { AiButton, Button, buttonClass, Card, EmptyState, FooterNote, PageHeader, UpdatedAt } from "@/components/panel/ui";
 import type { Category, Product } from "@/lib/types";
 
 export default function ProductsPage() {
@@ -103,8 +103,8 @@ export default function ProductsPage() {
               <Link href="/panel/products/import">
                 <AiButton />
               </Link>
-              <Link href="/panel/categories">
-                <Button>Kategori oluştur</Button>
+              <Link href="/panel/categories" className={buttonClass("primary")}>
+                Kategori oluştur
               </Link>
             </div>
           }
@@ -126,8 +126,8 @@ export default function ProductsPage() {
             <Link href="/panel/products/import">
               <AiButton />
             </Link>
-            <Link href="/panel/products/new">
-              <Button>+ Yeni ürün</Button>
+            <Link href="/panel/products/new" className={buttonClass("primary")}>
+              + Yeni ürün
             </Link>
           </div>
         }
@@ -142,8 +142,8 @@ export default function ProductsPage() {
               <Link href="/panel/products/import">
                 <AiButton />
               </Link>
-              <Link href="/panel/products/new">
-                <Button>+ Yeni ürün</Button>
+              <Link href="/panel/products/new" className={buttonClass("primary")}>
+                + Yeni ürün
               </Link>
             </div>
           }
@@ -182,8 +182,8 @@ export default function ProductsPage() {
                         Satışta
                       </label>
                       <div className="flex shrink-0 gap-2">
-                        <Link href={`/panel/product/${product.id}`}>
-                          <Button variant="outline">Düzenle</Button>
+                        <Link href={`/panel/product/${product.id}`} className={buttonClass("outline")}>
+                          Düzenle
                         </Link>
                         <Button variant="danger" onClick={() => handleDelete(product)}>
                           Sil

@@ -183,8 +183,34 @@ export async function sendOtpEmail(to: string, name: string, code: string, ttlMi
   });
 }
 
+/** Şifre sıfırlama bağlantısı. Bağlantının tabanı yapılandırılmış alan
+ *  adıdır (SITE_URL) — isteğin Host başlığı kullanılmaz. */
+export async function sendPasswordResetEmail(to: string, name: string, url: string, ttlMinutes: number): Promise<void> {
+  const greeting = name.trim() ? `Merhaba ${escapeHtml(name.trim())},` : "Merhaba,";
+  const html = shell({
+    title: "buyur şifre sıfırlama",
+    preheader: `Yeni şifreni belirlemek için bağlantı — ${ttlMinutes} dakika geçerli.`,
+    body: `${eyebrow("Şifre sıfırlama")}
+<h1 style="margin:10px 0 12px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:${INK};">Yeni şifreni belirle</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:${INK_SOFT};">${greeting} buyur hesabın için şifre sıfırlama isteği aldık. Aşağıdaki düğmeyle yeni şifreni belirleyebilirsin.</p>
+${button(url, "Şifremi sıfırla")}
+<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:${INK_SOFT};">Bağlantı <strong style="color:${INK};">${ttlMinutes} dakika</strong> geçerli ve yalnızca bir kez kullanılabilir. Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin — şifren değişmez.</p>
+<p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:${INK_SOFT};word-break:break-all;">Düğme çalışmazsa bu adresi tarayıcına yapıştır:<br><a href="${escapeHtml(url)}" style="color:${PAPRIKA};">${escapeHtml(url)}</a></p>`,
+  });
+
+  await send({
+    to,
+    toName: name || undefined,
+    subject: "buyur şifre sıfırlama bağlantın",
+    html,
+    text: `Şifreni sıfırlamak için bu bağlantıyı aç (${ttlMinutes} dakika geçerli, tek kullanımlık):\n${url}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez.`,
+  });
+}
+
+/** Sıfırlama bağlantılarının tabanı. */
+export const PASSWORD_RESET_SITE_URL = SITE_URL;
+
 interface WelcomeArgs {
-  userName: string;
   businessName: string;
   slug: string;
 }
@@ -205,9 +231,10 @@ function step(index: number, title: string, detail: string): string {
 }
 
 /** İşletme kurulduktan sonraki karşılama maili. */
-export async function sendWelcomeEmail(to: string, { userName, businessName, slug }: WelcomeArgs): Promise<void> {
+export async function sendWelcomeEmail(to: string, { businessName, slug }: WelcomeArgs): Promise<void> {
   const url = `https://${menuHost(slug)}`;
-  const greeting = userName.trim() ? `Merhaba ${escapeHtml(userName.trim())},` : "Merhaba,";
+  // Hesap işletmenin kendisi: selamlama işletme adıyla (ayrı kişi adı tutulmuyor).
+  const greeting = businessName.trim() ? `Merhaba ${escapeHtml(businessName.trim())},` : "Merhaba,";
   const html = shell({
     title: `Aramıza hoş geldin, ${businessName}!`,
     preheader: `Dijital menün yayında: ${menuHost(slug)}`,
@@ -236,7 +263,7 @@ ${button(`${SITE_URL}/panel`, "Panele git")}
 
   await send({
     to,
-    toName: userName || undefined,
+    toName: businessName || undefined,
     subject: `Aramıza hoş geldin, ${businessName}!`,
     html,
     text: `Aramıza hoş geldin, ${businessName}!\n\nDijital menün yayında: ${url}\n\nSıradaki adımlar:\n1. Ürünlerini ve fiyatlarını ekle\n2. Logonu ve marka rengini ayarla\n3. QR kodunu indirip masalara yerleştir\n\nPanel: ${SITE_URL}/panel`,

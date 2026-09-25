@@ -1,8 +1,14 @@
 // buyur Pocketbase şema kurulumu.
 // Kullanım: POCKETBASE_API_URL=... POCKETBASE_ADMIN_TOKEN=... node scripts/setup-pocketbase.mjs
 // Idempotent: koleksiyon zaten varsa dokunmadan atlar.
+//
+// Model: 1 işletme hesabı = 1 buyur_businesses kaydı = 1 kimlik (auth
+// koleksiyonu). Ayrı bir kullanıcı tablosu yok. Birleşme öncesi bir kurulumu
+// (buyur_users + buyur_businesses.owner) taşımak için:
+// scripts/migrate-merge-business-auth.mjs
 
 import PocketBase from "pocketbase";
+import { ADMIN_BYPASS, BUSINESS_COLLECTION, BUSINESS_RULES } from "./business-schema.mjs";
 
 const PB_URL = process.env.POCKETBASE_API_URL;
 const PB_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -168,24 +174,19 @@ async function getOrCreate(spec) {
 }
 
 async function main() {
-  // 1) users (auth) — işletme sahibi hesapları
-  const adminBypass = '@request.auth.collectionName = "buyur_admins"';
-  const users = await getOrCreate({
-    name: "buyur_users",
-    type: "auth",
-    listRule: `id = @request.auth.id || ${adminBypass}`,
-    viewRule: `id = @request.auth.id || ${adminBypass}`,
-    // Kayıt tarayıcıdan değil, /api/auth/register üzerinden servis hesabıyla
-    // yapılır — aksi halde e-posta doğrulaması (OTP) atlanabilir bir süs olurdu.
-    createRule: adminBypass,
-    updateRule: `id = @request.auth.id || ${adminBypass}`,
-    deleteRule: `id = @request.auth.id || ${adminBypass}`,
-    // Auth koleksiyonlarında email gibi hassas alanlar viewRule'u karşılasa bile
-    // emailVisibility=false ise gizli kalır — admin'in gerçekten görüp yönetebilmesi
-    // için ayrı "manage" yetkisi (PocketBase'in auth koleksiyonlarına özel kural katmanı) gerekiyor.
-    manageRule: adminBypass,
-    fields: [text("name", { required: true, max: 120 }), ...stamps()],
+  // Birleşme öncesi bir kurulumda bu betik yeni kuralları eski tablolara
+  // yazarak canlıyı bozardı; önce göç çalıştırılmalı.
+  const legacyUsers = await pb.collections.getOne("buyur_users").catch((err) => {
+    if (err?.status === 404) return null;
+    throw err;
   });
+  if (legacyUsers) {
+    console.error(
+      "Bu kurulum birleşme öncesi modelde (buyur_users var). Önce scripts/migrate-merge-business-auth.mjs çalıştırın."
+    );
+    process.exit(2);
+  }
+  const adminBypass = ADMIN_BYPASS;
 
   // 2) admins (auth) — buyur yönetim paneli hesapları (işletme sahiplerinden
   // ayrı bir auth koleksiyonu; role diğer koleksiyonların kurallarında
@@ -209,21 +210,22 @@ async function main() {
     ],
   });
 
-  // 3) businesses — işletmeler
+  // 3) businesses — işletme hesapları (auth). Giriş e-postası/şifre PocketBase'in
+  // auth alanlarında, işletmenin tüm bilgileri aynı kayıtta. Hesap kayıtta
+  // (/api/auth/register) açılır; ad/slug kurulum ekranında doldurulana kadar
+  // boştur ve kayıt yayında değildir (is_active = false). Kurallar ve sahibin
+  // değiştiremeyeceği plan/sayaç alanları scripts/business-schema.mjs'te.
   const businesses = await getOrCreate({
-    name: "buyur_businesses",
-    type: "base",
-    listRule: `is_active = true || owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `is_active = true || owner = @request.auth.id || ${adminBypass}`,
-    createRule: "@request.auth.id != '' && owner = @request.auth.id",
-    updateRule: `owner = @request.auth.id || ${adminBypass}`,
-    deleteRule: `owner = @request.auth.id || ${adminBypass}`,
+    name: BUSINESS_COLLECTION,
+    type: "auth",
+    ...BUSINESS_RULES,
     fields: [
-      relation("owner", users.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
-      text("name", { required: true, max: 120 }),
-      text("slug", { required: true, max: 60, pattern: "^[a-z0-9-]+$" }),
+      text("name", { max: 120 }),
+      text("slug", { max: 60, pattern: "^[a-z0-9-]+$" }),
       text("description", { max: 500 }),
-      emailField("email"),
+      // Menüde görünen iletişim e-postası — giriş e-postasından farklıysa.
+      // Aynıysa burada tutulmaz; emailVisibility ile giriş e-postası gösterilir.
+      emailField("contact_email"),
       text("logo_url", { max: 500 }),
       text("cover_url", { max: 500 }),
       select("theme", [
@@ -302,18 +304,19 @@ async function main() {
       text("ai_scans_period", { max: 7 }),
       ...stamps(),
     ],
-    indexes: ["CREATE UNIQUE INDEX `idx_businesses_slug` ON `buyur_businesses` (`slug`)"],
+    // Kurulumu bitmemiş hesapların slug'ı boş: benzersizlik yalnızca dolu slug'lar için.
+    indexes: ["CREATE UNIQUE INDEX `idx_business_account_slug` ON `buyur_businesses` (`slug`) WHERE `slug` != ''"],
   });
 
   // 4) categories — kategoriler
   const categories = await getOrCreate({
     name: "buyur_categories",
     type: "base",
-    listRule: `business.is_active = true || business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.is_active = true || business.owner = @request.auth.id || ${adminBypass}`,
-    createRule: "business.owner = @request.auth.id",
-    updateRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    deleteRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
+    createRule: "business = @request.auth.id",
+    updateRule: `business = @request.auth.id || ${adminBypass}`,
+    deleteRule: `business = @request.auth.id || ${adminBypass}`,
     fields: [
       relation("business", businesses.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       text("name", { required: true, max: 120 }),
@@ -331,11 +334,11 @@ async function main() {
   const products = await getOrCreate({
     name: "buyur_products",
     type: "base",
-    listRule: `business.is_active = true || business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.is_active = true || business.owner = @request.auth.id || ${adminBypass}`,
-    createRule: "business.owner = @request.auth.id",
-    updateRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    deleteRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
+    createRule: "business = @request.auth.id",
+    updateRule: `business = @request.auth.id || ${adminBypass}`,
+    deleteRule: `business = @request.auth.id || ${adminBypass}`,
     fields: [
       relation("business", businesses.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       relation("category", categories.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
@@ -386,11 +389,11 @@ async function main() {
   await getOrCreate({
     name: "buyur_product_options",
     type: "base",
-    listRule: "product.business.is_active = true || product.business.owner = @request.auth.id",
-    viewRule: "product.business.is_active = true || product.business.owner = @request.auth.id",
-    createRule: "product.business.owner = @request.auth.id",
-    updateRule: "product.business.owner = @request.auth.id",
-    deleteRule: "product.business.owner = @request.auth.id",
+    listRule: "product.business.is_active = true || product.business = @request.auth.id",
+    viewRule: "product.business.is_active = true || product.business = @request.auth.id",
+    createRule: "product.business = @request.auth.id",
+    updateRule: "product.business = @request.auth.id",
+    deleteRule: "product.business = @request.auth.id",
     fields: [
       relation("product", products.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       text("group_name", { required: true, max: 60 }),
@@ -407,11 +410,11 @@ async function main() {
   const popups = await getOrCreate({
     name: "buyur_popups",
     type: "base",
-    listRule: "business.is_active = true || business.owner = @request.auth.id",
-    viewRule: "business.is_active = true || business.owner = @request.auth.id",
-    createRule: "business.owner = @request.auth.id",
-    updateRule: "business.owner = @request.auth.id",
-    deleteRule: "business.owner = @request.auth.id",
+    listRule: "business.is_active = true || business = @request.auth.id",
+    viewRule: "business.is_active = true || business = @request.auth.id",
+    createRule: "business = @request.auth.id",
+    updateRule: "business = @request.auth.id",
+    deleteRule: "business = @request.auth.id",
     fields: [
       relation("business", businesses.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       text("title", { required: true, max: 120 }),
@@ -431,8 +434,8 @@ async function main() {
   await getOrCreate({
     name: "buyur_reviews",
     type: "base",
-    listRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business = @request.auth.id || ${adminBypass}`,
     createRule: "",
     updateRule: null,
     deleteRule: null,
@@ -455,11 +458,11 @@ async function main() {
     type: "base",
     // Ziyaretçi tarafı QR kaydını okumaz (çözümlemeyi sunucu yapar); okuma
     // işletme sahibine ve admin'e açık.
-    listRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    createRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    updateRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    deleteRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business = @request.auth.id || ${adminBypass}`,
+    createRule: `business = @request.auth.id || ${adminBypass}`,
+    updateRule: `business = @request.auth.id || ${adminBypass}`,
+    deleteRule: `business = @request.auth.id || ${adminBypass}`,
     fields: [
       relation("business", businesses.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       text("name", { required: true, max: 60 }),
@@ -482,8 +485,8 @@ async function main() {
   await getOrCreate({
     name: "buyur_events",
     type: "base",
-    listRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business = @request.auth.id || ${adminBypass}`,
     createRule: adminBypass,
     updateRule: null,
     deleteRule: adminBypass,
@@ -524,8 +527,8 @@ async function main() {
   await getOrCreate({
     name: "buyur_sessions",
     type: "base",
-    listRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business = @request.auth.id || ${adminBypass}`,
     createRule: adminBypass,
     updateRule: adminBypass,
     deleteRule: adminBypass,
@@ -566,8 +569,8 @@ async function main() {
   await getOrCreate({
     name: "buyur_stats_daily",
     type: "base",
-    listRule: `business.owner = @request.auth.id || ${adminBypass}`,
-    viewRule: `business.owner = @request.auth.id || ${adminBypass}`,
+    listRule: `business = @request.auth.id || ${adminBypass}`,
+    viewRule: `business = @request.auth.id || ${adminBypass}`,
     createRule: adminBypass,
     updateRule: adminBypass,
     deleteRule: adminBypass,
@@ -622,9 +625,12 @@ async function main() {
     indexes: ["CREATE UNIQUE INDEX `idx_plans_key` ON `buyur_plans` (`key`)"],
   });
 
-  // 11) otps — kayıt sırasında e-posta doğrulama kodları. Yalnızca servis
-  // hesabı okur/yazar; kod düz metin değil sha256 özeti olarak durur, böylece
-  // tablo sızsa bile bekleyen kayıtlar ele geçirilemez.
+  // 11) otps — kayıt sırasında e-posta doğrulama kodları ve şifre sıfırlama
+  // bağlantıları. Yalnızca servis hesabı okur/yazar; kod/belirteç düz metin
+  // değil sha256 özeti olarak durur, böylece tablo sızsa bile bekleyen
+  // kayıtlar ele geçirilemez. `purpose` iki akışı birbirinden ayırır (boş =
+  // kayıt kodu; eski kayıtlar böyle kalır). Var olan kurulumda bu script
+  // alanı kendisi ekler (getOrCreate eksik alanları tamamlar).
   await getOrCreate({
     name: "buyur_otps",
     type: "base",
@@ -638,6 +644,7 @@ async function main() {
       text("code_hash", { required: true, max: 64 }),
       dateField("expires_at", { required: true }),
       num("attempts", { min: 0, onlyInt: true }),
+      select("purpose", ["register", "password_reset"], { maxSelect: 1 }),
       ...stamps(),
     ],
     indexes: ["CREATE INDEX `idx_otps_email` ON `buyur_otps` (`email`)"],

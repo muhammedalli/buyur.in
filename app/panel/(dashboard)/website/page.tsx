@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useBusiness } from "@/components/panel/business-context";
 import { useToast } from "@/components/panel/toast";
 import { buttonClass, Card, PageHeader } from "@/components/panel/ui";
-import { PlanLocked } from "@/components/panel/analytics/states";
 import { CheckCircleIcon, ExternalLinkIcon, GlobeIcon } from "@/components/icons";
 import { menuUrl } from "@/lib/site";
 import { isFeatureAvailable } from "@/lib/entitlements";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 // Web sitesi sayfası. Burada düzenlenecek bir şey yok — ve bu bilinçli:
 // site, panelde girilen bilgilerden otomatik üretiliyor. Sayfanın işi adresi
@@ -31,8 +31,9 @@ export default function WebsitePage() {
     return (
       <div>
         <PageHeader title="Web sitesi" description="İşletmenizin bilgilerinden otomatik oluşan restoran sitesi" />
-        <PlanLocked
-          title="Web sitesi Elite planında kullanılabilir"
+        <FeatureLocked
+          feature="website"
+          subject="Web sitesi"
           description="Panelde girdiğiniz bilgilerden (menü, görseller, çalışma saatleri, konum, iletişim) otomatik bir restoran web sitesi oluşturulur. Ayrı bir site kurmanıza, içerik girmenize ya da güncelleme yapmanıza gerek kalmaz. Animasyonlu tanıtım, menü slider'ı ve galeri dahildir."
         />
       </div>

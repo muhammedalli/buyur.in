@@ -1,83 +1,106 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { useAuth } from "@/lib/use-auth";
 import { catalogVersion, ensurePlanCatalog } from "@/lib/plan-catalog-loader";
+import { BUSINESS_COLLECTION, isBusinessSetUp } from "@/lib/business-account";
 import type { Business } from "@/lib/types";
 
+// Panelin işletme bağlamı. Oturumun sahibi işletme kaydının kendisidir
+// (buyur_businesses, auth): ayrı bir "kullanıcının işletmesi" sorgusu yok.
+// Kayıt authStore'da durur; işletme güncellenince authStore da güncellenir,
+// böylece iki ayrı kopya ayrışamaz.
+
 interface BusinessContextValue {
+  /** Kurulumu tamamlanmış işletme. Kurulum (ad/slug) bitmemişse null. */
   business: Business | null;
+  /** Oturumdaki hesap kaydı — kurulum ekranı bunu günceller. */
+  account: Business | null;
   isLoading: boolean;
+  /** İşletme okunamadı (ağ/sunucu hatası). "Kurulum bitmedi"den farklıdır:
+   *  bu durumda kurulum ekranı gösterilmez, tekrar deneme sunulur. */
+  loadError: boolean;
   refresh: () => Promise<void>;
   setBusiness: (b: Business) => void;
 }
 
 const BusinessContext = createContext<BusinessContextValue | null>(null);
 
+/** Sekmeye dönüşte kayıt en fazla bu sıklıkta sunucudan yenilenir. */
+const BUSINESS_REVALIDATE_MS = 30_000;
+
 export function BusinessProvider({ children }: { children: ReactNode }) {
   const { user, isLoading: authLoading } = useAuth();
-  const [business, setBusinessState] = useState<Business | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [, rerender] = useState(0);
+  const revalidatedAt = useRef(Date.now());
 
-  const refresh = useCallback(async () => {
-    if (!user) {
-      setBusinessState(null);
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-
-    try {
-      // Tek ilişki: bir kullanıcı → bir işletme. Ekip/üyelik kavramı yok.
-      // Plan kuralları canlı `buyur_plans` kaydından gelir; işletmeyle paralel
-      // okunur ki panelin açılışına ek tur binmesin.
-      const [record] = await Promise.all([
-        pb
-          .collection("buyur_businesses")
-          .getFirstListItem<Business>(pb.filter("owner = {:id}", { id: user.id }), { requestKey: null }),
-        ensurePlanCatalog(pb),
-      ]);
-      setBusinessState(record);
-    } catch (err) {
-      // StrictMode'un dev'de effect'i iki kez çalıştırması SDK'nın bu isteği
-      // otomatik iptal etmesine yol açabilir — bu durumda "işletme yok"
-      // sanıp onboarding ekranını yanlışlıkla göstermeyelim.
-      const isCancelled = err instanceof ClientResponseError && err.isAbort;
-      if (isCancelled) return;
-      setBusinessState(null);
-    }
-
-    setIsLoading(false);
-  }, [user]);
+  const account = (user as unknown as Business | null) ?? null;
+  // Birleşme öncesinden tarayıcıda kalmış eski kayıt biçiminde slug alanı hiç
+  // yoktur; kurulum bitmemiş sayılıp kurulum ekranı gösterilmesin.
+  const stale = account !== null && account.slug === undefined;
 
   useEffect(() => {
-    if (authLoading) return;
-    refresh();
-  }, [authLoading, refresh]);
+    ensurePlanCatalog(pb).finally(() => setCatalogReady(true));
+  }, []);
 
-  // Plan kuralları admin panelinden değişebilir. Sekmeye dönüldüğünde katalog
-  // (en fazla dakikada bir) tazelenir; değişiklik varsa ekranlar yeniden çizilir.
-  // İşletme kaydı yeniden okunmaz — panel "Yükleniyor"a düşmesin.
+  const setBusiness = useCallback((next: Business) => {
+    pb.authStore.save(pb.authStore.token, next as unknown as Parameters<typeof pb.authStore.save>[1]);
+  }, []);
+
+  /** Kaydı ve plan kataloğunu sunucudan yeniler. */
+  const refresh = useCallback(async () => {
+    if (!pb.authStore.isValid) return;
+    setLoadError(false);
+    try {
+      await Promise.all([pb.collection(BUSINESS_COLLECTION).authRefresh({ requestKey: null }), ensurePlanCatalog(pb)]);
+      revalidatedAt.current = Date.now();
+    } catch (err) {
+      if (err instanceof ClientResponseError && err.isAbort) return;
+      // Oturumu sunucu reddettiyse çıkış; bağlantı hatasıysa tekrar deneme.
+      if (err instanceof ClientResponseError && err.status >= 400 && err.status < 500) {
+        pb.authStore.clear();
+        return;
+      }
+      setLoadError(true);
+    }
+  }, []);
+
+  // Eski biçimde kalmış kayıt ilk açılışta tazelenir.
+  useEffect(() => {
+    if (!authLoading && stale) refresh();
+  }, [authLoading, stale, refresh]);
+
+  // Sekmeye dönüldüğünde plan kataloğu ve kayıt sessizce tazelenir. Yükseltme
+  // panel dışında (WhatsApp + yönetim) yapıldığı için açık kalan sekme aksi
+  // hâlde eski planı ("Premium", "Elite'e yükselt") göstermeye devam ederdi.
   useEffect(() => {
     async function onVisible() {
-      if (document.visibilityState !== "visible") return;
+      if (document.visibilityState !== "visible" || !pb.authStore.isValid) return;
       const before = catalogVersion();
-      await ensurePlanCatalog(pb);
-      if (catalogVersion() !== before) setBusinessState((current) => (current ? { ...current } : current));
+      if (Date.now() - revalidatedAt.current > BUSINESS_REVALIDATE_MS) {
+        await refresh();
+      } else {
+        await ensurePlanCatalog(pb);
+      }
+      if (catalogVersion() !== before) rerender((value) => value + 1);
     }
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+  }, [refresh]);
 
   return (
     <BusinessContext.Provider
       value={{
-        business,
-        isLoading: authLoading || isLoading,
+        business: !stale && isBusinessSetUp(account) ? account : null,
+        account,
+        isLoading: authLoading || (account !== null && !catalogReady) || (stale && !loadError),
+        loadError: loadError && (stale || !account),
         refresh,
-        setBusiness: setBusinessState,
+        setBusiness,
       }}
     >
       {children}

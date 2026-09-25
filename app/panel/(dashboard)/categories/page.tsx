@@ -6,7 +6,7 @@ import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { useToast } from "@/components/panel/toast";
 import { useConfirm } from "@/components/panel/confirm-dialog";
-import { AiButton, Button, Card, EmptyState, FooterNote, PageHeader, UpdatedAt } from "@/components/panel/ui";
+import { AiButton, Button, buttonClass, Card, EmptyState, FooterNote, PageHeader, UpdatedAt } from "@/components/panel/ui";
 import { GripIcon } from "@/components/icons";
 import { runPooled } from "@/lib/pb-retry";
 import type { Category } from "@/lib/types";
@@ -132,8 +132,8 @@ export default function CategoriesPage() {
             <Link href="/panel/products/import">
               <AiButton />
             </Link>
-            <Link href="/panel/categories/new">
-              <Button>+ Yeni kategori</Button>
+            <Link href="/panel/categories/new" className={buttonClass("primary")}>
+              + Yeni kategori
             </Link>
           </div>
         }
@@ -148,8 +148,8 @@ export default function CategoriesPage() {
               <Link href="/panel/products/import">
                 <AiButton />
               </Link>
-              <Link href="/panel/categories/new">
-                <Button>+ Yeni kategori</Button>
+              <Link href="/panel/categories/new" className={buttonClass("primary")}>
+                + Yeni kategori
               </Link>
             </div>
           }
@@ -193,8 +193,8 @@ export default function CategoriesPage() {
                 </div>
               </div>
               <div className="flex shrink-0 gap-2">
-                <Link href={`/panel/category/${cat.id}`}>
-                  <Button variant="outline">Düzenle</Button>
+                <Link href={`/panel/category/${cat.id}`} className={buttonClass("outline")}>
+                  Düzenle
                 </Link>
                 <Button variant="danger" onClick={() => handleDelete(cat)}>
                   Sil

@@ -109,6 +109,43 @@ export function ChevronRightIcon(p: IconProps) {
   );
 }
 
+export function InfoIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="9" />
+      <line x1="12" y1="11" x2="12" y2="16.5" />
+      <circle cx="12" cy="7.75" r="0.6" fill="currentColor" />
+    </Svg>
+  );
+}
+
+export function MailIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <polyline points="3.5 6.5 12 13 20.5 6.5" />
+    </Svg>
+  );
+}
+
+export function CopyIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="8.5" y="8.5" width="12" height="12" rx="2.5" />
+      <path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5" />
+    </Svg>
+  );
+}
+
+export function XIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
+    </Svg>
+  );
+}
+
 export function InstagramIcon(p: IconProps) {
   return (
     <Svg {...p}>

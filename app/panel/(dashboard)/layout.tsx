@@ -9,6 +9,8 @@ import { pb } from "@/lib/pocketbase";
 import { BusinessProvider, useBusiness } from "@/components/panel/business-context";
 import { ToastProvider } from "@/components/panel/toast";
 import { TrialBanner } from "@/components/panel/trial-banner";
+import { Button, Card } from "@/components/panel/ui";
+import { HorizontalScroll } from "@/components/horizontal-scroll";
 import { menuUrl } from "@/lib/site";
 import {
   ExternalLinkIcon,
@@ -50,9 +52,15 @@ function isNavItemActive(pathname: string, item: (typeof navItems)[number]) {
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { business, isLoading } = useBusiness();
+  const { business, isLoading, loadError, refresh } = useBusiness();
 
-  const mobileNavRef = useRef<HTMLElement>(null);
+  const mobileNavRef = useRef<HTMLDivElement | null>(null);
+
+  // Kurulumu (ad/menü adresi) bitmemiş hesap yalnızca kurulum ekranını görür;
+  // başka bir panel sayfasına doğrudan gelirse boş sayfa yerine oraya yönlenir.
+  useEffect(() => {
+    if (!isLoading && !business && !loadError && pathname !== "/panel") router.replace("/panel");
+  }, [isLoading, business, loadError, pathname, router]);
 
   // Mobil menü yatay kaydığı için aktif sekme ekran dışında kalabiliyor
   // (ör. "Ayarlar"); sayfa değişince görünür alana getirilir.
@@ -101,10 +109,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Mobil/tablet: yatay kaydırılabilir kompakt menü. Sidebar 1024px ve üstünde;
             768px'te yan menü içeriği ~490px'e sıkıştırıp kartları bozuyordu. */}
         {business && (
-          <div className="border-t border-line/60 lg:hidden">
-            <nav
-              ref={mobileNavRef}
-              className="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-5 py-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          <nav aria-label="Panel menüsü" className="border-t border-line/60 lg:hidden">
+            <HorizontalScroll
+              innerRef={(element) => {
+                mobileNavRef.current = element;
+              }}
+              className="mx-auto max-w-6xl"
+              innerClassName="flex gap-5 px-5 py-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft"
+              moreLabel="Diğer menü öğeleri"
             >
               {navItems.map((item) => (
                 <Link
@@ -117,8 +129,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   {item.label}
                 </Link>
               ))}
-            </nav>
-          </div>
+            </HorizontalScroll>
+          </nav>
         )}
       </header>
       <div className="mx-auto flex max-w-6xl gap-8 px-5">
@@ -146,8 +158,20 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           </aside>
         )}
         <main className="min-w-0 flex-1 py-10">
-          <TrialBanner />
-          {children}
+          {loadError && !business ? (
+            <Card className="mx-auto max-w-md text-center">
+              <p className="font-display text-lg font-bold">İşletme bilgileri yüklenemedi</p>
+              <p className="mt-1 text-sm text-ink-soft">Bağlantıda geçici bir sorun olabilir. Verilerin güvende.</p>
+              <Button type="button" variant="outline" className="mt-4" onClick={() => refresh()}>
+                Tekrar dene
+              </Button>
+            </Card>
+          ) : (
+            <>
+              <TrialBanner />
+              {children}
+            </>
+          )}
         </main>
       </div>
     </div>

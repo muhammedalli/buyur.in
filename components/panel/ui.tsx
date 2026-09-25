@@ -424,21 +424,31 @@ export function EmptyState({ title, description, action }: { title: string; desc
   );
 }
 
-// Bir özellik mevcut planda kapalıysa (PlanLimits) gösterilen kilitli-özellik kartı.
+// Bir özellik mevcut planda kapalıysa gösterilen kilitli-özellik kartı.
 // EmptyState'ten farkı: "boş" değil "erişimin yok" mesajı verir ve plan sayfasına
-// yönlendirir — yükseltme akışı orada başlar.
-export function UpgradeNotice({ title, description }: { title: string; description: string }) {
+// yönlendirir — yükseltme akışı orada başlar. Hangi planın önerileceğine burada
+// karar verilmez: sayfalar components/panel/plan-gate.tsx → FeatureLocked'u
+// kullanır, o da CTA'yı lib/entitlements.ts'ten kurar. ctaLabel null ise
+// (en üst plan) yükseltme bağlantısı hiç çizilmez.
+export function UpgradeNotice({
+  title,
+  description,
+  ctaLabel = "Planımı yükselt",
+}: {
+  title: string;
+  description: string;
+  ctaLabel?: string | null;
+}) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-paprika/40 bg-paprika/5 py-16 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-paprika/40 bg-paprika/5 px-6 py-14 text-center sm:py-16">
       <LockIcon size={22} className="text-paprika" />
       <p className="font-display text-lg font-bold">{title}</p>
-      <p className="max-w-sm text-sm text-ink-soft">{description}</p>
-      <Link
-        href="/panel/plan"
-        className="mt-1 inline-flex items-center gap-2 rounded-md bg-ink px-5 py-2.5 font-mono text-[13px] uppercase tracking-wider text-paper transition-colors hover:bg-paprika"
-      >
-        Planımı yükselt
-      </Link>
+      <p className="max-w-md text-sm text-ink-soft">{description}</p>
+      {ctaLabel && (
+        <Link href="/panel/plan" className={buttonClass("primary", "mt-1")}>
+          {ctaLabel}
+        </Link>
+      )}
     </div>
   );
 }

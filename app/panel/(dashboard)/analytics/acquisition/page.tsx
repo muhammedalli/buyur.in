@@ -8,7 +8,6 @@ import {
   AnalyticsErrorState,
   AnalyticsSkeleton,
   NoDataYet,
-  PlanLocked,
   Refreshable,
 } from "@/components/panel/analytics/states";
 import { ChartFrame } from "@/components/panel/charts/frame";
@@ -19,6 +18,7 @@ import { StatTile } from "@/components/panel/charts/stat-tile";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
 import { formatCompact, formatDuration, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { QrCodeIcon } from "@/components/icons";
+import { FeatureLocked } from "@/components/panel/plan-gate";
 
 interface SourceRow {
   key: string;
@@ -103,9 +103,10 @@ export default function AcquisitionPage() {
 
       {loading && <AnalyticsSkeleton />}
       {planLocked && (
-        <PlanLocked
-          title="Trafik analizi Premium'da"
-          description="Trafik kaynağı kırılımı, QR performansı, cihaz ve konum analizi Premium planla açılıyor."
+        <FeatureLocked
+          feature="advanced_analytics"
+          subject="Trafik analizi"
+          description="Trafik kaynağı kırılımı, QR performansı, cihaz ve konum analizi."
         />
       )}
       {sources.error && !planLocked && !sources.data && (

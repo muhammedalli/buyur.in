@@ -374,12 +374,28 @@ const UI_STRINGS = {
     ru: "В этом меню нет изображений, требующих указания авторства.",
   },
   photoBy: { tr: "Fotoğraf: {author}", en: "Photo: {author}", ar: "تصوير: {author}", ru: "Фото: {author}" },
+  // {brand} lib/branding.ts'ten gelir (ileride partner markası olabilir).
   poweredByBuyur: {
-    tr: "buyur ile hazırlandı",
-    en: "made with buyur",
-    ar: "صُنع بواسطة buyur",
-    ru: "сделано с buyur",
+    tr: "{brand} ile hazırlandı",
+    en: "Made by {brand}",
+    ar: "صُنع بواسطة {brand}",
+    ru: "Сделано на {brand}",
   },
+  platformHomeAria: {
+    tr: "{brand} ana sayfasına git",
+    en: "Go to the {brand} home page",
+    ar: "الانتقال إلى الصفحة الرئيسية لـ {brand}",
+    ru: "Перейти на главную {brand}",
+  },
+
+  // İşletme bilgileri paneli (components/menu/business-info.tsx).
+  businessInfo: { tr: "İşletme bilgileri", en: "About the venue", ar: "معلومات المكان", ru: "О заведении" },
+  moreInfo: { tr: "Tüm bilgiler", en: "All info", ar: "كل المعلومات", ru: "Вся информация" },
+  callNow: { tr: "Hemen ara", en: "Call", ar: "اتصل", ru: "Позвонить" },
+  socialLabel: { tr: "Sosyal medya", en: "Social media", ar: "وسائل التواصل", ru: "Соцсети" },
+  copy: { tr: "Kopyala", en: "Copy", ar: "نسخ", ru: "Копировать" },
+  copied: { tr: "Kopyalandı", en: "Copied", ar: "تم النسخ", ru: "Скопировано" },
+  scrollMore: { tr: "Daha fazlasını göster", en: "Show more", ar: "عرض المزيد", ru: "Показать ещё" },
 } as const satisfies Record<string, Record<Locale, string>>;
 
 export type UIKey = keyof typeof UI_STRINGS;
