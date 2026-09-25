@@ -1,6 +1,8 @@
 // buyur Pocketbase şema kurulumu.
 // Kullanım: POCKETBASE_API_URL=... POCKETBASE_ADMIN_TOKEN=... node scripts/setup-pocketbase.mjs
 // Idempotent: koleksiyon zaten varsa dokunmadan atlar.
+// --dry-run: hiçbir şey yazmaz; neyin oluşturulacağını/değişeceğini (kural
+// farklarıyla) listeler. Canlıda çalıştırmadan önce buna bakın.
 //
 // Model: 1 işletme hesabı = 1 buyur_businesses kaydı = 1 kimlik (auth
 // koleksiyonu). Ayrı bir kullanıcı tablosu yok. Birleşme öncesi bir kurulumu
@@ -9,6 +11,7 @@
 
 import PocketBase from "pocketbase";
 import { ADMIN_BYPASS, BUSINESS_COLLECTION, BUSINESS_RULES } from "./business-schema.mjs";
+import { ADMIN_ROLE_VALUES, ADMIN_RULES } from "./admin-schema.mjs";
 
 const PB_URL = process.env.POCKETBASE_API_URL;
 const PB_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -22,6 +25,8 @@ if (!PB_URL || !PB_TOKEN) {
 
 const pb = new PocketBase(PB_URL);
 pb.authStore.save(PB_TOKEN, null);
+
+const DRY_RUN = process.argv.includes("--dry-run");
 
 const text = (name, opts = {}) => ({
   name,
@@ -139,6 +144,11 @@ async function getOrCreate(spec) {
   }
 
   if (!existing) {
+    if (DRY_RUN) {
+      console.log(`+ ${spec.name} OLUŞTURULACAK (${spec.fields.length} alan)`);
+      // Sonraki koleksiyonların ilişki alanları bu kimliğe bakar; kuru çalışmada yer tutucu.
+      return { id: `(yeni:${spec.name})`, fields: spec.fields };
+    }
     const created = await pb.collections.create(spec);
     console.log(`+ ${spec.name} oluşturuldu (id: ${created.id})`);
     return created;
@@ -159,6 +169,15 @@ async function getOrCreate(spec) {
 
   if (missingFields.length === 0 && Object.keys(ruleChanges).length === 0) {
     console.log(`= ${spec.name} zaten güncel, atlanıyor (id: ${existing.id})`);
+    return existing;
+  }
+
+  if (DRY_RUN) {
+    console.log(`~ ${spec.name} DEĞİŞECEK`);
+    for (const field of missingFields) console.log(`    + alan: ${field.name} (${field.type})`);
+    for (const [key, wanted] of Object.entries(ruleChanges)) {
+      console.log(`    ${key}\n      şu an: ${existing[key] ?? "null (yalnızca superuser)"}\n      olacak: ${wanted ?? "null (yalnızca superuser)"}`);
+    }
     return existing;
   }
 
@@ -186,26 +205,34 @@ async function main() {
     );
     process.exit(2);
   }
+  // Rol tabanlı kurallar servis hesabını "service" rolüyle tanır. Var olan bir
+  // kurulumda rol listesi henüz genişlememişse servis hesabı hâlâ eski rolde
+  // demektir; kuralları şimdi yazmak kayıt/sayaç/AI kotası yazımlarını durdurur.
+  const existingAdmins = await pb.collections.getOne("buyur_admins").catch((err) => {
+    if (err?.status === 404) return null;
+    throw err;
+  });
+  const roleField = existingAdmins?.fields.find((f) => f.name === "role");
+  if (roleField && !roleField.values.includes("service")) {
+    console.error(
+      "Servis hesabı henüz \"service\" rolüne taşınmamış. Önce scripts/migrate-admin.mjs çalıştırın (PB_SERVICE_EMAIL ile)."
+    );
+    process.exit(2);
+  }
   const adminBypass = ADMIN_BYPASS;
 
   // 2) admins (auth) — buyur yönetim paneli hesapları (işletme sahiplerinden
   // ayrı bir auth koleksiyonu; role diğer koleksiyonların kurallarında
   // `@request.auth.collectionName = "buyur_admins"` ile ayırt edilir).
-  await getOrCreate({
+  const admins = await getOrCreate({
     name: "buyur_admins",
     type: "auth",
-    // Bir admin sadece kendini görebilir; super_admin herkesi.
-    listRule: `id = @request.auth.id || (${adminBypass} && @request.auth.role = "super_admin")`,
-    viewRule: `id = @request.auth.id || (${adminBypass} && @request.auth.role = "super_admin")`,
-    // Admin hesapları API üzerinden self-serve oluşturulamaz; yalnızca
-    // scripts/create-admin.mjs (superuser token ile) bootstrap eder.
-    createRule: null,
-    updateRule: `id = @request.auth.id || (${adminBypass} && @request.auth.role = "super_admin")`,
-    deleteRule: `${adminBypass} && @request.auth.role = "super_admin"`,
-    manageRule: `${adminBypass} && @request.auth.role = "super_admin"`,
+    // Kurallar ve roller scripts/admin-schema.mjs'te (göçle ortak).
+    ...ADMIN_RULES,
     fields: [
       text("name", { required: true, max: 120 }),
-      select("role", ["super_admin", "support"], { required: true, maxSelect: 1 }),
+      // Var olan kurulumda değer listesini scripts/migrate-admin.mjs genişletir.
+      select("role", ADMIN_ROLE_VALUES, { required: true, maxSelect: 1 }),
       ...stamps(),
     ],
   });
@@ -599,7 +626,7 @@ async function main() {
     listRule: `is_active = true || ${adminBypass}`,
     viewRule: `is_active = true || ${adminBypass}`,
     // Fiyat/limit yönetimi hassas — sadece super_admin yazabilir (panel tarafında
-    // requireAdmin({ role: "super_admin" }) zaten aynı kısıtı uyguluyor, bu DB
+    // requireAdmin({ action: "plans.edit" }) zaten aynı kısıtı uyguluyor, bu DB
     // seviyesinde ikinci bir savunma katmanı).
     createRule: `${adminBypass} && @request.auth.role = "super_admin"`,
     updateRule: `${adminBypass} && @request.auth.role = "super_admin"`,
@@ -644,13 +671,49 @@ async function main() {
       text("code_hash", { required: true, max: 64 }),
       dateField("expires_at", { required: true }),
       num("attempts", { min: 0, onlyInt: true }),
-      select("purpose", ["register", "password_reset"], { maxSelect: 1 }),
+      // admin_login: yönetim paneli girişinin ikinci adımı (app/api/admin/auth).
+      // Var olan kurulumda değer listesini scripts/migrate-admin.mjs genişletir.
+      select("purpose", ["register", "password_reset", "admin_login"], { maxSelect: 1 }),
       ...stamps(),
     ],
     indexes: ["CREATE INDEX `idx_otps_email` ON `buyur_otps` (`email`)"],
   });
 
-  console.log("\nŞema kurulumu tamamlandı.");
+  // 12) admin_logs — yönetim paneli denetim kaydı (lib/admin-audit.ts).
+  // Yalnızca eklenir: güncelleme ve silme kuralı yok (null = yalnızca
+  // superuser), iz yöneticinin kendisi tarafından da silinemesin. Kaydı
+  // yazan admin başkası adına kayıt atamaz (`@request.body.admin`). Admin
+  // silinirse ilişki boşalır, kimin yaptığı admin_email'de kalır.
+  await getOrCreate({
+    name: "buyur_admin_logs",
+    type: "base",
+    listRule: adminBypass,
+    viewRule: adminBypass,
+    createRule: `${adminBypass} && @request.body.admin = @request.auth.id`,
+    updateRule: null,
+    deleteRule: null,
+    fields: [
+      text("op_id", { required: true, max: 36 }),
+      relation("admin", admins.id, { maxSelect: 1 }),
+      text("admin_email", { required: true, max: 200 }),
+      text("action", { required: true, max: 60 }),
+      text("target_collection", { max: 60 }),
+      text("target_id", { max: 30 }),
+      json("before"),
+      json("after"),
+      text("reason", { max: 500 }),
+      text("ip", { max: 64 }),
+      ...stamps(),
+    ],
+    indexes: [
+      "CREATE UNIQUE INDEX `idx_admin_logs_op` ON `buyur_admin_logs` (`op_id`)",
+      "CREATE INDEX `idx_admin_logs_created` ON `buyur_admin_logs` (`created`)",
+      "CREATE INDEX `idx_admin_logs_target` ON `buyur_admin_logs` (`target_collection`, `target_id`)",
+      "CREATE INDEX `idx_admin_logs_admin` ON `buyur_admin_logs` (`admin`)",
+    ],
+  });
+
+  console.log(DRY_RUN ? "\nKuru çalışma bitti — hiçbir şey yazılmadı." : "\nŞema kurulumu tamamlandı.");
 }
 
 main().catch((err) => {

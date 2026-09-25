@@ -71,7 +71,10 @@ describe("erişim kuralları", () => {
   });
 
   it("kayıt tarayıcıdan açılamaz, kurulmamış hesap herkese görünmez", () => {
-    expect(BUSINESS_RULES.createRule).toBe('@request.auth.collectionName = "buyur_admins"');
+    // Hesabı yalnızca servis hesabı (kayıt akışı) ve super_admin açar; destek açamaz.
+    expect(BUSINESS_RULES.createRule).toBe(
+      '(@request.auth.collectionName = "buyur_admins" && (@request.auth.role = "super_admin" || @request.auth.role = "service"))'
+    );
     expect(BUSINESS_RULES.listRule.startsWith("is_active = true")).toBe(true);
   });
 

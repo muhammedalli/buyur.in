@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RESERVED_SLUGS } from "@/lib/slug";
+import { ADMIN_COOKIE_NAME } from "@/lib/admin-cookie";
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "buyur.in";
-
-const ADMIN_COOKIE_NAME = "buyur_admin_auth";
 
 function getSubdomain(hostname: string): string | null {
   if (hostname === "localhost" || hostname === "127.0.0.1") return null;

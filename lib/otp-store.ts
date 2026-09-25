@@ -12,19 +12,22 @@ export interface OtpRecord {
   code_hash: string;
   expires_at: string;
   attempts: number;
-  /** "password_reset" ya da boş (kayıt kodu). Eski kayıtlarda alan yoktur. */
+  /** "password_reset", "admin_login" ya da boş (kayıt kodu). Eski kayıtlarda alan yoktur. */
   purpose?: string;
   created: string;
 }
 
-/** Kayıt kodu ile şifre sıfırlama kaydı aynı koleksiyonda durur ama birbirine
- *  dokunmaz: biri kayıt ucuna yanlış kod göndererek başkasının sıfırlama
- *  bağlantısını geçersiz kılamamalı. Ayrım bilerek filtrede değil burada
- *  yapılır — `purpose` alanı şemaya eklenmemiş bir kurulumda filtre 400 verir. */
-export type OtpPurpose = "register" | "password_reset";
+/** Kayıt kodu, şifre sıfırlama ve admin giriş kodu aynı koleksiyonda durur
+ *  ama birbirine dokunmaz: biri kayıt ucuna yanlış kod göndererek başkasının
+ *  sıfırlama bağlantısını geçersiz kılamamalı; admin giriş kodu da kayıt
+ *  kodu yerine geçmemeli (admin ile işletme aynı e-postayı kullanabilir).
+ *  Ayrım bilerek filtrede değil burada yapılır — `purpose` alanı şemaya
+ *  eklenmemiş bir kurulumda filtre 400 verir. */
+export type OtpPurpose = "register" | "password_reset" | "admin_login";
 
 function purposeOf(record: OtpRecord): OtpPurpose {
-  return record.purpose === "password_reset" ? "password_reset" : "register";
+  if (record.purpose === "password_reset" || record.purpose === "admin_login") return record.purpose;
+  return "register";
 }
 
 async function recordsFor(pb: PocketBase, email: string, purpose: OtpPurpose): Promise<OtpRecord[]> {
@@ -56,14 +59,22 @@ export async function clearOtpRecords(pb: PocketBase, email: string, purpose: Ot
   );
 }
 
-export async function createOtpRecord(pb: PocketBase, email: string, code: string): Promise<OtpRecord> {
+/** 6 haneli kod kaydı. `admin_login` değeri şemada yoksa (scripts/migrate-admin.mjs
+ *  çalışmamışsa) PocketBase 400 verir: admin girişi, kayıt koduna dönüşmek
+ *  yerine açılmaz. */
+export async function createOtpRecord(
+  pb: PocketBase,
+  email: string,
+  code: string,
+  purpose: Exclude<OtpPurpose, "password_reset"> = "register"
+): Promise<OtpRecord> {
   return pb.collection(OTP_COLLECTION).create<OtpRecord>(
     {
       email: normalizeEmail(email),
       code_hash: hashOtpCode(email, code),
       expires_at: otpExpiresAt(),
       attempts: 0,
-      purpose: "register",
+      purpose,
     },
     { requestKey: null }
   );

@@ -95,6 +95,7 @@ Menüde görünen iletişim e-postası `publicContactEmail()` ile okunur (`lib/b
 | `pb` (`lib/pocketbase.ts`) | tarayıcı, panel client component'leri | kullanıcının kendi yetkisiyle okuma/yazma |
 | `createServerPB()` | route handler / server component | her istek için taze istemci; `authStore` sızmasın |
 | `getServicePB()` (`lib/pocketbase-server.ts`) | yalnızca sunucu | servis hesabı; event yazımı, agregasyon |
+| `requireAdmin()` / `authenticateAdminRequest()` (`lib/admin-auth.ts`) | admin sayfaları, `/api/admin` | admin'in kendi yetkisi; yalnızca sunucuda yaşar |
 
 Kurallar:
 
@@ -195,6 +196,8 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 - Yükleme: 5MB sınırı, izinli MIME listesi, `kind` doğrulaması, sahiplik kontrolü
 - AI ile üretilen içerik **varsayılan olarak taslaktır**; kullanıcı onayı olmadan yayına alınmaz
 - Okunamayan/belirsiz veriyi AI'ya **tahmin ettirmeyin**; kullanıcıya işaretleyin
+- **Yönetim paneli** (`admin.buyur.in`, plan: `docs/admin-panel-prompt.md`): giriş = şifre + e-posta kodu. Admin'in PocketBase token'ı şifreli httpOnly çerezde durur (`lib/admin-session.ts`) ve **tarayıcıya verilmez**: `ADMIN_BYPASS` kuralı rol ayırmaz, rolü sunucu uygular. `ADMIN_SESSION_SECRET` (≥32 karakter) yoksa admin girişi kapalıdır
+- Admin yetkisi `canPerform(role, action)` ile okunur (`lib/admin-roles.ts`); `if (role === "super_admin")` yazılmaz. Admin'in yaptığı her değişiklik `runAuditedUpdate()` ile yazılır (`lib/admin-audit.ts`): denetim kaydı yazılamazsa değişiklik **geri alınır**
 
 ---
 

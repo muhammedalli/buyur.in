@@ -183,6 +183,34 @@ export async function sendOtpEmail(to: string, name: string, code: string, ttlMi
   });
 }
 
+/** Yönetim paneli girişinin ikinci adımı. Kayıt kodundan ayrı bir şablon:
+ *  "hesabını açmak için" diyen bir mail, yöneticinin olağandışı bir girişi
+ *  fark etmesini zorlaştırırdı. */
+export async function sendAdminLoginCodeEmail(to: string, name: string, code: string, ttlMinutes: number): Promise<void> {
+  const greeting = name.trim() ? `Merhaba ${escapeHtml(name.trim())},` : "Merhaba,";
+  const html = shell({
+    title: "buyur yönetim giriş kodu",
+    preheader: `Yönetim paneli giriş kodun ${code} — ${ttlMinutes} dakika geçerli.`,
+    body: `${eyebrow("Yönetim paneli")}
+<h1 style="margin:10px 0 12px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:${INK};">Giriş kodun</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:${INK_SOFT};">${greeting} yönetim paneline giriş için şifren doğrulandı. Girişi tamamlamak için aşağıdaki kodu gir.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td align="center" style="background:${PAPER};border:1px solid ${LINE};border-radius:16px;padding:22px 12px;">
+    <span style="font-family:${FONT_MONO};font-size:34px;font-weight:700;letter-spacing:10px;color:${INK};">${escapeHtml(code)}</span>
+  </td></tr>
+</table>
+<p style="margin:22px 0 0;font-size:13px;line-height:1.7;color:${INK_SOFT};">Kod <strong style="color:${INK};">${ttlMinutes} dakika</strong> geçerli. Giriş yapmaya çalışan sen değilsen şifren başkasının elinde olabilir: hemen şifreni değiştir ve ekibe haber ver.</p>`,
+  });
+
+  await send({
+    to,
+    toName: name || undefined,
+    subject: `buyur yönetim giriş kodun: ${code}`,
+    html,
+    text: `Yönetim paneli giriş kodun: ${code}\nKod ${ttlMinutes} dakika geçerli.\nGiriş yapmaya çalışan sen değilsen hemen şifreni değiştir ve ekibe haber ver.`,
+  });
+}
+
 /** Şifre sıfırlama bağlantısı. Bağlantının tabanı yapılandırılmış alan
  *  adıdır (SITE_URL) — isteğin Host başlığı kullanılmaz. */
 export async function sendPasswordResetEmail(to: string, name: string, url: string, ttlMinutes: number): Promise<void> {

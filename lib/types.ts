@@ -321,6 +321,40 @@ export interface Popup {
 
 // ─── Admin paneli ──────────────────────────────────────────────────
 
+/** Yönetim paneli rolleri. Hangi rolün neyi yapabildiği tek yerde:
+ *  lib/admin-roles.ts (tests/admin-roles.test.ts kilitler). */
+export type AdminRole = "super_admin" | "support";
+
+/** `buyur_admins` kaydı: platform yöneticisi. İşletme hesabı değildir;
+ *  servis hesabı da bu koleksiyonda durur ama panele giremez. */
+export interface Admin {
+  id: string;
+  email: string;
+  name: string;
+  role: AdminRole;
+  created: string;
+  updated: string;
+}
+
+/** `buyur_admin_logs` kaydı: yalnızca eklenebilen denetim kaydı. Admin
+ *  silinse de kimin yaptığı `admin_email` üzerinden okunabilsin diye e-posta
+ *  ayrıca saklanır (ilişki alanı silinen kayıtta boşalır). */
+export interface AdminLog {
+  id: string;
+  /** Tekrar denemede aynı işlemin iki kez yazılmasını önleyen kimlik. */
+  op_id: string;
+  admin?: string;
+  admin_email: string;
+  action: string;
+  target_collection?: string;
+  target_id?: string;
+  before?: Record<string, unknown> | null;
+  after?: Record<string, unknown> | null;
+  reason?: string;
+  ip?: string;
+  created: string;
+}
+
 /** `buyur_plans.limits` şeması: yetenek bayrakları ve kotalar. Uygulama bu
  *  alanları canlı OKUR (bkz. lib/entitlements.ts → applyPlanRecords); anahtar
  *  adları o eşlemeyle birebir aynıdır. null = sınırsız. */

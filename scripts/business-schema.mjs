@@ -8,9 +8,11 @@
 // e-postası/şifre PocketBase'in auth alanlarında, işletmenin tüm bilgileri
 // (ad, slug, iletişim, plan…) aynı kayıttadır. Ayrı bir kullanıcı tablosu yok.
 
-export const BUSINESS_COLLECTION = "buyur_businesses";
+import { ADMIN_BYPASS, TRUSTED_ADMIN } from "./admin-schema.mjs";
 
-export const ADMIN_BYPASS = '@request.auth.collectionName = "buyur_admins"';
+export { ADMIN_BYPASS };
+
+export const BUSINESS_COLLECTION = "buyur_businesses";
 
 /** Sahibinin panelden DEĞİŞTİREMEYECEĞİ alanlar: plan ve sayaçlar yalnızca
  *  sunucu (servis hesabı) ve yönetim tarafından yazılır. Önceden işletme
@@ -25,7 +27,15 @@ export const BUSINESS_PROTECTED_FIELDS = [
   "ai_scans_period",
 ];
 
-const protectedGuard = BUSINESS_PROTECTED_FIELDS.map((field) => `@request.body.${field}:isset = false`).join(" && ");
+/** Destek rolünün de yazamadığı alanlar: plan ve kullanım sayacı gelir
+ *  kararıdır. Deneme süresi ve AI kotası destekte kalır (lib/admin-roles.ts →
+ *  business.trial_extend, business.ai_quota_reset). Panel bu kuralı zaten
+ *  sunucuda uygular; bu, admin token'ı bir şekilde sızarsa ikinci kilittir. */
+export const SUPPORT_LOCKED_FIELDS = ["plan", "menu_views"];
+
+const guard = (fields) => fields.map((field) => `@request.body.${field}:isset = false`).join(" && ");
+const protectedGuard = guard(BUSINESS_PROTECTED_FIELDS);
+const supportGuard = guard(SUPPORT_LOCKED_FIELDS);
 
 /** buyur_businesses API kuralları. Menü herkese açıktır ama yalnızca yayında
  *  (is_active) olan işletmeler görünür; kurulumu bitmemiş hesap görünmez.
@@ -35,10 +45,13 @@ export const BUSINESS_RULES = {
   viewRule: `is_active = true || id = @request.auth.id || ${ADMIN_BYPASS}`,
   // Hesap tarayıcıdan açılmaz: /api/auth/register OTP doğrulandıktan sonra
   // servis hesabıyla oluşturur.
-  createRule: ADMIN_BYPASS,
-  updateRule: `(id = @request.auth.id && ${protectedGuard}) || ${ADMIN_BYPASS}`,
-  deleteRule: `id = @request.auth.id || ${ADMIN_BYPASS}`,
-  manageRule: ADMIN_BYPASS,
+  createRule: TRUSTED_ADMIN,
+  updateRule: `(id = @request.auth.id && ${protectedGuard}) || ${TRUSTED_ADMIN} || (${ADMIN_BYPASS} && ${supportGuard})`,
+  deleteRule: `id = @request.auth.id || ${TRUSTED_ADMIN}`,
+  // Şifre/e-posta'yı eski şifre olmadan değiştirme yetkisi: şifre sıfırlama
+  // akışı (servis hesabı) ve super_admin. Destek sıfırlama e-postası gönderir,
+  // şifreyi kendisi koymaz.
+  manageRule: TRUSTED_ADMIN,
 };
 
 /** Bağlı koleksiyonlardaki eski "sahibin işletmesi" ifadesini yeni modele

@@ -13,6 +13,7 @@
 
 import PocketBase from "pocketbase";
 import { randomBytes } from "node:crypto";
+import { SERVICE_ROLE } from "./admin-schema.mjs";
 
 const PB_URL = process.env.POCKETBASE_API_URL;
 const PB_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -63,8 +64,8 @@ async function main() {
       emailVisibility: false,
       password,
       passwordConfirm: password,
-      // Fiyat/plan yazma yetkisi gerektirmiyor: super_admin değil.
-      role: "support",
+      // Panele giremez ama plan/sayaç alanlarını yazar (bkz. scripts/admin-schema.mjs).
+      role: SERVICE_ROLE,
       verified: true,
     });
     console.log(`+ servis hesabı oluşturuldu: ${EMAIL}`);
