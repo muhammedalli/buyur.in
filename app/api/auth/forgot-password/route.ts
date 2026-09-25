@@ -1,16 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getServicePB, hasServiceCredentials } from "@/lib/pocketbase-server";
 import { findBusinessByEmail } from "@/lib/business-auth";
-import { PASSWORD_RESET_SITE_URL, isEmailConfigured, sendPasswordResetEmail } from "@/lib/email";
-import { canResendOtp, isValidEmail, normalizeEmail } from "@/lib/otp";
-import { clearOtpRecords, createResetRecord, findOtpRecord } from "@/lib/otp-store";
-import {
-  RESET_TTL_MINUTES,
-  generateResetToken,
-  hashResetToken,
-  resetExpiresAt,
-  resetUrl,
-} from "@/lib/password-reset";
+import { isEmailConfigured } from "@/lib/email";
+import { isValidEmail, normalizeEmail } from "@/lib/otp";
+import { RESET_TTL_MINUTES } from "@/lib/password-reset";
+import { sendPasswordResetLink } from "@/lib/password-reset-mail";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 // Şifremi unuttum — birinci adım: kayıtlı adrese tek kullanımlık sıfırlama
@@ -58,20 +52,12 @@ export async function POST(req: NextRequest) {
     const user = await findBusinessByEmail(pb, email);
     if (!user) return accepted();
 
-    // Art arda basılan "gönder" gelen kutusunu doldurmasın; yanıt yine aynı.
-    const pending = await findOtpRecord(pb, email, "password_reset");
-    if (pending && !canResendOtp(pending.created)) return accepted();
-
-    const token = generateResetToken();
-    await clearOtpRecords(pb, email, "password_reset");
-    const record = await createResetRecord(pb, email, hashResetToken(token), resetExpiresAt());
-
+    // Art arda basılan "gönder" gelen kutusunu doldurmasın; yanıt yine aynı
+    // ("throttled" da kabul edildi olarak döner).
     try {
-      await sendPasswordResetEmail(email, user.name ?? "", resetUrl(PASSWORD_RESET_SITE_URL, token), RESET_TTL_MINUTES);
+      await sendPasswordResetLink(pb, { email, name: user.name });
     } catch (err) {
-      // Mail gitmediyse geride kullanıcının bilmediği geçerli bir bağlantı kalmasın.
-      await clearOtpRecords(pb, email, "password_reset").catch(() => undefined);
-      console.error("[forgot-password] mail gönderilemedi", record.id, err);
+      console.error("[forgot-password] mail gönderilemedi", user.id, err);
       return NextResponse.json({ error: "E-posta şu anda gönderilemiyor, biraz sonra tekrar dene." }, { status: 502 });
     }
 

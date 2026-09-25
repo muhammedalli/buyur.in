@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/chrome";
-import { FileTextIcon, LayoutIcon, LogoutIcon } from "@/components/icons";
+import { FileTextIcon, LayoutIcon, LogoutIcon, UsersIcon } from "@/components/icons";
+import { ToastProvider } from "@/components/panel/toast";
 import { ADMIN_ROLE_LABELS, canPerform, type AdminAction } from "@/lib/admin-roles";
 import type { AdminRole } from "@/lib/types";
 
@@ -19,6 +20,7 @@ interface NavItem {
 // Yeni bir yönetim ekranı eklendiğinde yalnızca buraya bir satır girer.
 const navItems: NavItem[] = [
   { href: "/admin", label: "Genel bakış", Icon: LayoutIcon },
+  { href: "/admin/businesses", label: "İşletmeler", Icon: UsersIcon, action: "business.view" },
   { href: "/admin/logs", label: "Denetim kaydı", Icon: FileTextIcon, action: "logs.view" },
 ];
 
@@ -112,7 +114,9 @@ export function AdminShell({ admin, children }: { admin: AdminShellUser; childre
             })}
           </nav>
         </aside>
-        <main className="min-w-0 flex-1 py-8">{children}</main>
+        <main className="min-w-0 flex-1 py-8">
+          <ToastProvider>{children}</ToastProvider>
+        </main>
       </div>
     </div>
   );

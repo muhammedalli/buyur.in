@@ -24,10 +24,26 @@ export const ADMIN_LOG_ACTION_LABELS: Record<string, string> = {
   "admin.login": "Giriş yaptı",
   "admin.logout": "Çıkış yaptı",
   "admin.password_change": "Şifresini değiştirdi",
+  "business.plan_assign": "Plan atadı",
+  "business.trial_extend": "Süreyi uzattı",
+  "business.ai_quota_reset": "AI kotasını sıfırladı",
+  "business.suspend": "Askıya aldı",
+  "business.unsuspend": "Askıyı kaldırdı",
+  "business.slug_change": "Menü adresini değiştirdi",
+  "business.password_reset": "Şifre sıfırlama e-postası gönderdi",
 };
 
 export function adminLogActionLabel(action: string): string {
   return ADMIN_LOG_ACTION_LABELS[action] ?? action;
+}
+
+/** Değişen alanların okunur özeti: "plan: freemium → premium". */
+export function adminLogChangeLines(log: Pick<AdminLog, "before" | "after">): string[] {
+  const before = log.before ?? {};
+  const after = log.after ?? {};
+  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+  const show = (value: unknown) => (value === null || value === undefined || value === "" ? "boş" : String(value));
+  return keys.map((key) => `${key}: ${show(before[key])} → ${show(after[key])}`);
 }
 
 export interface AdminActionEntry {

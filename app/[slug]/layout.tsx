@@ -6,6 +6,7 @@ import { createServerPB } from "@/lib/pocketbase";
 import { MenuProvider } from "@/components/menu/menu-provider";
 import { MenuUnavailable } from "@/app/[slug]/unavailable";
 import { isSubscriptionActive } from "@/lib/entitlements";
+import { isSuspended } from "@/lib/business-suspension";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { menuUrl } from "@/lib/site";
 import { SITE_NAME, shareImages } from "@/lib/seo";
@@ -74,9 +75,10 @@ export default async function MenuLayout({
   const business = await getBusiness(slug);
   if (!business) notFound();
 
-  // Freemium limiti (1 ay VEYA 5.000 görüntülenme) dolduysa menü yayından
-  // kalkar — veri silinmez, sahibi plana geçtiğinde aynen geri gelir.
-  if (!isSubscriptionActive(business)) {
+  // Freemium limiti (1 ay VEYA 5.000 görüntülenme) dolduysa ya da yönetim
+  // askıya aldıysa menü yayından kalkar — veri silinmez, durum kalkınca aynen
+  // geri gelir. Müşteriye iki durumda da aynı sade ekran gösterilir.
+  if (isSuspended(business) || !isSubscriptionActive(business)) {
     return <MenuUnavailable business={business} />;
   }
 

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { CSSProperties } from "react";
 import { createServerPB } from "@/lib/pocketbase";
 import { isFeatureAvailable, isSubscriptionActive } from "@/lib/entitlements";
+import { isSuspended } from "@/lib/business-suspension";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { buildSiteContent } from "@/lib/site-content";
 import { isValidHex, pickReadableOn, visibleFill } from "@/lib/color";
@@ -72,7 +73,7 @@ const getMenu = cache(async (businessId: string) => {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const business = await getBusiness(slug);
-  if (!business || !isFeatureAvailable(business, "website")) return {};
+  if (!business || isSuspended(business) || !isFeatureAvailable(business, "website")) return {};
 
   const description =
     business.description ||
@@ -103,7 +104,7 @@ export default async function RestaurantSitePage({ params }: { params: Promise<{
 
   // Plan kapısı: web sitesi yalnızca Elite'e ait. Freemium'da (ya da limiti
   // dolmuş bir işletmede) böyle bir adres yok — kilit ekranı değil 404.
-  if (!business || !isFeatureAvailable(business, "website") || !isSubscriptionActive(business)) {
+  if (!business || isSuspended(business) || !isFeatureAvailable(business, "website") || !isSubscriptionActive(business)) {
     notFound();
   }
 

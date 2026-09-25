@@ -69,7 +69,14 @@ açık kalan sorular neler. Onay gelmeden sonraki aşamaya geçme.
   idempotent çalışır.
 - `/admin` layout'u: kenar menüsü, üstte admin adı ve rolü.
 
-### Aşama 2: İşletmeler
+### Aşama 2: İşletmeler ✅ (2026-09-25)
+*Kararlar:* askıya alma `is_active`'ten ayrı, korumalı `suspended_at` +
+`suspension_reason` alanlarıyla (sahibi ve destek yazamaz; menü/site kapanır,
+görüntülenme sayılmaz, sahibine panelde bant gösterilir). İç notlar yalnızca
+eklenebilen `buyur_admin_notes` koleksiyonunda; not kendisi iz olduğu için ayrı
+denetim kaydı yazılmaz. Liste e-posta araması için servis hesabıyla okunur ve
+bellekte süzülür. Kurallar: `lib/admin-business-actions.ts`,
+`lib/admin-business-list.ts`.
 - **Liste:** ad, slug veya e-postayla arama. Plan, `is_active`, kurulum tamamlandı mı
   (`isBusinessSetUp`), kayıt tarihi ve son etkinliğe göre filtre. Sunucu tarafında
   sayfalama.

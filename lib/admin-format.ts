@@ -16,3 +16,25 @@ export function formatAdminDate(value: string | null | undefined): string {
   const date = new Date(value.includes("T") ? value : value.replace(" ", "T"));
   return Number.isNaN(date.getTime()) ? "" : DATE_TIME.format(date);
 }
+
+const DAY = new Intl.DateTimeFormat("tr-TR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  timeZone: "Europe/Istanbul",
+});
+
+/** Yalnızca gün (liste satırları için). Okunamazsa boş. */
+export function formatAdminDay(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value.includes("T") ? value : value.replace(" ", "T"));
+  return Number.isNaN(date.getTime()) ? "" : DAY.format(date);
+}
+
+/** <input type="date"> için YYYY-MM-DD (İstanbul günü). */
+export function toDateInputValue(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value.includes("T") ? value : value.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul" }).format(date);
+}

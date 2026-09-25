@@ -1,7 +1,7 @@
 import { ButtonLink } from "@/components/admin/button-link";
 import { Card, EmptyState, PageHeader } from "@/components/panel/ui";
 import { requireAdmin } from "@/lib/admin-auth";
-import { ADMIN_LOG_COLLECTION, adminLogActionLabel } from "@/lib/admin-audit";
+import { ADMIN_LOG_COLLECTION, adminLogActionLabel, adminLogChangeLines } from "@/lib/admin-audit";
 import { formatAdminDate } from "@/lib/admin-format";
 import type { AdminLog } from "@/lib/types";
 
@@ -14,23 +14,18 @@ function pageFrom(value: string | undefined): number {
   return Number.isFinite(page) && page > 0 ? page : 1;
 }
 
-/** Değişen alanların kısa özeti: "plan: freemium → premium". */
-function changeSummary(log: AdminLog): string[] {
-  const before = log.before ?? {};
-  const after = log.after ?? {};
-  const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
-  const show = (value: unknown) => (value === null || value === undefined || value === "" ? "boş" : String(value));
-  return keys.map((key) => `${key}: ${show(before[key])} → ${show(after[key])}`);
-}
-
 export default async function AdminLogsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ pb }, params] = await Promise.all([requireAdmin({ action: "logs.view" }), searchParams]);
   const page = pageFrom(params.sayfa);
+  // İşletme detayındaki "tüm geçmiş" bağlantısı: tek bir kaydın geçmişi.
+  const target = /^[a-z0-9]{1,30}$/.test(params.hedef ?? "") ? (params.hedef as string) : "";
+  const pageHref = (n: number) => `/admin/logs?${new URLSearchParams({ ...(target ? { hedef: target } : {}), sayfa: String(n) })}`;
 
   // Hata sayfa sınırına (app/admin/error.tsx) gider: kayıt okunamıyorsa boş
   // liste göstermek "hiç işlem yok" diye yanlış okunurdu.
   const result = await pb.collection(ADMIN_LOG_COLLECTION).getList<AdminLog>(page, PER_PAGE, {
     sort: "-created",
+    ...(target ? { filter: pb.filter("target_id = {:target}", { target }) } : {}),
     requestKey: null,
   });
 
@@ -38,7 +33,12 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader
         title="Denetim kaydı"
-        description="Yönetim panelinde yapılan her işlem burada. Kayıtlar değiştirilemez ve silinemez."
+        description={
+          target
+            ? `Yalnızca ${target} kaydıyla ilgili işlemler.`
+            : "Yönetim panelinde yapılan her işlem burada. Kayıtlar değiştirilemez ve silinemez."
+        }
+        action={target ? <ButtonLink href="/admin/logs" variant="ghost" className="px-3">Tüm kayıtlar</ButtonLink> : undefined}
       />
 
       {result.items.length === 0 ? (
@@ -47,7 +47,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
         <Card>
           <ul className="divide-y divide-line">
             {result.items.map((log) => {
-              const changes = changeSummary(log);
+              const changes = adminLogChangeLines(log);
               return (
                 <li key={log.id} className="py-4 text-sm first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -87,7 +87,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
       {result.totalPages > 1 && (
         <nav aria-label="Sayfalar" className="mt-6 flex items-center justify-between gap-3">
           {page > 1 ? (
-            <ButtonLink href={`/admin/logs?sayfa=${page - 1}`}>
+            <ButtonLink href={pageHref(page - 1)}>
               Önceki
             </ButtonLink>
           ) : (
@@ -97,7 +97,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
             {page} / {result.totalPages}
           </span>
           {page < result.totalPages ? (
-            <ButtonLink href={`/admin/logs?sayfa=${page + 1}`}>
+            <ButtonLink href={pageHref(page + 1)}>
               Sonraki
             </ButtonLink>
           ) : (

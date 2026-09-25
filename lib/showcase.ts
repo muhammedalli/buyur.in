@@ -1,6 +1,7 @@
 import { createServerPB } from "@/lib/pocketbase";
 import { activeLocales } from "@/lib/i18n";
 import type { Business } from "@/lib/types";
+import { isSuspended } from "@/lib/business-suspension";
 
 // Landing'deki sosyal kanıt katmanı. Kural: yalnızca doğrulanabilir bilgi.
 //   · Kart verisi (ad, logo, kategori/ürün/dil sayısı) canlı menüden okunur.
@@ -48,6 +49,7 @@ async function loadEntry(entry: ShowcaseEntry): Promise<ShowcaseItem | null> {
       .getFirstListItem<Business>(pb.filter("slug = {:slug} && is_active = true", { slug: entry.slug }), {
         requestKey: null,
       });
+    if (isSuspended(business)) return null;
     const [categories, products] = await Promise.all([
       pb.collection("buyur_categories").getList(1, 1, {
         filter: pb.filter("business = {:id} && is_active = true", { id: business.id }),

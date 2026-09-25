@@ -112,6 +112,12 @@ export interface Business {
   ai_scans_used?: number;
   /** Sayacın ait olduğu dönem (YYYY-MM, UTC). */
   ai_scans_period?: string;
+  /** Yönetimden askıya alındığı an; boşsa askıda değil. Doluysa menü ve site
+   *  yayından kalkar, veri silinmez (bkz. lib/business-suspension.ts). Yalnızca
+   *  super_admin yazar; sahibi değiştiremez. */
+  suspended_at?: string;
+  /** Askıya alma gerekçesi — sahibine panelde gösterilir, müşteriye gösterilmez. */
+  suspension_reason?: string;
   created: string;
   updated: string;
 }
@@ -334,6 +340,16 @@ export interface Admin {
   role: AdminRole;
   created: string;
   updated: string;
+}
+
+/** `buyur_admin_notes` kaydı: işletme hakkında iç not (müşteri görmez). Yalnızca eklenir. */
+export interface AdminNote {
+  id: string;
+  business: string;
+  admin?: string;
+  admin_email: string;
+  body: string;
+  created: string;
 }
 
 /** `buyur_admin_logs` kaydı: yalnızca eklenebilen denetim kaydı. Admin

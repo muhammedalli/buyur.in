@@ -80,7 +80,7 @@ Yeni bir üst düzey rota eklerken slug çakışmasını `RESERVED_SLUGS`'a ekle
 
 **Koleksiyonlar** (hepsi `buyur_` önekli): `businesses`, `categories`, `products`,
 `product_options`, `popups`, `admins`, `plans`, `events`, `sessions`,
-`stats_daily`, `qr_codes`, `reviews`, `admin_logs`, `otps`.
+`stats_daily`, `qr_codes`, `reviews`, `admin_logs`, `admin_notes`, `otps`.
 
 **1 işletme hesabı = 1 `buyur_businesses` kaydı = 1 kimlik.** `buyur_businesses` bir
 **auth** koleksiyonudur: giriş e-postası/şifre ve işletmenin tüm bilgileri aynı kayıtta.
@@ -197,6 +197,7 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 - AI ile üretilen içerik **varsayılan olarak taslaktır**; kullanıcı onayı olmadan yayına alınmaz
 - Okunamayan/belirsiz veriyi AI'ya **tahmin ettirmeyin**; kullanıcıya işaretleyin
 - **Yönetim paneli** (`admin.buyur.in`, plan: `docs/admin-panel-prompt.md`): giriş = şifre + e-posta kodu. Admin'in PocketBase token'ı şifreli httpOnly çerezde durur (`lib/admin-session.ts`) ve **tarayıcıya verilmez**: `ADMIN_BYPASS` kuralı rol ayırmaz, rolü sunucu uygular. `ADMIN_SESSION_SECRET` (≥32 karakter) yoksa admin girişi kapalıdır
+- Askıya alınan işletme (`suspended_at`, yalnızca super_admin yazar) herkese açık her yüzeyde `isSuspended()` ile elenir (`lib/business-suspension.ts`): menü, site, `/api/track`, vitrin, sitemap. Yeni bir herkese açık işletme listesi ekleyen de bunu uygular
 - Admin yetkisi `canPerform(role, action)` ile okunur (`lib/admin-roles.ts`); `if (role === "super_admin")` yazılmaz. Admin'in yaptığı her değişiklik `runAuditedUpdate()` ile yazılır (`lib/admin-audit.ts`): denetim kaydı yazılamazsa değişiklik **geri alınır**
 
 ---

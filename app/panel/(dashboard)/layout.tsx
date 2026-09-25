@@ -9,6 +9,7 @@ import { pb } from "@/lib/pocketbase";
 import { BusinessProvider, useBusiness } from "@/components/panel/business-context";
 import { ToastProvider } from "@/components/panel/toast";
 import { TrialBanner } from "@/components/panel/trial-banner";
+import { SuspensionBanner } from "@/components/panel/suspension-banner";
 import { Button, Card } from "@/components/panel/ui";
 import { HorizontalScroll } from "@/components/horizontal-scroll";
 import { menuUrl } from "@/lib/site";
@@ -168,6 +169,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             </Card>
           ) : (
             <>
+              <SuspensionBanner />
               <TrialBanner />
               {children}
             </>

@@ -17,6 +17,7 @@ import {
   newAnalyticsId,
 } from "@/lib/analytics/session";
 import type { MenuSession } from "@/lib/types";
+import { isSuspended } from "@/lib/business-suspension";
 
 // Menü ziyaretçi event'lerinin tek giriş kapısı. İstemci yalnızca "ne oldu"yu
 // bildirir; kim/nereden/hangi cihaz bilgisi burada üretilir — böylece hem sahte
@@ -146,10 +147,12 @@ async function resolveBusinessId(
   try {
     const business = await pb
       .collection("buyur_businesses")
-      .getFirstListItem<{ id: string }>(pb.filter("slug = {:slug} && is_active = true", { slug }), {
-        fields: "id",
+      .getFirstListItem<{ id: string; suspended_at?: string }>(pb.filter("slug = {:slug} && is_active = true", { slug }), {
+        fields: "id,suspended_at",
         requestKey: null,
       });
+    // Askıdaki menü yayında değil: görüntülenmesi sayılmaz, event yazılmaz.
+    if (isSuspended(business)) return null;
     prune(businessCache, now);
     businessCache.set(slug, { id: business.id, expiresAt: now + BUSINESS_CACHE_MS });
     return business.id;

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { createServerPB } from "@/lib/pocketbase";
 import { ROOT_DOMAIN, menuHost } from "@/lib/site";
 import { LEGAL_DOCS, legalPath } from "@/lib/legal";
+import { isSuspended } from "@/lib/business-suspension";
 
 async function getActiveBusinessUrls(): Promise<MetadataRoute.Sitemap> {
   const pb = createServerPB();
@@ -9,13 +10,14 @@ async function getActiveBusinessUrls(): Promise<MetadataRoute.Sitemap> {
     const businesses = await pb.collection("buyur_businesses").getFullList<{
       slug: string;
       updated: string;
+      suspended_at?: string;
     }>({
       filter: 'is_active = true && slug != ""',
-      fields: "slug,updated",
+      fields: "slug,updated,suspended_at",
       requestKey: null,
     });
 
-    return businesses.map((business) => ({
+    return businesses.filter((business) => !isSuspended(business)).map((business) => ({
       url: `https://${menuHost(business.slug)}`,
       lastModified: business.updated,
       changeFrequency: "daily",

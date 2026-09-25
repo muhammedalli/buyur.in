@@ -329,6 +329,11 @@ async function main() {
       // yüzden sıfırlama için ayrı bir cron gerekmez.
       num("ai_scans_used", { min: 0, onlyInt: true }),
       text("ai_scans_period", { max: 7 }),
+      // Yönetimden askıya alma (lib/business-suspension.ts). Doluysa menü ve
+      // site yayından kalkar, veri silinmez. is_active'ten ayrı: is_active'i
+      // sahibi kurulum ekranında yazar, bunu yalnızca super_admin yazar.
+      dateField("suspended_at"),
+      text("suspension_reason", { max: 300 }),
       ...stamps(),
     ],
     // Kurulumu bitmemiş hesapların slug'ı boş: benzersizlik yalnızca dolu slug'lar için.
@@ -711,6 +716,27 @@ async function main() {
       "CREATE INDEX `idx_admin_logs_target` ON `buyur_admin_logs` (`target_collection`, `target_id`)",
       "CREATE INDEX `idx_admin_logs_admin` ON `buyur_admin_logs` (`admin`)",
     ],
+  });
+
+  // 13) admin_notes — işletme hakkında yönetim ekibinin iç notları (müşteri
+  // görmez). Yalnızca eklenir: yanlış not düzeltmesi yeni bir notla yapılır,
+  // böylece kim ne zaman ne dedi kaybolmaz. Not yazan başkası adına yazamaz.
+  await getOrCreate({
+    name: "buyur_admin_notes",
+    type: "base",
+    listRule: adminBypass,
+    viewRule: adminBypass,
+    createRule: `${adminBypass} && @request.body.admin = @request.auth.id`,
+    updateRule: null,
+    deleteRule: null,
+    fields: [
+      relation("business", businesses.id, { required: true, cascadeDelete: true }),
+      relation("admin", admins.id, { maxSelect: 1 }),
+      text("admin_email", { required: true, max: 200 }),
+      text("body", { required: true, max: 2000 }),
+      ...stamps(),
+    ],
+    indexes: ["CREATE INDEX `idx_admin_notes_business` ON `buyur_admin_notes` (`business`, `created`)"],
   });
 
   console.log(DRY_RUN ? "\nKuru çalışma bitti — hiçbir şey yazılmadı." : "\nŞema kurulumu tamamlandı.");

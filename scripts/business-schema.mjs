@@ -25,13 +25,17 @@ export const BUSINESS_PROTECTED_FIELDS = [
   "menu_views",
   "ai_scans_used",
   "ai_scans_period",
+  // Yönetimden askıya alma (lib/business-suspension.ts): sahibi kendi menüsünü
+  // yeniden açamamalı.
+  "suspended_at",
+  "suspension_reason",
 ];
 
 /** Destek rolünün de yazamadığı alanlar: plan ve kullanım sayacı gelir
  *  kararıdır. Deneme süresi ve AI kotası destekte kalır (lib/admin-roles.ts →
  *  business.trial_extend, business.ai_quota_reset). Panel bu kuralı zaten
  *  sunucuda uygular; bu, admin token'ı bir şekilde sızarsa ikinci kilittir. */
-export const SUPPORT_LOCKED_FIELDS = ["plan", "menu_views"];
+export const SUPPORT_LOCKED_FIELDS = ["plan", "menu_views", "suspended_at", "suspension_reason"];
 
 const guard = (fields) => fields.map((field) => `@request.body.${field}:isset = false`).join(" && ");
 const protectedGuard = guard(BUSINESS_PROTECTED_FIELDS);
