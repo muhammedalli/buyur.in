@@ -38,6 +38,16 @@ describe("admin işletme listesi", () => {
     expect(rows.map(businessStatus)).toEqual(["live", "setup", "suspended", "offline"]);
   });
 
+  it("silinen hesap askıdan önce gelir ve yalnızca 'Silindi' filtresinde listelenir", () => {
+    const at = "2026-09-22 10:00:00.000Z";
+    const all = [...rows, row({ id: "z", name: "Silinen", slug: "silinen", deleted_at: at, suspended_at: at })];
+    expect(businessStatus(all[4])).toBe("deleted");
+    const base = parseBusinessListQuery({});
+    expect(queryBusinesses(all, base).items.map((r) => r.id)).not.toContain("z");
+    expect(queryBusinesses(all, { ...base, status: "suspended" }).items.map((r) => r.id)).toEqual(["c"]);
+    expect(queryBusinesses(all, parseBusinessListQuery({ durum: "deleted" })).items.map((r) => r.id)).toEqual(["z"]);
+  });
+
   it("ad, slug ve e-postada Türkçe büyük/küçük harf duyarsız arar", () => {
     const find = (q: string) => queryBusinesses(rows, { ...parseBusinessListQuery({}), q }).items.map((r) => r.id);
     expect(find("ÇINAR")).toEqual(["a"]);

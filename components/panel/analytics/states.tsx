@@ -14,10 +14,10 @@ export function AnalyticsSkeleton() {
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((index) => (
-          <div key={index} className="h-28 animate-pulse rounded-2xl bg-crema/70" />
+          <div key={index} className="h-28 animate-pulse rounded-md bg-crema/70" />
         ))}
       </div>
-      <div className="rounded-2xl border border-line bg-paper p-5">
+      <div className="rounded-md border border-line bg-paper p-5">
         <ChartSkeleton height={240} />
       </div>
     </div>
@@ -27,7 +27,7 @@ export function AnalyticsSkeleton() {
 export function AnalyticsErrorState({ error, onRetry }: { error: AnalyticsError; onRetry: () => void }) {
   if (error.isUnauthenticated) {
     return (
-      <div className="rounded-2xl border border-line bg-paper p-8 text-center">
+      <div className="rounded-md border border-line bg-paper p-8 text-center">
         <p className="font-display text-lg font-bold">Oturumun sona ermiş</p>
         <p className="mt-1 text-sm text-ink-soft">Analizleri görmek için tekrar giriş yapman gerekiyor.</p>
         <Link
@@ -41,7 +41,7 @@ export function AnalyticsErrorState({ error, onRetry }: { error: AnalyticsError;
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-paper p-8 text-center">
+    <div className="rounded-md border border-line bg-paper p-8 text-center">
       <p className="font-display text-lg font-bold">Analiz verileri şu anda yüklenemiyor</p>
       <p className="mt-1 text-sm text-ink-soft">Lütfen birkaç dakika sonra tekrar deneyin.</p>
       <button
@@ -57,7 +57,7 @@ export function AnalyticsErrorState({ error, onRetry }: { error: AnalyticsError;
 
 export function NoDataYet({ title = "Henüz yeterli veri yok", description, action }: { title?: string; description: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-line px-6 py-16 text-center">
       <p className="font-display text-lg font-bold">{title}</p>
       <p className="max-w-md text-sm text-ink-soft">{description}</p>
       {action}

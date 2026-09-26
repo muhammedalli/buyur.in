@@ -86,7 +86,7 @@ export function DonutChart({
           {slices.map((slice, index) => (
             <li
               key={slice.key}
-              className="flex items-center justify-between gap-3 rounded-lg px-1.5 py-1 text-sm transition-colors hover:bg-crema/60"
+              className="flex items-center justify-between gap-3 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-crema/60"
               onPointerEnter={() => setHovered(slice.key)}
               onPointerLeave={() => setHovered(null)}
             >

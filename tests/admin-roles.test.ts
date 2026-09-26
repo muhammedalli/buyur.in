@@ -6,6 +6,7 @@ import { ADMIN_ACTIONS, canPerform, isAdminRole, type AdminAction } from "@/lib/
 describe("admin yetki matrisi", () => {
   const supportCan: AdminAction[] = [
     "logs.view",
+    "ai.view",
     "business.view",
     "business.note",
     "business.password_reset",
@@ -16,9 +17,14 @@ describe("admin yetki matrisi", () => {
     "business.plan_assign",
     "business.suspend",
     "business.slug_change",
+    "business.edit",
+    "business.content",
+    "business.email_change",
     "business.delete",
     "plans.edit",
+    "settings.edit",
     "admins.manage",
+    "system.view",
   ];
 
   it("matris bütün işlemleri kapsar", () => {

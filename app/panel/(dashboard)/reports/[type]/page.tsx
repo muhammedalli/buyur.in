@@ -105,7 +105,7 @@ export default function ReportDetailPage() {
       {data && (
         <article className="report-sheet space-y-5">
           {/* Rapor başlığı — yazdırmada belgenin kapağı */}
-          <header className="rounded-2xl border border-line bg-paper p-6">
+          <header className="rounded-md border border-line bg-paper p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-paprika">buyur analiz raporu</p>
@@ -126,7 +126,7 @@ export default function ReportDetailPage() {
             <NoDataYet description="Seçilen dönemde rapor üretecek veri yok. Farklı bir tarih aralığı deneyin." />
           ) : (
             <>
-              <section className="rounded-2xl border border-line bg-paper p-6">
+              <section className="rounded-md border border-line bg-paper p-6">
                 <h2 className="font-display text-lg font-bold">Özet</h2>
                 <ul className="mt-3 space-y-1.5">
                   {data.summary.map((line, index) => (
@@ -141,7 +141,7 @@ export default function ReportDetailPage() {
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {SUMMARY_METRICS.map((metric) => (
-                    <div key={metric.key} className="rounded-xl border border-line px-4 py-3">
+                    <div key={metric.key} className="rounded-md border border-line px-4 py-3">
                       <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{metric.label}</p>
                       <p className="mt-1 font-display text-xl font-extrabold">
                         {metric.format(data.totals[metric.key] as number)}
@@ -157,7 +157,7 @@ export default function ReportDetailPage() {
               </section>
 
               {data.score && data.score.score !== null && (
-                <section className="rounded-2xl border border-line bg-paper p-6">
+                <section className="rounded-md border border-line bg-paper p-6">
                   <h2 className="font-display text-lg font-bold">Menü performans skoru</h2>
                   <p className="mt-2 font-display text-5xl font-extrabold">{data.score.score}<span className="text-lg text-ink-soft"> / 100</span></p>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -174,7 +174,7 @@ export default function ReportDetailPage() {
               )}
 
               {Object.keys(data.series).length > 0 && (
-                <section className="rounded-2xl border border-line bg-paper p-6">
+                <section className="rounded-md border border-line bg-paper p-6">
                   <h2 className="font-display text-lg font-bold">Dönem seyri</h2>
                   <div className="mt-3">
                     <LineChart
@@ -189,7 +189,7 @@ export default function ReportDetailPage() {
               )}
 
               {data.tables.map((table) => (
-                <section key={table.key} className="report-block rounded-2xl border border-line bg-paper p-6">
+                <section key={table.key} className="report-block rounded-md border border-line bg-paper p-6">
                   <h2 className="font-display text-lg font-bold">{table.title}</h2>
                   <div className="mt-3 overflow-x-auto">
                     <table className="w-full text-sm">
@@ -224,7 +224,7 @@ export default function ReportDetailPage() {
               ))}
 
               {data.insights.length > 0 && (
-                <section className="report-block rounded-2xl border border-line bg-paper p-6">
+                <section className="report-block rounded-md border border-line bg-paper p-6">
                   <h2 className="font-display text-lg font-bold">İçgörüler</h2>
                   <ul className="mt-3 space-y-3">
                     {data.insights.map((insight, index) => (

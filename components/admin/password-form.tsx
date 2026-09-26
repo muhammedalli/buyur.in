@@ -3,17 +3,18 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ErrorText, Input, Label } from "@/components/panel/ui";
+import { useToast } from "@/components/panel/toast";
 import { MIN_PASSWORD_LENGTH } from "@/lib/password";
 
-// Yöneticinin kendi şifresini değiştirmesi (ilk girişte geçici şifre bu formla değişir).
-export function AdminPasswordForm() {
+// Yöneticinin kendi şifresini değiştirmesi (ilk girişte geçici şifre bu formla
+// değişir). Başlıktaki hesap menüsünden açılan pencerede durur.
+export function AdminPasswordForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
   const [oldPassword, setOldPassword] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
@@ -36,11 +37,8 @@ export function AdminPasswordForm() {
         router.refresh();
         return;
       }
-      setOldPassword("");
-      setPassword("");
-      setPasswordConfirm("");
-      setOpen(false);
-      setDone(true);
+      toast("Şifren değişti. Diğer cihazlardaki oturumların kapandı.");
+      onDone();
       router.refresh();
     } catch {
       setError("Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.");
@@ -49,21 +47,8 @@ export function AdminPasswordForm() {
     }
   }
 
-  if (!open) {
-    return (
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-        <p className="text-sm text-ink-soft">
-          {done ? "Şifren değişti. Diğer cihazlardaki oturumların kapandı." : "Geçici şifreyle giriş yaptıysan hemen değiştir."}
-        </p>
-        <Button type="button" variant="outline" onClick={() => { setDone(false); setOpen(true); }} className="px-3.5 py-2 text-[12px]">
-          Şifre değiştir
-        </Button>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="mt-5 space-y-4 border-t border-line pt-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="admin-old-password">Mevcut şifre</Label>
         <Input id="admin-old-password" type="password" required autoComplete="current-password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
@@ -78,7 +63,7 @@ export function AdminPasswordForm() {
       </div>
       <ErrorText>{error}</ErrorText>
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={() => { setOpen(false); setError(""); }}>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
           Vazgeç
         </Button>
         <Button type="submit" loading={loading}>

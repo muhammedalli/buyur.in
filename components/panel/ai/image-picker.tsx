@@ -146,7 +146,7 @@ export function ImagePicker({
             }
           }}
           placeholder="Görsel ara"
-          className="min-w-0 flex-1 rounded-2xl border border-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-paprika"
+          className="min-w-0 flex-1 rounded-md border border-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-paprika"
         />
         <Button type="button" variant="outline" onClick={() => search(query)} disabled={loading}>
           <SearchIcon size={15} /> Ara
@@ -161,13 +161,13 @@ export function ImagePicker({
       )}
 
       {!loading && !configured && (
-        <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
+        <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
           Otomatik görsel arama yapılandırılmamış. Kendi görselinizi yükleyebilirsiniz.
         </p>
       )}
 
       {!loading && configured && searched && images.length === 0 && (
-        <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
+        <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
           Bu ürün için ticari kullanıma açık görsel bulunamadı. Aramayı değiştirin veya kendi görselinizi
           yükleyin.
         </p>
@@ -180,7 +180,7 @@ export function ImagePicker({
               key={p}
               type="button"
               onClick={() => setSource(p)}
-              className={`rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
+              className={`rounded-md border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
                 source === p ? "border-paprika bg-paprika text-paper" : "border-line text-ink-soft hover:border-paprika"
               }`}
             >
@@ -200,7 +200,7 @@ export function ImagePicker({
                 type="button"
                 onClick={() => handlePick(image)}
                 title={`${PROVIDER_LABELS[image.provider]}${image.authorName ? ` · ${image.authorName}` : ""} · ${image.license.name}`}
-                className={`group relative overflow-hidden rounded-xl border-2 text-left transition-all ${
+                className={`group relative overflow-hidden rounded-md border-2 text-left transition-all ${
                   selected
                     ? "border-paprika shadow-[0_0_0_3px_rgba(232,73,31,0.15)]"
                     : "border-line hover:border-paprika"
@@ -220,7 +220,7 @@ export function ImagePicker({
                     </span>
                   )}
                   {selected && (
-                    <span className="absolute right-1.5 top-1.5 rounded-full bg-paprika px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-paper">
+                    <span className="absolute right-1.5 top-1.5 rounded-md bg-paprika px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-paper">
                       Seçili
                     </span>
                   )}

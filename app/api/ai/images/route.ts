@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { guardAiRequest, isGuardFailure, MENU_MODEL, openaiClient } from "@/lib/ai/guard";
+import { recordAiAction } from "@/lib/system-audit";
 import { buildImageQuery, configuredProviders, pickAutoImage, searchProductImages } from "@/lib/ai/images";
 
 const MAX_QUERY_LENGTH = 150;
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
   try {
     const englishName = name === "" ? "" : await toEnglishFoodQuery(name);
     const images = await searchProductImages(name, category, limit, englishName);
+    recordAiAction(req, guard.business, "ai.image_search", { query: name || category, results: images.length });
     return NextResponse.json({
       images,
       best: pickAutoImage(images, buildImageQuery(name, category)),

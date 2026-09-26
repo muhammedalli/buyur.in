@@ -100,7 +100,7 @@ export default function ProductAnalyticsPage() {
           value={filters.category ?? ""}
           onChange={(event) => setFilters({ category: event.target.value || undefined })}
           aria-label="Kategori filtresi"
-          className="rounded-full border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink outline-none transition-colors hover:border-paprika"
+          className="rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink outline-none transition-colors hover:border-paprika"
         >
           <option value="">Tüm kategoriler</option>
           {categories.map((category) => (
@@ -114,7 +114,7 @@ export default function ProductAnalyticsPage() {
           value={sort}
           onChange={(event) => setSort(event.target.value)}
           aria-label="Sıralama"
-          className="rounded-full border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink outline-none transition-colors hover:border-paprika"
+          className="rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink outline-none transition-colors hover:border-paprika"
         >
           {SORTS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -139,7 +139,7 @@ export default function ProductAnalyticsPage() {
           {rows.length === 0 ? (
             <NoDataYet description="Bu dönemde ürünleriniz görüntülenmemiş. Menü paylaşıldıkça ürün performansı burada listelenecek." />
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
+            <div className="overflow-x-auto rounded-md border border-line bg-paper">
               <table className="w-full min-w-[860px] text-sm">
                 <thead>
                   <tr className="border-b border-line bg-crema/50 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">

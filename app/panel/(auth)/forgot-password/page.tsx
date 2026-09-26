@@ -2,8 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Button, ErrorText, Input, Label } from "@/components/panel/ui";
-import { AUTH_CARD_CLASS, errorMessage } from "@/components/panel/auth-card";
+import { MailIcon } from "@/components/icons";
+import { errorMessage } from "@/components/panel/auth-card";
+import { AuthAlternative, AuthError, AuthHeading, AuthInput, AuthLabel, AuthSubmit } from "@/components/panel/auth-form";
 
 // Şifremi unuttum — e-posta adresi alınır, kayıtlıysa sıfırlama bağlantısı
 // gönderilir. Ekran hesabın var olup olmadığını söylemez: sunucu her durumda
@@ -39,57 +40,64 @@ export default function ForgotPasswordPage() {
 
   if (sentTo) {
     return (
-      <div className={AUTH_CARD_CLASS}>
-        <h1 className="font-display text-xl font-bold">E-postanı kontrol et</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          <span className="font-medium text-ink">{sentTo}</span> adresiyle kayıtlı bir hesap varsa, şifreni sıfırlaman
-          için bir bağlantı gönderdik. Bağlantı 60 dakika geçerli. Gelen kutunda yoksa spam klasörüne bak.
-        </p>
-        <div className="mt-6 flex flex-col gap-3">
-          <Link href="/panel/login" className="text-center text-sm font-medium text-paprika hover:underline">
+      <>
+        <AuthHeading
+          title={
+            <>
+              E-postanı
+              <br />
+              kontrol et
+            </>
+          }
+          description={
+            <>
+              <span className="font-medium text-ink">{sentTo}</span> adresiyle kayıtlı bir hesap varsa, şifreni sıfırlaman
+              için bir bağlantı gönderdik. Bağlantı 60 dakika geçerli. Gelen kutunda yoksa spam klasörüne bak.
+            </>
+          }
+        />
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 text-[15px]">
+          <Link href="/panel/login" className="font-medium text-paprika hover:underline">
             Giriş ekranına dön
           </Link>
-          <button
-            type="button"
-            onClick={() => setSentTo(null)}
-            className="text-center text-sm text-ink-soft hover:underline"
-          >
+          <button type="button" onClick={() => setSentTo(null)} className="text-ink-soft hover:text-ink hover:underline">
             Farklı bir adres dene
           </button>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className={AUTH_CARD_CLASS}>
-      <h1 className="font-display text-xl font-bold">Şifreni mi unuttun?</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        Hesabının e-posta adresini yaz, yeni şifre belirlemen için bir bağlantı gönderelim.
-      </p>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <>
+      <AuthHeading
+        title={
+          <>
+            Şifreni mi
+            <br />
+            unuttun?
+          </>
+        }
+        description="Hesabının e-posta adresini yaz, yeni şifre belirlemen için bir bağlantı gönderelim."
+      />
+      <form onSubmit={handleSubmit} className="mt-10 space-y-6">
         <div>
-          <Label htmlFor="email">E-posta</Label>
-          <Input
+          <AuthLabel htmlFor="email">E-posta</AuthLabel>
+          <AuthInput
             id="email"
             type="email"
             required
             autoComplete="email"
+            placeholder="ornek@isletme.com"
+            icon={<MailIcon size={20} />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={loading} className="w-full">
-          Sıfırlama bağlantısı gönder
-        </Button>
+        <AuthError>{error}</AuthError>
+        <AuthSubmit loading={loading}>Bağlantı gönder</AuthSubmit>
       </form>
-      <p className="mt-6 text-center text-sm text-ink-soft">
-        Şifreni hatırladın mı?{" "}
-        <Link href="/panel/login" className="font-medium text-paprika hover:underline">
-          Giriş yap
-        </Link>
-      </p>
-    </div>
+      <AuthAlternative question="Şifreni hatırladın mı?" href="/panel/login" label="Giriş yap" />
+    </>
   );
 }

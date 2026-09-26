@@ -145,6 +145,8 @@ function MenuHeader({
   const { locale, t, tf, openInfo } = useMenu();
   const isSubPage = pathname.startsWith(`${base}/products/`) || pathname.startsWith(`${base}/categories/`);
   const showInfo = hasBusinessInfo(business);
+  const menuHome = `${base}/menu`;
+  const isMenuHome = pathname === menuHome || pathname === `${menuHome}/`;
 
   function goBack() {
     if (window.history.length > 1) router.back();
@@ -178,11 +180,17 @@ function MenuHeader({
           ) : null}
         </div>
 
-        {/* Merkez: logo ve isim. Logo platformun ana sayfasına götürür
-            (lib/branding.ts); menünün başına alttaki "Menü" sekmesi döner. */}
-        <a
-          href={PLATFORM_BRANDING.href}
-          aria-label={`${tf(business, "name")} — ${t("platformHomeAria", { brand: PLATFORM_BRANDING.name })}`}
+        {/* Merkez: logo ve isim. Misafiri menünün dışına (platform sitesine)
+            çıkarmaz; işletmenin kendi menüsünün başına döndürür. Zaten menü
+            başındaysa yeniden yönlendirmez, sayfayı yukarı kaydırır. */}
+        <Link
+          href={menuHome}
+          onClick={(event) => {
+            if (!isMenuHome) return;
+            event.preventDefault();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          aria-label={`${tf(business, "name")} — ${t("menuHomeAria")}`}
           className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 max-w-[60%] flex-col items-center gap-1 text-center transition-opacity hover:opacity-85"
         >
           {business.logo_url ? (
@@ -195,7 +203,7 @@ function MenuHeader({
           <span className="max-w-full truncate font-display text-[15px] font-bold leading-tight text-ink">
             {tf(business, "name")}
           </span>
-        </a>
+        </Link>
 
         {/* Sağ Alan: Dil Seçici */}
         <div className="flex w-9 shrink-0 items-center justify-end">

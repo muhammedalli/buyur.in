@@ -37,7 +37,7 @@ export default function ReportsPage() {
       {loading && !data && (
         <div className="grid gap-4 sm:grid-cols-2">
           {[0, 1, 2, 3].map((index) => (
-            <div key={index} className="h-40 animate-pulse rounded-2xl bg-crema/70" />
+            <div key={index} className="h-40 animate-pulse rounded-md bg-crema/70" />
           ))}
         </div>
       )}
@@ -49,7 +49,7 @@ export default function ReportsPage() {
               <Link
                 key={report.type}
                 href={`/panel/reports/${report.type}`}
-                className="group rounded-2xl border border-line bg-paper p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-paprika/50 hover:shadow-[0_18px_40px_-24px_rgba(35,24,18,0.5)]"
+                className="group rounded-md border border-line bg-paper p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-paprika/50 hover:shadow-[0_18px_40px_-24px_rgba(35,24,18,0.5)]"
               >
                 <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
                   <FileTextIcon size={14} /> Rapor
@@ -62,7 +62,7 @@ export default function ReportsPage() {
                   {report.sections.map((section) => (
                     <li
                       key={section}
-                      className="rounded-full bg-crema/70 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft"
+                      className="rounded-md bg-crema/70 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft"
                     >
                       {section}
                     </li>

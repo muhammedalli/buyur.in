@@ -7,7 +7,8 @@
 //
 // Uygulama tarafındaki karşılıkları:
 //   · yetki matrisi  → lib/entitlements.ts
-//   · ilan fiyatları → lib/pricing.ts
+//   · ilan fiyatları → lib/pricing.ts (her planın tek fiyatı aylıktır; yıllık
+//     karşılık sistem ayarındaki indirimle hesaplanır, lib/system-settings.ts)
 // Fiyat ya da paket içeriği değişince üçü birden güncellenmelidir
 // (tests/plan-catalog.test.ts tutarlılığı kilitler).
 //
@@ -44,7 +45,6 @@ export const PLAN_SEEDS = [
     name: "Freemium",
     description: "Ürünü deneyen küçük işletmeler için: menünü kur, QR'ını yayına al.",
     price_monthly: 0,
-    price_yearly_monthly: 0,
     trial_months: 1,
     is_active: true,
     is_default: true,
@@ -68,7 +68,6 @@ export const PLAN_SEEDS = [
     name: "Premium",
     description: "Aktif restoran ve kafeler için: kampanya, analiz ve markasız profesyonel menü.",
     price_monthly: 249,
-    price_yearly_monthly: 199.2,
     trial_months: 0,
     is_active: true,
     is_default: false,
@@ -95,7 +94,6 @@ export const PLAN_SEEDS = [
     // API/güvenlik araçları ürünün bugün sunduğu şeyler değil; vaat edilmez.
     description: "Büyüyen işletmeler için: web sitesi, raporlama ve öncelikli hizmet.",
     price_monthly: 749,
-    price_yearly_monthly: 599.2,
     trial_months: 0,
     is_active: true,
     is_default: false,

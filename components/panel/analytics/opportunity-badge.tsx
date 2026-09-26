@@ -20,7 +20,7 @@ export function OpportunityBadge({ opportunity, showDetail = false }: { opportun
 
   if (showDetail) {
     return (
-      <div className="rounded-2xl border border-line p-4" style={{ background: tone.background }}>
+      <div className="rounded-md border border-line p-4" style={{ background: tone.background }}>
         <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: tone.color }}>
           {opportunity.label}
         </p>
@@ -44,14 +44,14 @@ export function OpportunityBadge({ opportunity, showDetail = false }: { opportun
         onPointerLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="whitespace-nowrap rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
+        className="whitespace-nowrap rounded-md px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider"
         style={{ color: tone.color, background: tone.background }}
       >
         {opportunity.label}
       </button>
 
       {open && (
-        <span className="absolute right-0 top-full z-20 mt-1 block w-64 rounded-xl border border-line bg-paper px-3 py-2 text-left text-xs leading-relaxed shadow-[0_14px_34px_-18px_rgba(35,24,18,0.6)]">
+        <span className="absolute right-0 top-full z-20 mt-1 block w-64 rounded-md border border-line bg-paper px-3 py-2 text-left text-xs leading-relaxed shadow-[0_14px_34px_-18px_rgba(35,24,18,0.6)]">
           <span className="block text-ink">{opportunity.message}</span>
           {opportunity.recommendation && (
             <span className="mt-1 block text-ink-soft">{opportunity.recommendation}</span>

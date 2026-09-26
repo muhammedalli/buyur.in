@@ -282,7 +282,7 @@ export default function AcquisitionPage() {
                     }))}
                   />
                 ) : (
-                  <p className="rounded-xl border border-dashed border-line px-4 py-10 text-center text-sm text-ink-soft">
+                  <p className="rounded-md border border-dashed border-line px-4 py-10 text-center text-sm text-ink-soft">
                     Konum verisi sunucu sağlayıcısından gelmiyor. Yayına alındığında ülke/şehir kırılımı burada
                     görünecek.
                   </p>

@@ -43,7 +43,7 @@ export function FunnelChart({
                   <span className="font-mono text-xs font-semibold tabular-nums">{formatNumber(step.sessions)}</span>
                 </span>
               </div>
-              <div className="mt-1 h-7 overflow-hidden rounded-lg bg-crema">
+              <div className="mt-1 h-7 overflow-hidden rounded-md bg-crema">
                 <div
                   className="flex h-full items-center rounded-r-[4px] px-2 transition-all duration-300"
                   style={{ width: `${Math.max(ratio * 100, step.sessions > 0 ? 3 : 0)}%`, background: color }}

@@ -1,64 +1,53 @@
 import Link from "next/link";
+import { AuditLogList } from "@/components/admin/audit-log-list";
 import { ButtonLink } from "@/components/admin/button-link";
 import { PlanBadge } from "@/components/admin/badges";
-import { AdminPasswordForm } from "@/components/admin/password-form";
-import { Card, PageHeader, SectionHeader } from "@/components/panel/ui";
+import { Card, PageHeader, SectionHeader, StatGroup, Table } from "@/components/panel/ui";
 import { requireAdmin } from "@/lib/admin-auth";
-import { ADMIN_LOG_COLLECTION, adminLogActionLabel } from "@/lib/admin-audit";
+import { AUDIT_LOG_COLLECTION, HIGHLIGHT_ACTIONS } from "@/lib/audit-log";
 import { loadBusinessRows, loadPlatformActivity } from "@/lib/admin-businesses";
-import { formatAdminDate, formatAdminDay } from "@/lib/admin-format";
+import { formatAdminDay } from "@/lib/admin-format";
+import { loadBusinessNames } from "@/lib/admin-logs";
 import { computeOverview, type ExpiringBusiness } from "@/lib/admin-overview";
-import { ADMIN_ROLE_LABELS, canPerform } from "@/lib/admin-roles";
+import { canPerform } from "@/lib/admin-roles";
 import { PLAN_LABELS, PLAN_ORDER } from "@/lib/entitlements";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { getServicePB } from "@/lib/pocketbase-server";
-import type { AdminLog } from "@/lib/types";
+import type { AuditLog } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="rounded-2xl border border-line bg-paper px-5 py-4">
-      <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{label}</p>
-      <p className="mt-1 font-display text-2xl font-extrabold text-ink">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-ink-soft">{hint}</p>}
-    </div>
-  );
-}
-
-function ExpiringList({ items, empty }: { items: ExpiringBusiness[]; empty: string }) {
-  if (items.length === 0) return <p className="mt-4 text-sm text-ink-soft">{empty}</p>;
-  return (
-    <ul className="mt-4 divide-y divide-line text-sm">
-      {items.map((item) => (
-        <li key={item.id}>
-          <Link href={`/admin/businesses/${item.id}`} className="flex flex-wrap items-center justify-between gap-2 py-2.5 hover:text-paprika">
-            <span className="min-w-0 truncate font-semibold">{item.name}</span>
-            <span className="flex items-center gap-2">
-              <PlanBadge plan={item.plan} />
-              <span className="font-mono text-[11px] text-ink-soft">
-                {formatAdminDay(item.expiresAt)} ·{" "}
-                {item.daysLeft < 0 ? `${-item.daysLeft} gün geçti` : item.daysLeft === 0 ? "bugün" : `${item.daysLeft} gün`}
-                {item.closesMenu ? " · menü kapanır" : ""}
-              </span>
-            </span>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
+// Genel bakış: yalnızca karar verdiren sayılar. Hesap sayıları, plan
+// dağılımı, yaklaşan plan bitişleri ve son önemli işlemler.
+// Ayrıntı (AI kullanımı, içerik düzenlemeleri, tek işletmenin istatistiği)
+// kendi ekranında durur; burada tekrar edilmez.
 
 const count = (n: number) => n.toLocaleString("tr-TR");
+
+/** Önümüzdeki 30 gün içinde bitenler (en yakın önce), ardından son 30 günde
+ *  bitmişler (en yeni önce). Aylar önce bitmiş kayıt listeyi işgal etmez. */
+function upcomingExpiries(items: ExpiringBusiness[]): ExpiringBusiness[] {
+  const upcoming = items.filter((b) => b.daysLeft >= 0 && b.daysLeft <= 30).sort((a, b) => a.daysLeft - b.daysLeft);
+  const recent = items.filter((b) => b.daysLeft < 0 && b.daysLeft >= -30).sort((a, b) => b.daysLeft - a.daysLeft);
+  return [...upcoming, ...recent].slice(0, 10);
+}
+
+function remaining(item: ExpiringBusiness): string {
+  if (item.daysLeft < 0) return `${-item.daysLeft} gün önce bitti${item.closesMenu ? " · menü kapalı" : ""}`;
+  if (item.daysLeft === 0) return "Bugün bitiyor";
+  return `${item.daysLeft} gün kaldı`;
+}
 
 export default async function AdminHomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ pb, admin }, params] = await Promise.all([requireAdmin(), searchParams]);
   const canViewBusinesses = canPerform(admin.role, "business.view");
   const canViewLogs = canPerform(admin.role, "logs.view");
 
-  // Bağımsız okumalar tek turda. Plan kataloğu, "ücretli plan" ve "süre dolunca
-  // menü kapanır" kararları için canlı kayıttan okunur.
-  const [rows, activity, recent] = await Promise.all([
+  const highlightFilter = HIGHLIGHT_ACTIONS.map((action, i) => pb.filter(`action = {:a${i}}`, { [`a${i}`]: action })).join(" || ");
+
+  // Bağımsız okumalar tek turda. Plan kataloğu "süre dolunca menü kapanır"
+  // kararı için canlı kayıttan okunur.
+  const [rows, activity, contentCounts, recent] = await Promise.all([
     canViewBusinesses
       ? getServicePB().then(async (service) => {
           await ensurePlanCatalog(service);
@@ -66,151 +55,181 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
         })
       : Promise.resolve(null),
     canViewBusinesses ? loadPlatformActivity() : Promise.resolve(null),
-    canViewLogs
-      ? pb
-          .collection(ADMIN_LOG_COLLECTION)
-          .getList<AdminLog>(1, 5, { filter: pb.filter("admin = {:id}", { id: admin.id }), sort: "-created", requestKey: null })
-          .then((res) => res.items)
+    canViewBusinesses
+      ? getServicePB()
+          .then((service) =>
+            Promise.all(
+              ["buyur_products", "buyur_categories"].map((collection) =>
+                service.collection(collection).getList(1, 1, { fields: "id", requestKey: null }).then((r) => r.totalItems)
+              )
+            )
+          )
           .catch(() => null)
       : Promise.resolve(null),
+    // undefined = yetki yok (bölüm hiç çizilmez); null = okunamadı.
+    canViewLogs
+      ? pb
+          .collection(AUDIT_LOG_COLLECTION)
+          .getList<AuditLog>(1, 8, { filter: highlightFilter, sort: "-created", requestKey: null })
+          .then((res) => res.items)
+          .catch(() => null)
+      : Promise.resolve(undefined),
   ]);
   const overview = rows ? computeOverview(rows) : null;
+  const names = recent ? await loadBusinessNames(pb, recent) : {};
   const firstName = admin.name?.trim().split(/\s+/)[0];
+  const expiries = overview ? upcomingExpiries([...overview.expiring7, ...overview.expiring30, ...overview.expired]) : [];
 
   return (
     <>
-      <PageHeader title={firstName ? `Hoş geldin, ${firstName}` : "Hoş geldin"} description="buyur platformunun genel durumu." />
+      <PageHeader title="Genel bakış" description={firstName ? `Hoş geldin, ${firstName}. Platformun bugünkü durumu.` : "Platformun bugünkü durumu."} />
 
       {params.yetkisiz === "1" && (
-        <p role="alert" className="mb-6 rounded-xl border border-paprika/30 bg-paprika/10 px-4 py-3 text-sm text-paprika">
+        <p role="alert" className="mb-6 rounded-md border border-paprika/30 bg-paprika/10 px-4 py-3 text-sm text-paprika">
           Açmaya çalıştığın sayfa için yetkin yok. Gerekiyorsa bir süper yöneticiden iste.
         </p>
       )}
 
       {overview && (
-        <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi label="Toplam hesap" value={count(overview.total)} hint={`Bugün ${count(overview.newToday)} · 7 günde ${count(overview.newThisWeek)} yeni`} />
-            <Kpi label="Yayında" value={count(overview.byStatus.live)} hint={overview.byStatus.suspended ? `${count(overview.byStatus.suspended)} askıda` : undefined} />
-            <Kpi label="Kurulum bekliyor" value={count(overview.byStatus.setup)} hint="Kayıt olup menü adresi seçmemiş" />
-            <Kpi
-              label="Ücretli plan oranı"
-              value={overview.paidShare === null ? "—" : `%${Math.round(overview.paidShare * 100)}`}
-              hint="Kurulumu bitmiş hesaplar içinde"
-            />
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
-            <Card>
-              <SectionHeader title="Plan dağılımı" />
-              <ul className="mt-4 space-y-3 text-sm">
-                {PLAN_ORDER.map((plan) => {
-                  const n = overview.byPlan[plan];
-                  const share = overview.total > 0 ? Math.round((n / overview.total) * 100) : 0;
-                  return (
-                    <li key={plan}>
-                      <div className="flex justify-between gap-3">
-                        <Link href={`/admin/businesses?plan=${plan}`} className="text-ink hover:text-paprika">
-                          {PLAN_LABELS[plan]}
-                        </Link>
-                        <span className="font-mono text-[12px] text-ink-soft">
-                          {count(n)} · %{share}
-                        </span>
-                      </div>
-                      <div className="mt-1 h-2 overflow-hidden rounded-full bg-crema">
-                        <div className="h-full rounded-full bg-paprika" style={{ width: `${share}%` }} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Card>
-
-            <Card className="lg:col-span-2">
-              <SectionHeader title={`Son ${activity?.days ?? 30} gün, tüm menüler`} description="Günlük özetlerden; bugünün verisi gece işlenir." />
-              {activity ? (
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <Kpi label="Ziyaret" value={count(activity.sessions)} />
-                  <Kpi label="Sayfa görüntüleme" value={count(activity.pageViews)} />
-                  <Kpi label="QR tarama" value={count(activity.qrScans)} />
-                  <Kpi label="Ürün görüntüleme" value={count(activity.productViews)} />
-                  <Kpi label="AI tarama (bu ay)" value={count(overview.aiScansThisMonth)} />
-                  <Kpi label="Menü görüntülenme (tümü)" value={count(overview.menuViewsTotal)} hint="Hesap sayaçlarının toplamı" />
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-ink-soft">Analitik özeti şu anda okunamıyor.</p>
-              )}
-            </Card>
-          </div>
-
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
-            <Card>
-              <SectionHeader title="7 gün içinde bitiyor" description="Satış ve yenileme için ilk bakılacak liste." />
-              <ExpiringList items={overview.expiring7} empty="Önümüzdeki 7 günde biten plan yok." />
-            </Card>
-            <Card>
-              <SectionHeader title="8–30 gün içinde bitiyor" />
-              <ExpiringList items={overview.expiring30} empty="Bu aralıkta biten plan yok." />
-            </Card>
-            <Card>
-              <SectionHeader title="Süresi geçmiş" description="Süreli planda menü kapalıdır; ücretli planda yenileme gecikmiştir." />
-              <ExpiringList items={overview.expired} empty="Süresi geçmiş plan yok." />
-            </Card>
-          </div>
-        </>
+        <StatGroup
+          items={[
+            {
+              label: "Toplam işletme",
+              value: count(overview.total),
+              hint: `Bu hafta ${count(overview.newThisWeek)} yeni kayıt`,
+              href: "/admin/businesses",
+            },
+            {
+              label: "Yayında",
+              value: count(overview.byStatus.live),
+              hint:
+                overview.byStatus.suspended > 0
+                  ? `${count(overview.byStatus.setup)} kurulum bekliyor · ${count(overview.byStatus.suspended)} askıda`
+                  : `${count(overview.byStatus.setup)} kurulum bekliyor`,
+              href: "/admin/businesses?durum=live",
+            },
+            {
+              label: "Menülerdeki ürün",
+              value: contentCounts ? count(contentCounts[0]) : "—",
+              hint: contentCounts ? `${count(contentCounts[1])} kategori` : "Sayılamadı",
+            },
+            {
+              label: `Son ${activity?.days ?? 30} gün ziyaret`,
+              value: activity ? count(activity.sessions) : "—",
+              hint: activity ? `${count(activity.qrScans)} QR tarama` : "Analitik özeti okunamadı",
+            },
+          ]}
+        />
       )}
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2">
-        <Card>
-          <SectionHeader title="Hesabın" />
-          <dl className="mt-4 space-y-3 text-sm">
-            <div>
-              <dt className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">E-posta</dt>
-              <dd className="mt-0.5 break-all text-ink">{admin.email}</dd>
-            </div>
-            <div>
-              <dt className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Rol</dt>
-              <dd className="mt-0.5 text-ink">{ADMIN_ROLE_LABELS[admin.role]}</dd>
-            </div>
-          </dl>
-          <p className="mt-4 text-sm text-ink-soft">
-            {canPerform(admin.role, "plans.edit")
-              ? "Planları, fiyatları ve işletme erişimini değiştirebilirsin. Yaptığın her değişiklik denetim kaydına düşer."
-              : "İşletmelere destek verebilir, süreyi uzatabilir ve AI kotasını sıfırlayabilirsin. Plan ve fiyat kararları süper yöneticidedir."}
-          </p>
-          <AdminPasswordForm />
-        </Card>
+      {overview && (
+        <section className="mt-10">
+          <SectionHeader title="Plan dağılımı" />
+          <Table className="mt-4">
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th className="text-right">İşletme</th>
+                <th className="w-2/5">
+                  <span className="sr-only">Pay</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {PLAN_ORDER.map((plan) => {
+                const n = overview.byPlan[plan];
+                const share = overview.total > 0 ? (n / overview.total) * 100 : 0;
+                return (
+                  <tr key={plan}>
+                    <td>
+                      <Link href={`/admin/businesses?plan=${plan}`} className="font-semibold text-ink hover:text-paprika">
+                        {PLAN_LABELS[plan]}
+                      </Link>
+                    </td>
+                    <td className="text-right font-mono tabular-nums">{count(n)}</td>
+                    <td>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-crema" title={`%${Math.round(share)}`}>
+                        <div className="h-full rounded-full bg-paprika" style={{ width: `${share}%` }} />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </section>
+      )}
 
-        {canViewLogs && (
-          <Card>
-            <SectionHeader
-              title="Son işlemlerin"
-              action={
-                <ButtonLink href="/admin/logs" className="px-3.5 py-2 text-[12px]">
-                  Tümü
-                </ButtonLink>
-              }
-            />
-            {recent === null ? (
-              <p className="mt-4 text-sm text-ink-soft">Denetim kaydı şu anda okunamıyor.</p>
-            ) : recent.length === 0 ? (
-              <p className="mt-4 text-sm text-ink-soft">Henüz kayıtlı bir işlemin yok.</p>
-            ) : (
-              <ul className="mt-4 divide-y divide-line text-sm">
-                {recent.map((log) => (
-                  <li key={log.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2.5">
-                    <span className="text-ink">{adminLogActionLabel(log.action)}</span>
-                    <span className="font-mono text-[11px] text-ink-soft">
-                      {formatAdminDate(log.created)}
-                      {log.ip ? ` · ${log.ip}` : ""}
-                    </span>
-                  </li>
+      {overview && (
+        <section className="mt-10">
+          <SectionHeader
+            title="Plan bitişleri"
+            description="Önümüzdeki 30 gün içinde bitenler ve son 30 günde bitenler."
+            action={
+              <ButtonLink href="/admin/businesses?sirala=expiring" size="sm">
+                Tümü
+              </ButtonLink>
+            }
+          />
+          {expiries.length === 0 ? (
+            <p className="mt-4 rounded-md border border-dashed border-line px-4 py-6 text-center text-sm text-ink-soft">
+              Yakın zamanda biten ya da bitecek plan yok.
+            </p>
+          ) : (
+            <Table className="mt-4">
+              <thead>
+                <tr>
+                  <th>İşletme</th>
+                  <th>Plan</th>
+                  <th className="hidden sm:table-cell">Bitiş</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expiries.map((item) => (
+                  <tr key={item.id}>
+                    <td className="max-w-[14rem]">
+                      <Link href={`/admin/businesses/${item.id}`} className="block truncate font-semibold text-ink hover:text-paprika">
+                        {item.name}
+                      </Link>
+                    </td>
+                    <td>
+                      <PlanBadge plan={item.plan} />
+                    </td>
+                    <td className="hidden font-mono text-[12px] text-ink-soft sm:table-cell">{formatAdminDay(item.expiresAt)}</td>
+                    <td className={item.daysLeft < 0 ? "text-paprika-deep" : item.daysLeft <= 7 ? "text-ink" : "text-ink-soft"}>
+                      {remaining(item)}
+                    </td>
+                  </tr>
                 ))}
-              </ul>
+              </tbody>
+            </Table>
+          )}
+        </section>
+      )}
+
+      {recent !== undefined && (
+        <section className="mt-10">
+          <SectionHeader
+            title="Son önemli işlemler"
+            description="Yeni hesaplar, plan ve erişim kararları, sistem ayarları."
+            action={
+              <ButtonLink href="/admin/logs" size="sm">
+                Denetim kaydı
+              </ButtonLink>
+            }
+          />
+          <Card className="mt-4">
+            {recent === null ? (
+              <p className="text-sm text-ink-soft">Denetim kaydı şu anda okunamıyor.</p>
+            ) : recent.length === 0 ? (
+              <p className="text-sm text-ink-soft">Henüz kayıtlı önemli bir işlem yok.</p>
+            ) : (
+              <AuditLogList logs={recent} businessNames={names} />
             )}
           </Card>
-        )}
-      </div>
+        </section>
+      )}
     </>
   );
 }

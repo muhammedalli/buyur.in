@@ -2,17 +2,17 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Button,
   Card,
   DraftBanner,
   ErrorText,
+  FORM_STACK,
   FormActions,
-  FormStatusFooter,
   Input,
   Label,
   Modal,
-  SaveStatus,
   SectionHeader,
   Switch,
   Textarea,
@@ -26,6 +26,7 @@ import {
   planChangeImpact,
   type PlanFormValues,
 } from "@/lib/admin-plan-edit";
+import { MONTHS_IN_YEAR, formatTL, yearlyMonthlyPrice } from "@/lib/pricing";
 import { useFormDraft } from "@/lib/use-draft";
 
 export interface PlanFormProps {
@@ -35,6 +36,8 @@ export interface PlanFormProps {
   /** Bu plandaki işletme sayısı — onayda gösterilir. */
   businessCount: number;
   isDefault: boolean;
+  /** Sistem ayarındaki yıllık ödeme indirimi (%) — yıllık fiyat önizlemesi için. */
+  yearlyDiscountPercent: number;
 }
 
 /** Sayı alanı: boş bırakılırsa 0 değil NaN döner ki doğrulama yakalasın. */
@@ -75,8 +78,9 @@ function NullableLimit({
 }
 
 // Plan düzenleme formu. Kaydet'e basınca önce etki özeti ve gerekçe istenir;
-// değişiklik denetim kaydıyla yazılır (app/api/admin/plans/[key]).
-export function PlanForm({ planKey, initial, updated, businessCount, isDefault }: PlanFormProps) {
+// değişiklik denetim kaydıyla yazılır (app/api/admin/plans/[key]). Planın tek
+// fiyatı aylık fiyattır; yıllık ödemenin karşılığı indirim oranından hesaplanır.
+export function PlanForm({ planKey, initial, updated, businessCount, isDefault, yearlyDiscountPercent }: PlanFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [values, setValues] = useState<PlanFormValues>(initial);
@@ -93,7 +97,7 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
     [values, bulletsText]
   );
   const draft = useFormDraft<PlanFormValues>(`admin-plan:${planKey}`, current, initial, updated);
-  const impact = planChangeImpact(initial, current);
+  const impact = planChangeImpact(initial, current, yearlyDiscountPercent);
 
   const set = <K extends keyof PlanFormValues>(key: K, value: PlanFormValues[K]) => setValues((prev) => ({ ...prev, [key]: value }));
 
@@ -103,7 +107,6 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
     // kaldırmak ancak "Sınırsız" anahtarıyla bilerek yapılabilmeli.
     const numbers = [
       values.price_monthly,
-      values.price_yearly_monthly,
       values.trial_months,
       values.ai_pages_per_scan,
       values.analytics_retention_days,
@@ -111,7 +114,7 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
       values.ai_scans_per_month ?? 0,
     ];
     if (numbers.some((n) => !Number.isFinite(n))) {
-      setFormError("Boş bırakılan sayı alanları var. Sınırsız yapmak için \"Sınırsız\" anahtarını kullan.");
+      setFormError("Boş bırakılan sayı alanları var. Sınırsız yapmak için “Sınırsız” anahtarını kullan.");
       return;
     }
     setFormError("");
@@ -147,35 +150,37 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
     }
   }
 
-  const yearlyTotal = Number.isFinite(values.price_yearly_monthly) ? values.price_yearly_monthly * 12 : null;
+  const priceKnown = Number.isFinite(values.price_monthly) && values.price_monthly > 0;
+  const yearlyMonthly = priceKnown ? yearlyMonthlyPrice(values.price_monthly, yearlyDiscountPercent) : null;
 
   return (
     <>
-      {draft.restorable && (
-        <DraftBanner
-          savedAt={draft.restorable.savedAt}
-          onRestore={() => {
-            const restored = draft.restorable!.value;
-            setValues(restored);
-            setBulletsText(restored.bullets.join("\n"));
-            draft.dismiss();
-          }}
-          onDiscard={draft.discard}
+      <form onSubmit={openConfirm} className={FORM_STACK}>
+        <FormActions
+          saving={saving}
+          dirty={draft.dirty}
+          savedAt={savedAt}
+          draftSavedAt={draft.draftSavedAt}
+          error={formError || undefined}
+          saveLabel="Kaydet"
         />
-      )}
-
-      <form onSubmit={openConfirm}>
-        <FormActions saving={saving} saveLabel="Kaydet" />
-        {formError && (
-          <div className="mb-6">
-            <ErrorText>{formError}</ErrorText>
-          </div>
+        {draft.restorable && (
+          <DraftBanner
+            savedAt={draft.restorable.savedAt}
+            onRestore={() => {
+              const restored = draft.restorable!.value;
+              setValues(restored);
+              setBulletsText(restored.bullets.join("\n"));
+              draft.dismiss();
+            }}
+            onDiscard={draft.discard}
+          />
         )}
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <SectionHeader title="Genel" />
-            <div className="mt-4 space-y-4">
+        <Card>
+          <SectionHeader title="Genel ve fiyat" description="Fiyat sayfası ve yasal fiyat tablosu buradan okur." />
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <div className="space-y-4">
               <div>
                 <Label htmlFor="plan-name">Plan adı</Label>
                 <Input id="plan-name" maxLength={PLAN_LIMITS.nameMax} value={values.name} onChange={(e) => set("name", e.target.value)} />
@@ -184,7 +189,7 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
                 <Label htmlFor="plan-description">Açıklama</Label>
                 <Textarea
                   id="plan-description"
-                  rows={2}
+                  rows={3}
                   maxLength={PLAN_LIMITS.descriptionMax}
                   value={values.description}
                   onChange={(e) => set("description", e.target.value)}
@@ -197,13 +202,9 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
                 description={isDefault ? "Varsayılan plan (yeni kayıtlar bu planla açılır) pasif yapılamaz." : "Kapalıysa yeni satışa sunulmaz; mevcut işletmeler planında kalır."}
               />
             </div>
-          </Card>
-
-          <Card>
-            <SectionHeader title="Fiyat ve süre" description="Tutarlar ₺; fiyat sayfası ve yasal fiyat tablosu buradan okur." />
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="plan-price-monthly">Aylık ödemede (₺ / ay)</Label>
+                <Label htmlFor="plan-price-monthly">Aylık fiyat (₺)</Label>
                 <Input
                   id="plan-price-monthly"
                   type="number"
@@ -212,22 +213,23 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
                   value={Number.isFinite(values.price_monthly) ? String(values.price_monthly) : ""}
                   onChange={(e) => set("price_monthly", toNumber(e.target.value))}
                 />
+                <p className="mt-1.5 text-xs text-ink-soft">
+                  {yearlyMonthly !== null ? (
+                    <>
+                      Yıllık ödemede ayda <span className="font-semibold text-ink">{formatTL(yearlyMonthly)}</span> (%
+                      {yearlyDiscountPercent} indirim) · yıllık toplam {formatTL(yearlyMonthly * MONTHS_IN_YEAR)}.{" "}
+                    </>
+                  ) : (
+                    "0 = ücretsiz plan. "
+                  )}
+                  İndirim oranı{" "}
+                  <Link href="/admin/system" className="text-paprika hover:underline">
+                    Sistem ayarlarından
+                  </Link>{" "}
+                  değişir.
+                </p>
               </div>
               <div>
-                <Label htmlFor="plan-price-yearly">Yıllık ödemede (₺ / ay)</Label>
-                <Input
-                  id="plan-price-yearly"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={Number.isFinite(values.price_yearly_monthly) ? String(values.price_yearly_monthly) : ""}
-                  onChange={(e) => set("price_yearly_monthly", toNumber(e.target.value))}
-                />
-                {yearlyTotal !== null && (
-                  <p className="mt-1 text-xs text-ink-soft">Yıllık toplam: {yearlyTotal.toLocaleString("tr-TR", { maximumFractionDigits: 2 })} ₺</p>
-                )}
-              </div>
-              <div className="sm:col-span-2">
                 <Label htmlFor="plan-trial">Süre (ay)</Label>
                 <Input
                   id="plan-trial"
@@ -237,77 +239,69 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
                   value={Number.isFinite(values.trial_months) ? String(values.trial_months) : ""}
                   onChange={(e) => set("trial_months", toNumber(e.target.value))}
                 />
-                <p className="mt-1 text-xs text-ink-soft">
+                <p className="mt-1.5 text-xs text-ink-soft">
                   0 = süresiz. Süreli planda işletme süre dolunca menüsünü kaybeder; mevcut işletmelerin bitiş tarihi değişmez.
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
+        </Card>
 
-          <Card>
-            <SectionHeader title="Özellikler" description="Kapatılan özellik bu plandaki işletmelerde hemen kilitlenir." />
-            <div className="mt-4 space-y-3">
-              {EDITABLE_FEATURES.map((feature) => (
-                <Switch
-                  key={feature}
-                  checked={values.features[feature]}
-                  onChange={(checked) => set("features", { ...values.features, [feature]: checked })}
-                  label={FEATURE_LABELS[feature]}
-                />
-              ))}
-            </div>
-          </Card>
-
-          <Card>
-            <SectionHeader title="Kotalar" />
-            <div className="mt-4 space-y-4">
-              <NullableLimit
-                id="plan-menu-views"
-                label="Menü görüntülenme limiti"
-                value={values.menu_views}
-                onChange={(value) => set("menu_views", value)}
-                hint="Dolunca menü yayından kalkar (süreli planlarda)."
+        <Card>
+          <SectionHeader title="Özellikler ve kotalar" description="Kapatılan özellik bu plandaki işletmelerde hemen kilitlenir." />
+          <div className="mt-5 grid gap-x-10 gap-y-3 md:grid-cols-2">
+            {EDITABLE_FEATURES.map((feature) => (
+              <Switch
+                key={feature}
+                checked={values.features[feature]}
+                onChange={(checked) => set("features", { ...values.features, [feature]: checked })}
+                label={FEATURE_LABELS[feature]}
               />
-              <NullableLimit
-                id="plan-ai-scans"
-                label="Aylık AI tarama hakkı"
-                value={values.ai_scans_per_month}
-                onChange={(value) => set("ai_scans_per_month", value)}
+            ))}
+          </div>
+          <div className="mt-6 grid gap-5 border-t border-line pt-5 md:grid-cols-2">
+            <NullableLimit
+              id="plan-menu-views"
+              label="Menü görüntülenme limiti"
+              value={values.menu_views}
+              onChange={(value) => set("menu_views", value)}
+              hint="Dolunca menü yayından kalkar (süreli planlarda)."
+            />
+            <NullableLimit
+              id="plan-ai-scans"
+              label="Aylık AI tarama hakkı"
+              value={values.ai_scans_per_month}
+              onChange={(value) => set("ai_scans_per_month", value)}
+            />
+            <div>
+              <Label htmlFor="plan-pages">Tarama başına sayfa</Label>
+              <Input
+                id="plan-pages"
+                type="number"
+                min={PLAN_LIMITS.pagesPerScan[0]}
+                max={PLAN_LIMITS.pagesPerScan[1]}
+                value={Number.isFinite(values.ai_pages_per_scan) ? String(values.ai_pages_per_scan) : ""}
+                onChange={(e) => set("ai_pages_per_scan", toNumber(e.target.value))}
               />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="plan-pages">Tarama başına sayfa</Label>
-                  <Input
-                    id="plan-pages"
-                    type="number"
-                    min={PLAN_LIMITS.pagesPerScan[0]}
-                    max={PLAN_LIMITS.pagesPerScan[1]}
-                    value={Number.isFinite(values.ai_pages_per_scan) ? String(values.ai_pages_per_scan) : ""}
-                    onChange={(e) => set("ai_pages_per_scan", toNumber(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="plan-retention">Veri saklama (gün)</Label>
-                  <Input
-                    id="plan-retention"
-                    type="number"
-                    min={PLAN_LIMITS.retentionDays[0]}
-                    max={PLAN_LIMITS.retentionDays[1]}
-                    value={Number.isFinite(values.analytics_retention_days) ? String(values.analytics_retention_days) : ""}
-                    onChange={(e) => set("analytics_retention_days", toNumber(e.target.value))}
-                  />
-                </div>
-              </div>
             </div>
-          </Card>
+            <div>
+              <Label htmlFor="plan-retention">Veri saklama (gün)</Label>
+              <Input
+                id="plan-retention"
+                type="number"
+                min={PLAN_LIMITS.retentionDays[0]}
+                max={PLAN_LIMITS.retentionDays[1]}
+                value={Number.isFinite(values.analytics_retention_days) ? String(values.analytics_retention_days) : ""}
+                onChange={(e) => set("analytics_retention_days", toNumber(e.target.value))}
+              />
+            </div>
+          </div>
+        </Card>
 
-          <Card className="lg:col-span-2">
-            <SectionHeader title="Fiyat kartı maddeleri" description={`Her satır bir madde (en fazla ${PLAN_LIMITS.bulletsMax}). Yalnızca ürünün bugün yaptığı iş yazılır.`} />
-            <Textarea className="mt-4" rows={7} value={bulletsText} onChange={(e) => setBulletsText(e.target.value)} />
-          </Card>
-        </div>
-
-        <FormStatusFooter status={<SaveStatus saving={saving} savedAt={savedAt} draftSavedAt={draft.draftSavedAt} />} />
+        <Card>
+          <SectionHeader title="Fiyat kartı maddeleri" description={`Her satır bir madde (en fazla ${PLAN_LIMITS.bulletsMax}). Yalnızca ürünün bugün yaptığı iş yazılır.`} />
+          <Textarea className="mt-4" rows={7} value={bulletsText} onChange={(e) => setBulletsText(e.target.value)} />
+        </Card>
       </form>
 
       <Modal
@@ -319,7 +313,7 @@ export function PlanForm({ planKey, initial, updated, businessCount, isDefault }
       >
         <form onSubmit={save} className="space-y-4">
           {impact.length > 0 ? (
-            <ul className="space-y-1 rounded-xl border border-line bg-crema/50 px-4 py-3 text-sm">
+            <ul className="space-y-1 rounded-md border border-line bg-crema/50 px-4 py-3 text-sm">
               {impact.map((line) => (
                 <li key={line} className={line.startsWith("Kapanacak") ? "font-semibold text-paprika" : "text-ink"}>
                   {line}

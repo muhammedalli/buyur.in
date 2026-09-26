@@ -16,6 +16,16 @@ export const localeLabels: Record<Locale, string> = {
   ru: "Русский",
 };
 
+/** Dillerin Türkçe adları — panelin Türkçe cümlelerinde kullanılır
+ *  ("İngilizce için ad dolduruldu"). Dil seçicilerde kendi adları
+ *  (localeLabels) gösterilir. */
+export const localeNamesTr: Record<Locale, string> = {
+  tr: "Türkçe",
+  en: "İngilizce",
+  ar: "Arapça",
+  ru: "Rusça",
+};
+
 export const localeCodes: Record<Locale, string> = {
   tr: "TR",
   en: "EN",
@@ -381,11 +391,12 @@ const UI_STRINGS = {
     ar: "صُنع بواسطة {brand}",
     ru: "Сделано на {brand}",
   },
-  platformHomeAria: {
-    tr: "{brand} ana sayfasına git",
-    en: "Go to the {brand} home page",
-    ar: "الانتقال إلى الصفحة الرئيسية لـ {brand}",
-    ru: "Перейти на главную {brand}",
+  // Menü başlığındaki logo: misafiri platform sitesine değil, menünün başına götürür.
+  menuHomeAria: {
+    tr: "Menünün başına dön",
+    en: "Back to the menu",
+    ar: "العودة إلى بداية القائمة",
+    ru: "Вернуться к началу меню",
   },
 
   // İşletme bilgileri paneli (components/menu/business-info.tsx).

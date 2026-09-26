@@ -6,14 +6,13 @@ import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { isReservedSlug, slugify } from "@/lib/slug";
-import { Button, buttonClass, Card, ErrorText, FooterNote, Input, Label, PageHeader, UpdatedAt } from "@/components/panel/ui";
+import { Button, buttonClass, Card, ErrorText, FooterNote, Input, Label, PageHeader, StatGroup, UpdatedAt } from "@/components/panel/ui";
 import { FeatureLocked } from "@/components/panel/plan-gate";
 import { QrShare } from "@/components/panel/qr-share";
-import { PlanUsageCard } from "@/components/panel/plan-usage";
 import { LaunchChecklist } from "@/components/panel/launch-checklist";
 import { ROOT_DOMAIN, menuHost } from "@/lib/site";
 import { AnalyticsError, fetchAnalytics } from "@/lib/analytics/panel-client";
-import { PLAN_LABELS, isFeatureAvailable, normalizePlan } from "@/lib/entitlements";
+import { PLAN_LABELS, freemiumUsage, isFeatureAvailable, normalizePlan } from "@/lib/entitlements";
 import { SECTOR_TEMPLATES, sectorTemplate, type SectorKey } from "@/lib/sector-templates";
 import { saveActivation } from "@/lib/activation";
 import { trackMarketingEvent } from "@/lib/marketing-events";
@@ -143,7 +142,7 @@ function Onboarding() {
           </div>
           <div>
             <Label htmlFor="slug">Menü adresi</Label>
-            <div className="flex items-center gap-1 rounded-2xl border border-line bg-crema/40 px-4 py-2.5 text-sm">
+            <div className="flex items-center gap-1 rounded-md border border-line bg-crema/40 px-4 py-2.5 text-sm">
               <input
                 id="slug"
                 required
@@ -171,7 +170,7 @@ function Onboarding() {
                     type="button"
                     aria-pressed={active}
                     onClick={() => setSector(item.key)}
-                    className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    className={`rounded-md border px-4 py-3 text-left transition-colors ${
                       active ? "border-paprika bg-paprika/5" : "border-line hover:border-ink/30"
                     }`}
                   >
@@ -182,7 +181,7 @@ function Onboarding() {
               })}
             </div>
             {selected && selected.categories.length > 0 && (
-              <p className="mt-3 rounded-xl bg-crema/60 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
+              <p className="mt-3 rounded-md bg-crema/60 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
                 <span className="font-semibold text-ink">Hazır gelecek kategoriler: </span>
                 {selected.categories.map((c) => c.name).join(", ")}. İstediğini silip yeniden adlandırabilirsin; ürün eklemediğin
                 kategoriler menüde görünmez.
@@ -292,21 +291,13 @@ function StatsSection({ business }: { business: Business }) {
         </div>
       </div>
 
-      {/* Mobilde iki sütun: tek tek tam genişlik kartlar gereksiz kaydırma yaratıyordu. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        <Card>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sayfa görüntülenme</p>
-          <p className="mt-2 font-display text-3xl font-extrabold">{totals.page_views ?? 0}</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Bugün</p>
-          <p className="mt-2 font-display text-3xl font-extrabold">{todayViews}</p>
-        </Card>
-        <Card className="col-span-2 sm:col-span-1">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sepete ekleme</p>
-          <p className="mt-2 font-display text-3xl font-extrabold">{totals.cart_adds ?? 0}</p>
-        </Card>
-      </div>
+      <StatGroup
+        items={[
+          { label: "Sayfa görüntülenme", value: (totals.page_views ?? 0).toLocaleString("tr-TR") },
+          { label: "Bugün", value: todayViews.toLocaleString("tr-TR") },
+          { label: "Sepete ekleme", value: (totals.cart_adds ?? 0).toLocaleString("tr-TR") },
+        ]}
+      />
 
       {(data.topProducts || data.topCategories) && (
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -324,6 +315,20 @@ function StatsSection({ business }: { business: Business }) {
   );
 }
 
+/** Plan hücresinin alt satırı: süreli planda kalan gün ve görüntülenme, ücretli
+ *  planda sınır olmadığı. Ayrıntılı ölçüler plan sayfasında. */
+function planHint(business: Business): string {
+  const usage = freemiumUsage(business);
+  if (!usage.limited) return "Süre ve görüntülenme sınırı yok";
+  if (usage.exhausted) return "Limit doldu — planını yükselt";
+  const parts: string[] = [];
+  if (usage.daysLeft !== null) parts.push(`${usage.daysLeft} gün kaldı`);
+  if (usage.menuViewLimit !== null) {
+    parts.push(`${usage.menuViews.toLocaleString("tr-TR")}/${usage.menuViewLimit.toLocaleString("tr-TR")} görüntülenme`);
+  }
+  return parts.join(" · ");
+}
+
 /** Landing'de "Premium'u başlat" deyip gelen Freemium işletmeye kaldığı yeri hatırlatır. */
 function PlanIntentNotice({ business }: { business: Business }) {
   const [intent, setIntent] = useState<PlanIntent | null>(null);
@@ -336,7 +341,7 @@ function PlanIntentNotice({ business }: { business: Business }) {
   if (!intent || current !== "freemium") return null;
 
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-paprika/30 bg-paprika/5 px-6 py-4">
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border border-paprika/30 bg-paprika/5 px-5 py-4">
       <p className="text-sm">
         <span className="font-semibold">{PLAN_LABELS[intent.plan]} planını başlatmak istiyordun.</span>{" "}
         <span className="text-ink-soft">Menünü kurarken istediğin an geçişi başlatabilirsin.</span>
@@ -387,19 +392,13 @@ function Overview({ business }: { business: Business }) {
       <PageHeader title={business.name} description={menuHost(business.slug)} />
       <PlanIntentNotice business={business} />
       <LaunchChecklist business={business} counts={counts} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        <Card>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Kategori</p>
-          <p className="mt-2 font-display text-3xl font-extrabold">{counts?.categories ?? "—"}</p>
-        </Card>
-        <Card>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Ürün</p>
-          <p className="mt-2 font-display text-3xl font-extrabold">{counts?.products ?? "—"}</p>
-        </Card>
-        <div className="col-span-2 sm:col-span-1">
-          <PlanUsageCard business={business} compact />
-        </div>
-      </div>
+      <StatGroup
+        items={[
+          { label: "Kategori", value: counts?.categories ?? "—", href: "/panel/categories" },
+          { label: "Ürün", value: counts?.products ?? "—", href: "/panel/products" },
+          { label: "Plan", value: PLAN_LABELS[normalizePlan(business.plan)], hint: planHint(business), href: "/panel/plan" },
+        ]}
+      />
       <QrShare business={business} />
       {analyticsAllowed ? (
         <StatsSection business={business} />

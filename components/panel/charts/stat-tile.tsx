@@ -77,7 +77,7 @@ export function StatTile({
   const changeColor = positive === null ? STATUS.neutral : positive ? STATUS.good : STATUS.critical;
 
   return (
-    <div className="relative rounded-2xl border border-line bg-paper p-4">
+    <div className="relative rounded-md border border-line bg-paper p-4">
       <div className="flex items-start justify-between gap-2">
         <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{label}</p>
         {hint && (
@@ -98,7 +98,7 @@ export function StatTile({
       </div>
 
       {showHint && hint && (
-        <p className="absolute right-3 top-10 z-20 w-52 rounded-xl border border-line bg-paper px-3 py-2 text-xs leading-relaxed text-ink-soft shadow-[0_12px_30px_-16px_rgba(35,24,18,0.6)]">
+        <p className="absolute right-3 top-10 z-20 w-52 rounded-md border border-line bg-paper px-3 py-2 text-xs leading-relaxed text-ink-soft shadow-[0_12px_30px_-16px_rgba(35,24,18,0.6)]">
           {hint}
         </p>
       )}

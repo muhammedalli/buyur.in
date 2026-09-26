@@ -7,6 +7,7 @@
 // İşletme sayısı binlerle ölçülene kadar tek turda hepsini okumak yeterince hızlı.
 
 import { isSuspended } from "@/lib/business-suspension";
+import { isDeleted } from "@/lib/business-deletion";
 import { PLAN_ORDER } from "@/lib/entitlements";
 import type { Business, Plan } from "@/lib/types";
 
@@ -19,6 +20,7 @@ export type AdminBusinessRow = Pick<
   | "plan"
   | "is_active"
   | "suspended_at"
+  | "deleted_at"
   | "plan_expires_at"
   | "menu_views"
   | "ai_scans_used"
@@ -29,19 +31,23 @@ export type AdminBusinessRow = Pick<
 
 /** Listede istenen alanlar — yanıt küçük kalsın. */
 export const ADMIN_BUSINESS_ROW_FIELDS =
-  "id,name,slug,email,plan,is_active,suspended_at,plan_expires_at,menu_views,ai_scans_used,ai_scans_period,created,updated";
+  "id,name,slug,email,plan,is_active,suspended_at,deleted_at,plan_expires_at,menu_views,ai_scans_used,ai_scans_period,created,updated";
 
-export type BusinessStatus = "live" | "setup" | "offline" | "suspended";
+export type BusinessStatus = "live" | "setup" | "offline" | "suspended" | "deleted";
 
 export const BUSINESS_STATUS_LABELS: Record<BusinessStatus, string> = {
   live: "Yayında",
   setup: "Kurulum bekliyor",
   offline: "Yayında değil",
   suspended: "Askıda",
+  deleted: "Silindi",
 };
 
-/** Askı her şeyin önüne geçer; slug yoksa kurulum bitmemiştir. */
-export function businessStatus(row: Pick<AdminBusinessRow, "slug" | "is_active" | "suspended_at">): BusinessStatus {
+/** Silme her şeyin, askı geri kalanın önüne geçer; slug yoksa kurulum bitmemiştir. */
+export function businessStatus(
+  row: Pick<AdminBusinessRow, "slug" | "is_active" | "suspended_at"> & Partial<Pick<AdminBusinessRow, "deleted_at">>
+): BusinessStatus {
+  if (isDeleted(row)) return "deleted";
   if (isSuspended(row)) return "suspended";
   if (!row.slug) return "setup";
   return row.is_active ? "live" : "offline";
@@ -78,7 +84,7 @@ export function parseBusinessListQuery(params: Record<string, string | undefined
   return {
     q: (params.q ?? "").trim().slice(0, 100),
     plan: pick(params.plan, ["", ...PLAN_ORDER], ""),
-    status: pick(params.durum, ["", "live", "setup", "offline", "suspended"], ""),
+    status: pick(params.durum, ["", "live", "setup", "offline", "suspended", "deleted"], ""),
     sort: pick(params.sirala, ["newest", "oldest", "name", "expiring", "updated"], "newest"),
     page: Number.isFinite(page) && page > 0 ? page : 1,
   };
@@ -105,7 +111,9 @@ export function queryBusinesses(rows: AdminBusinessRow[], query: BusinessListQue
   const q = normalize(query.q);
   const filtered = rows.filter((row) => {
     if (query.plan && row.plan !== query.plan) return false;
-    if (query.status && businessStatus(row) !== query.status) return false;
+    const status = businessStatus(row);
+    // Silinenler yalnızca "Silindi" filtresinde görünür; liste yaşayan hesaplardır.
+    if (query.status ? status !== query.status : status === "deleted") return false;
     if (!q) return true;
     return [row.name, row.slug, row.email, row.id].some((field) => normalize(field).includes(q));
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { useAuth } from "@/lib/use-auth";
@@ -38,7 +38,14 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [, rerender] = useState(0);
   const revalidatedAt = useRef(Date.now());
 
-  const account = (user as unknown as Business | null) ?? null;
+  // Oturum tazelenince (sekmeye dönüş, açılıştaki authRefresh) SDK aynı içerikli
+  // YENİ bir kayıt nesnesi verir. Nesne kimliği değişirse `business`'a bağlı
+  // sayfalar kaydı yeniden yükleyip açık formu sökerdi: kaydedilmemiş her şey,
+  // AI'ın doldurduğu çeviriler dahil, silinirdi. İçerik aynıysa önceki nesne
+  // korunur; yalnızca gerçek değişiklik yeni kimlik üretir.
+  const accountJson = user ? JSON.stringify(user) : "";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const account = useMemo(() => (user as unknown as Business | null) ?? null, [accountJson]);
   // Birleşme öncesinden tarayıcıda kalmış eski kayıt biçiminde slug alanı hiç
   // yoktur; kurulum bitmemiş sayılıp kurulum ekranı gösterilmesin.
   const stale = account !== null && account.slug === undefined;

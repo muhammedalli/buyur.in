@@ -11,7 +11,9 @@
 
 import PocketBase from "pocketbase";
 import { ADMIN_BYPASS, BUSINESS_COLLECTION, BUSINESS_RULES } from "./business-schema.mjs";
-import { ADMIN_ROLE_VALUES, ADMIN_RULES } from "./admin-schema.mjs";
+import { ADMIN_ROLE_VALUES, ADMIN_RULES, SUPER_ADMIN } from "./admin-schema.mjs";
+import { AUDIT_LOG_INDEXES, AUDIT_LOG_NEW_FIELDS, AUDIT_LOG_RULES } from "./audit-schema.mjs";
+import { SETTINGS_COLLECTION, SETTINGS_FIELDS, SETTINGS_INDEXES, SETTINGS_RULES, SETTING_SEEDS } from "./settings-schema.mjs";
 
 const PB_URL = process.env.POCKETBASE_API_URL;
 const PB_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -133,7 +135,10 @@ const STAT_DIMENSIONS = [
 // manageRule sadece auth tipi koleksiyonlarda anlamlı (users/admins) — diğerlerinde
 // spec'te tanımlanmadığı için undefined ?? null === existing undefined ?? null olur,
 // yani base koleksiyonlar için no-op kalır.
-const RULE_KEYS = ["listRule", "viewRule", "createRule", "updateRule", "deleteRule", "manageRule"];
+// authRule da yalnızca auth koleksiyonlarında var; spec'te yoksa HİÇ
+// karşılaştırılmaz: null "yalnızca superuser giriş yapar" demektir ve boş
+// bırakılan bir spec bütün girişleri kapatırdı.
+const RULE_KEYS = ["listRule", "viewRule", "createRule", "updateRule", "deleteRule", "manageRule", "authRule"];
 
 async function getOrCreate(spec) {
   let existing;
@@ -163,6 +168,7 @@ async function getOrCreate(spec) {
 
   const ruleChanges = {};
   for (const key of RULE_KEYS) {
+    if (key === "authRule" && !(key in spec)) continue;
     const wanted = spec[key] ?? null;
     if (wanted !== (existing[key] ?? null)) ruleChanges[key] = wanted;
   }
@@ -233,6 +239,9 @@ async function main() {
       text("name", { required: true, max: 120 }),
       // Var olan kurulumda değer listesini scripts/migrate-admin.mjs genişletir.
       select("role", ADMIN_ROLE_VALUES, { required: true, maxSelect: 1 }),
+      // Erişimi kaldırılan yönetici (panelden, super_admin). Kayıt silinmez:
+      // denetim kaydındaki izleri ona bağlı kalır ve erişim geri açılabilir.
+      dateField("disabled_at"),
       ...stamps(),
     ],
   });
@@ -334,6 +343,10 @@ async function main() {
       // sahibi kurulum ekranında yazar, bunu yalnızca super_admin yazar.
       dateField("suspended_at"),
       text("suspension_reason", { max: 300 }),
+      // Yumuşak silme (lib/business-deletion.ts): hesap girişe kapanır, her
+      // herkese açık yüzeyden kalkar, veri durur ve geri alınabilir.
+      dateField("deleted_at"),
+      text("deletion_reason", { max: 500 }),
       ...stamps(),
     ],
     // Kurulumu bitmemiş hesapların slug'ı boş: benzersizlik yalnızca dolu slug'lar için.
@@ -346,7 +359,9 @@ async function main() {
     type: "base",
     listRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
     viewRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
-    createRule: "business = @request.auth.id",
+    // super_admin yönetim panelinden işletme adına içerik ekleyebilir
+    // (app/api/admin/businesses/[id]/content, denetim kaydıyla).
+    createRule: `business = @request.auth.id || ${SUPER_ADMIN}`,
     updateRule: `business = @request.auth.id || ${adminBypass}`,
     deleteRule: `business = @request.auth.id || ${adminBypass}`,
     fields: [
@@ -368,7 +383,9 @@ async function main() {
     type: "base",
     listRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
     viewRule: `business.is_active = true || business = @request.auth.id || ${adminBypass}`,
-    createRule: "business = @request.auth.id",
+    // super_admin yönetim panelinden işletme adına içerik ekleyebilir
+    // (app/api/admin/businesses/[id]/content, denetim kaydıyla).
+    createRule: `business = @request.auth.id || ${SUPER_ADMIN}`,
     updateRule: `business = @request.auth.id || ${adminBypass}`,
     deleteRule: `business = @request.auth.id || ${adminBypass}`,
     fields: [
@@ -421,9 +438,11 @@ async function main() {
   await getOrCreate({
     name: "buyur_product_options",
     type: "base",
-    listRule: "product.business.is_active = true || product.business = @request.auth.id",
-    viewRule: "product.business.is_active = true || product.business = @request.auth.id",
-    createRule: "product.business = @request.auth.id",
+    // Yönetim okur; super_admin, ürün silme geri alınırken seçenekleri geri
+    // yaratabilsin diye ekleyebilir (lib/admin-audit.ts → runAuditedDelete).
+    listRule: `product.business.is_active = true || product.business = @request.auth.id || ${adminBypass}`,
+    viewRule: `product.business.is_active = true || product.business = @request.auth.id || ${adminBypass}`,
+    createRule: `product.business = @request.auth.id || ${SUPER_ADMIN}`,
     updateRule: "product.business = @request.auth.id",
     deleteRule: "product.business = @request.auth.id",
     fields: [
@@ -640,11 +659,10 @@ async function main() {
       text("key", { required: true, max: 40, pattern: "^[a-z0-9_]+$" }),
       text("name", { required: true, max: 60 }),
       text("description", { max: 300 }),
-      // Fiyatlandırma aylık kurgulanıyor: aylık ödemede aylık ücret ve yıllık
-      // ödemedeki aylık eşdeğer (yıllık toplam = 12 katı). Eski price_6m/price_12m
-      // alanları kaldırıldı.
+      // Planın tek fiyatı aylık ücrettir. Yıllık ödemenin aylık karşılığı
+      // buyur_settings'teki yıllık indirim oranıyla hesaplanır (lib/pricing.ts).
+      // Var olan kurulumlardaki eski price_yearly_monthly alanı okunmaz.
       num("price_monthly", { min: 0 }),
-      num("price_yearly_monthly", { min: 0 }),
       // Süreli (deneme) planın kaç ay sürdüğü; ücretli planlarda 0.
       num("trial_months", { min: 0, onlyInt: true }),
       json("features"),
@@ -656,6 +674,29 @@ async function main() {
     ],
     indexes: ["CREATE UNIQUE INDEX `idx_plans_key` ON `buyur_plans` (`key`)"],
   });
+
+  // 10.1) settings — sistem geneli değişkenler (ör. yıllık ödeme indirimi).
+  // Herkese okunur, yalnızca super_admin yazar; tanım scripts/settings-schema.mjs,
+  // uygulama tarafı lib/system-settings.ts. Eksik ayarlar tohumla eklenir.
+  await getOrCreate({
+    name: SETTINGS_COLLECTION,
+    type: "base",
+    ...SETTINGS_RULES,
+    fields: SETTINGS_FIELDS,
+    indexes: SETTINGS_INDEXES,
+  });
+  if (!DRY_RUN) {
+    for (const seed of SETTING_SEEDS) {
+      const found = await pb
+        .collection(SETTINGS_COLLECTION)
+        .getFirstListItem(pb.filter("key = {:key}", { key: seed.key }))
+        .catch(() => null);
+      if (!found) {
+        await pb.collection(SETTINGS_COLLECTION).create(seed);
+        console.log(`+ ${SETTINGS_COLLECTION}: ${seed.key} = ${JSON.stringify(seed.value)}`);
+      }
+    }
+  }
 
   // 11) otps — kayıt sırasında e-posta doğrulama kodları ve şifre sıfırlama
   // bağlantıları. Yalnızca servis hesabı okur/yazar; kod/belirteç düz metin
@@ -684,23 +725,22 @@ async function main() {
     indexes: ["CREATE INDEX `idx_otps_email` ON `buyur_otps` (`email`)"],
   });
 
-  // 12) admin_logs — yönetim paneli denetim kaydı (lib/admin-audit.ts).
-  // Yalnızca eklenir: güncelleme ve silme kuralı yok (null = yalnızca
-  // superuser), iz yöneticinin kendisi tarafından da silinemesin. Kaydı
-  // yazan admin başkası adına kayıt atamaz (`@request.body.admin`). Admin
-  // silinirse ilişki boşalır, kimin yaptığı admin_email'de kalır.
+  // 12) admin_logs — MERKEZİ denetim kaydı: yönetici, işletme, sistem ve
+  // superuser işlemleri (lib/admin-audit.ts, pocketbase/pb_hooks). Adı
+  // tarihsel. Yalnızca eklenir; kurallar ve yeni alanlar
+  // scripts/audit-schema.mjs'te (göçle ortak). Admin silinirse ilişki boşalır,
+  // kimin yaptığı actor_email/admin_email'de kalır.
   await getOrCreate({
     name: "buyur_admin_logs",
     type: "base",
-    listRule: adminBypass,
-    viewRule: adminBypass,
-    createRule: `${adminBypass} && @request.body.admin = @request.auth.id`,
-    updateRule: null,
-    deleteRule: null,
+    ...AUDIT_LOG_RULES,
     fields: [
       text("op_id", { required: true, max: 36 }),
       relation("admin", admins.id, { maxSelect: 1 }),
-      text("admin_email", { required: true, max: 200 }),
+      // Yalnızca yöneticilerin yazdığı ilk sürümden kalma; yeni kayıtlarda
+      // yazanın e-postası actor_email'dedir.
+      text("admin_email", { max: 200 }),
+      ...AUDIT_LOG_NEW_FIELDS,
       text("action", { required: true, max: 60 }),
       text("target_collection", { max: 60 }),
       text("target_id", { max: 30 }),
@@ -710,12 +750,7 @@ async function main() {
       text("ip", { max: 64 }),
       ...stamps(),
     ],
-    indexes: [
-      "CREATE UNIQUE INDEX `idx_admin_logs_op` ON `buyur_admin_logs` (`op_id`)",
-      "CREATE INDEX `idx_admin_logs_created` ON `buyur_admin_logs` (`created`)",
-      "CREATE INDEX `idx_admin_logs_target` ON `buyur_admin_logs` (`target_collection`, `target_id`)",
-      "CREATE INDEX `idx_admin_logs_admin` ON `buyur_admin_logs` (`admin`)",
-    ],
+    indexes: AUDIT_LOG_INDEXES,
   });
 
   // 13) admin_notes — işletme hakkında yönetim ekibinin iç notları (müşteri

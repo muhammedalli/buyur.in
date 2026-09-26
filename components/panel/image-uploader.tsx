@@ -53,7 +53,7 @@ export function ImageUploader({
 
   return (
     <div>
-      <div className={`relative w-full overflow-hidden rounded-2xl border border-dashed border-line bg-crema/30 ${aspect} ${className}`}>
+      <div className={`relative w-full overflow-hidden rounded-md border border-dashed border-line bg-crema/30 ${aspect} ${className}`}>
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-full w-full object-cover" />
@@ -75,7 +75,7 @@ export function ImageUploader({
             onClick={handleRemove}
             aria-label="Görseli kaldır"
             title="Görseli kaldır"
-            className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-ink/70 text-paper shadow-sm backdrop-blur-sm transition-colors hover:bg-paprika"
+            className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-ink/70 text-paper shadow-sm backdrop-blur-sm transition-colors hover:bg-paprika"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
               <line x1="6" y1="6" x2="18" y2="18" />

@@ -55,7 +55,7 @@ export function Heatmap({
                     aria-label={`${WEEKDAY_LABELS[day]} ${String(hour).padStart(2, "0")}:00 — ${formatNumber(value)} görüntülenme`}
                   >
                     {hovered?.day === day && hovered?.hour === hour && (
-                      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-paper px-2 py-1 text-xs shadow-[0_10px_24px_-14px_rgba(35,24,18,0.6)]">
+                      <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-paper px-2 py-1 text-xs shadow-[0_10px_24px_-14px_rgba(35,24,18,0.6)]">
                         <span className="font-semibold tabular-nums">{formatNumber(value)}</span>{" "}
                         <span className="text-ink-soft">
                           {WEEKDAY_LABELS[day]} {String(hour).padStart(2, "0")}:00

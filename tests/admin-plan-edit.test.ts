@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PLAN_SEEDS } from "../scripts/plan-catalog.mjs";
-import { adminLogChangeLines } from "@/lib/admin-audit";
+import { auditChangeLines } from "@/lib/audit-log";
 import {
   EDITABLE_FEATURES,
   buildPlanPatch,
@@ -49,7 +49,7 @@ describe("admin plan düzenleme", () => {
     const bad = [
       { ...base, name: " " },
       { ...base, price_monthly: -1 },
-      { ...base, price_yearly_monthly: base.price_monthly + 1 },
+      { ...base, price_monthly: Number.NaN },
       { ...base, trial_months: 1.5 },
       { ...base, trial_months: 30 },
       { ...base, menu_views: 0 },
@@ -72,9 +72,27 @@ describe("admin plan düzenleme", () => {
     const record = seed("elite");
     const before = planFormValues(record);
     const after = { ...before, features: { ...before.features, website: false }, ai_scans_per_month: null };
-    const lines = planChangeImpact(before, after);
+    const lines = planChangeImpact(before, after, 20);
     expect(lines[0]).toBe("Kapanacak: Otomatik web sitesi");
     expect(lines).toContain("Aylık AI tarama: 10 → sınırsız");
+  });
+
+  it("planın tek fiyatı var: yıllık karşılık indirimden türetilir, kayda ayrıca yazılmaz", () => {
+    const record = seed("premium");
+    const before = planFormValues(record);
+    expect(before).not.toHaveProperty("price_yearly_monthly");
+    const after = { ...before, price_monthly: 299 };
+
+    const result = buildPlanPatch(record, after);
+    expect(result.ok && Object.keys(result.patch)).toEqual(["price_monthly"]);
+
+    expect(planChangeImpact(before, after, 20)).toContain(
+      "Aylık fiyat: 249₺ → 299₺ (yıllık ödemede ayda 199,20₺ → 239,20₺)"
+    );
+    // Oran sistem ayarıdır; önizleme verilen oranla hesaplanır.
+    expect(planChangeImpact(before, after, 25)).toContain(
+      "Aylık fiyat: 249₺ → 299₺ (yıllık ödemede ayda 186,75₺ → 224,25₺)"
+    );
   });
 
   it("canlı kayıt yedekle aynıysa kayma yok; farklıysa söylenir", () => {
@@ -85,10 +103,10 @@ describe("admin plan düzenleme", () => {
   });
 
   it("denetim kaydı iç içe limitleri anahtar anahtar gösterir", () => {
-    const lines = adminLogChangeLines({
+    const lines = auditChangeLines({
       before: { price_monthly: 249, limits: { menu_views: null, website: false, campaigns: true } },
       after: { price_monthly: 299, limits: { menu_views: 6000, website: true, campaigns: true } },
     });
-    expect(lines).toEqual(["price_monthly: 249 → 299", "limits.menu_views: boş → 6000", "limits.website: false → true"]);
+    expect(lines).toEqual(["price_monthly: 249 → 299", "limits.menu_views: boş → 6000", "limits.website: hayır → evet"]);
   });
 });

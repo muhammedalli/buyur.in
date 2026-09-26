@@ -29,13 +29,16 @@ export const BUSINESS_PROTECTED_FIELDS = [
   // yeniden açamamalı.
   "suspended_at",
   "suspension_reason",
+  // Yumuşak silme (lib/business-deletion.ts): silinen hesap kendini geri açamaz.
+  "deleted_at",
+  "deletion_reason",
 ];
 
 /** Destek rolünün de yazamadığı alanlar: plan ve kullanım sayacı gelir
  *  kararıdır. Deneme süresi ve AI kotası destekte kalır (lib/admin-roles.ts →
  *  business.trial_extend, business.ai_quota_reset). Panel bu kuralı zaten
  *  sunucuda uygular; bu, admin token'ı bir şekilde sızarsa ikinci kilittir. */
-export const SUPPORT_LOCKED_FIELDS = ["plan", "menu_views", "suspended_at", "suspension_reason"];
+export const SUPPORT_LOCKED_FIELDS = ["plan", "menu_views", "suspended_at", "suspension_reason", "deleted_at", "deletion_reason"];
 
 const guard = (fields) => fields.map((field) => `@request.body.${field}:isset = false`).join(" && ");
 const protectedGuard = guard(BUSINESS_PROTECTED_FIELDS);
@@ -56,6 +59,9 @@ export const BUSINESS_RULES = {
   // akışı (servis hesabı) ve super_admin. Destek sıfırlama e-postası gönderir,
   // şifreyi kendisi koymaz.
   manageRule: TRUSTED_ADMIN,
+  // Silinen (deleted_at dolu) hesap giriş yapamaz ve oturum yenileyemez.
+  // Eldeki token'ları PocketBase hook'u düşürür (pocketbase/pb_hooks).
+  authRule: 'deleted_at = ""',
 };
 
 /** Bağlı koleksiyonlardaki eski "sahibin işletmesi" ifadesini yeni modele

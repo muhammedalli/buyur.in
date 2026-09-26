@@ -11,21 +11,14 @@ import {
   OTP_MAX_ATTEMPTS,
   OTP_RESEND_SECONDS,
   OTP_TTL_MINUTES,
+  isValidEmail,
+  normalizeEmail,
 } from "@/lib/otp-client";
 
-// Sabitler kayıt ekranıyla ortak — tek kaynak lib/otp-client.ts.
-export { OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_RESEND_SECONDS, OTP_TTL_MINUTES };
+// Sabitler ve e-posta biçimi kayıt ekranıyla ortak — tek kaynak lib/otp-client.ts.
+export { OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_RESEND_SECONDS, OTP_TTL_MINUTES, isValidEmail, normalizeEmail };
 
 const CODE_RE = /^\d{6}$/;
-
-/** E-postayı karşılaştırma ve kayıt için tek biçime indirger. */
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
-
-export function isValidEmail(value: unknown): value is string {
-  return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
-}
 
 export function isValidOtpCode(value: unknown): value is string {
   return typeof value === "string" && CODE_RE.test(value.trim());

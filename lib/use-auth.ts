@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { ClientResponseError, type AuthRecord } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
+import { consumeExpiredSession } from "@/lib/auth-persistence";
 
 interface AuthContextType {
   user: AuthRecord;
@@ -22,6 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // "Beni hatırla" seçilmeden açılmış oturum, tarayıcı kapanıp açıldıysa
+    // burada biter (lib/auth-persistence.ts).
+    if (consumeExpiredSession()) pb.authStore.clear();
+
     // Set initial user synchronously from the client store if it exists
     setUser(pb.authStore.record);
 

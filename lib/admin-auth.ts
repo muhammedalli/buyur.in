@@ -63,6 +63,9 @@ async function resolveSession(cookieValue: string | undefined): Promise<AdminSes
     const auth = await pb.collection(ADMIN_COLLECTION).authRefresh<Admin>({ requestKey: null });
     const admin = auth.record;
     if (!isAdminRole(admin.role) || isServiceAccountEmail(admin.email)) return null;
+    // authRule de reddeder; kural henüz göç edilmemiş bir kurulumda da
+    // erişimi kapatılan yönetici içeri girmesin.
+    if (admin.disabled_at?.trim()) return null;
     return { pb, admin };
   } catch (err) {
     if (isAuthRejection(err)) return null;

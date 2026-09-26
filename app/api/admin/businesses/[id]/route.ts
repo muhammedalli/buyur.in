@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getServicePB } from "@/lib/pocketbase-server";
 import { authenticateAdminRequest } from "@/lib/admin-auth";
-import { auditFailureMessage, recordAdminAction, runAuditedUpdate } from "@/lib/admin-audit";
+import { auditFailureResponse, recordAdminAction, runAuditedUpdate } from "@/lib/admin-audit";
 import {
   BUSINESS_ACTIONS,
   NOTE_MAX,
@@ -16,8 +16,10 @@ import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { isEmailConfigured } from "@/lib/email";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { sendPasswordResetLink } from "@/lib/password-reset-mail";
-import { clientIp } from "@/lib/rate-limit";
-import type { Business } from "@/lib/types";
+import { auditRequestContext } from "@/lib/system-audit";
+import { AUDIT_LOG_COLLECTION } from "@/lib/audit-log";
+import type { AuditLog, Business } from "@/lib/types";
+import type PocketBase from "pocketbase";
 
 // Yönetim panelinden bir işletmeye işlem uygular. Sıra: 401 (oturum) → 400
 // (girdi) → 403 (rol) → 404 (işletme) → 409 (çakışma) → iş.
@@ -29,6 +31,22 @@ import type { Business } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** Son silme kaydında işletme yayında mıydı? Okunamazsa false: yayına alma
+ *  bilinçli bir işlem olarak yöneticiye kalır. */
+async function wasActiveBeforeDeletion(pb: PocketBase, businessId: string): Promise<boolean> {
+  try {
+    const log = await pb
+      .collection(AUDIT_LOG_COLLECTION)
+      .getFirstListItem<AuditLog>(pb.filter('action = "business.delete" && target_id = {:id}', { id: businessId }), {
+        sort: "-created",
+        requestKey: null,
+      });
+    return log.before?.is_active === true;
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateAdminRequest(req);
@@ -70,7 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     console.error("[admin-business] işletme okunamadı", id, err);
     return NextResponse.json({ error: "İşletme okunamadı, tekrar dene." }, { status: 503 });
   }
-  const ip = clientIp(req);
+  const context = auditRequestContext(req);
 
   if (kind === "note") {
     const text = typeof body.body === "string" ? body.body.trim() : "";
@@ -109,7 +127,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       targetCollection: BUSINESS_COLLECTION,
       targetId: id,
       reason,
-      ip,
+      ...context,
+      meta: { ...context.meta, label: business.name, email: business.email },
     }).then(
       () => true,
       (err) => {
@@ -127,7 +146,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // Süreli plan kararı canlı plan kataloğundan okunur.
   await ensurePlanCatalog(service);
-  const patchResult = buildBusinessPatch(kind, body, business);
+  // Geri almada yayın durumu, son silme kaydının "önce" değerinden gelir;
+  // istemcinin gönderdiğine bakılmaz.
+  const input: ActionInput = { ...body, wasActive: kind === "restore" ? await wasActiveBeforeDeletion(pb, id) : undefined };
+  const patchResult = buildBusinessPatch(kind, input, business, new Date(), reason);
   if (!patchResult.ok) return NextResponse.json({ error: patchResult.error }, { status: 400 });
 
   if (kind === "slug_change") {
@@ -146,12 +168,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     id,
     patch: patchResult.patch,
     reason,
-    ip,
+    ...context,
+    meta: { ...context.meta, label: business.name },
   });
   if (!result.ok) {
+    // Giriş e-postası PocketBase'de tekildir; çakışma alan hatasıyla döner.
+    const data = (result.error as { response?: { data?: Record<string, unknown> } })?.response?.data;
+    if (kind === "email_change" && data?.email) {
+      return NextResponse.json({ error: "Bu e-posta başka bir hesapta kullanılıyor." }, { status: 409 });
+    }
     console.error("[admin-business] işlem uygulanamadı", kind, id, result.reason, result.error);
-    const status = result.reason === "write_failed" && (result.error as { status?: number })?.status === 404 ? 403 : 500;
-    return NextResponse.json({ error: status === 403 ? "Bu işlem için yetkiniz yok." : auditFailureMessage(result.reason) }, { status });
+    const failure = auditFailureResponse(result);
+    return NextResponse.json({ error: failure.error }, { status: failure.status });
   }
   return NextResponse.json({ ok: true });
 }

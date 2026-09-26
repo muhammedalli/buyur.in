@@ -7,6 +7,7 @@ import { clearOtpRecords, findResetRecord, type OtpRecord } from "@/lib/otp-stor
 import { hashResetToken, isValidResetToken } from "@/lib/password-reset";
 import { newPasswordError } from "@/lib/password";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { auditRequestContext, recordSystemAudit } from "@/lib/system-audit";
 
 // Şifremi unuttum — ikinci adım: bağlantıdaki belirteci doğrular ve yeni
 // şifreyi yazar.
@@ -77,6 +78,13 @@ export async function POST(req: NextRequest) {
 
     // Tek kullanımlık: aynı bağlantıyla ikinci kez şifre değiştirilemez.
     await clearOtpRecords(pb, record.email, "password_reset");
+    await recordSystemAudit({
+      actor: { type: "business", id: user.id, email: record.email },
+      action: "business.password_reset_done",
+      targetCollection: BUSINESS_COLLECTION,
+      targetId: user.id,
+      ...auditRequestContext(req),
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[reset-password] hata", err);

@@ -118,6 +118,11 @@ export interface Business {
   suspended_at?: string;
   /** Askıya alma gerekçesi — sahibine panelde gösterilir, müşteriye gösterilmez. */
   suspension_reason?: string;
+  /** Yönetimden silindiği an (yumuşak silme); doluysa hesap girişe kapalıdır ve
+   *  hiçbir herkese açık yüzeyde görünmez (bkz. lib/business-deletion.ts). */
+  deleted_at?: string;
+  /** Silme gerekçesi — yalnızca yönetim görür. */
+  deletion_reason?: string;
   created: string;
   updated: string;
 }
@@ -338,6 +343,9 @@ export interface Admin {
   email: string;
   name: string;
   role: AdminRole;
+  /** Erişimi kaldırıldığı an; doluysa giriş yapamaz (authRule). Kayıt silinmez:
+   *  denetim kaydındaki izleri ona bağlı kalır ve erişim geri açılabilir. */
+  disabled_at?: string;
   created: string;
   updated: string;
 }
@@ -352,15 +360,30 @@ export interface AdminNote {
   created: string;
 }
 
-/** `buyur_admin_logs` kaydı: yalnızca eklenebilen denetim kaydı. Admin
- *  silinse de kimin yaptığı `admin_email` üzerinden okunabilsin diye e-posta
- *  ayrıca saklanır (ilişki alanı silinen kayıtta boşalır). */
+/** Denetim kaydında işlemi kimin yaptığı. */
+export type AuditActorType = "admin" | "business" | "system" | "superuser";
+
+/** `buyur_admin_logs` kaydı: sistemin yalnızca eklenebilen MERKEZİ denetim
+ *  kaydı (yönetici, işletme, sistem ve superuser işlemleri; bkz.
+ *  lib/audit-log.ts). Aktör silinse de kimin yaptığı e-postasından
+ *  okunabilsin diye e-posta ayrıca saklanır. */
 export interface AdminLog {
   id: string;
   /** Tekrar denemede aynı işlemin iki kez yazılmasını önleyen kimlik. */
   op_id: string;
+  /** Kaydı yazan yönetim hesabı (yönetici ya da servis hesabı). Hook'un
+   *  yazdığı işletme kayıtlarında boştur. */
   admin?: string;
-  admin_email: string;
+  /** İlk sürümden kalma: yöneticinin e-postası. Yeni kayıtlarda `actor_email`. */
+  admin_email?: string;
+  /** Göçten önceki kayıtlarda boş olabilir; boşsa yönetici kaydıdır. */
+  actor_type?: AuditActorType | "";
+  actor_id?: string;
+  actor_email?: string;
+  /** Kaydın ait olduğu işletme (ürün, kategori… da işletmesine bağlanır). */
+  business_id?: string;
+  /** İstek bağlamı: tarayıcı, kaynak (next/pocketbase), kaydın adı, AI ayrıntıları. */
+  meta?: Record<string, unknown> | null;
   action: string;
   target_collection?: string;
   target_id?: string;
@@ -370,6 +393,8 @@ export interface AdminLog {
   ip?: string;
   created: string;
 }
+
+export type AuditLog = AdminLog;
 
 /** `buyur_plans.limits` şeması: yetenek bayrakları ve kotalar. Uygulama bu
  *  alanları canlı OKUR (bkz. lib/entitlements.ts → applyPlanRecords); anahtar
@@ -410,10 +435,13 @@ export interface PlanRecord {
   key: Plan;
   name: string;
   description: string;
-  /** Aylık ödemede aylık ücret (₺). Ücretsiz planda 0. */
+  /** Planın tek fiyatı: aylık ödemede aylık ücret (₺). Ücretsiz planda 0.
+   *  Yıllık ödemenin karşılığı bundan ve sistem ayarındaki indirimden
+   *  hesaplanır (lib/pricing.ts). */
   price_monthly: number;
-  /** Yıllık ödemede aylık eşdeğer ücret (₺); yıllık toplam = bunun 12 katı. */
-  price_yearly_monthly: number;
+  /** ESKİ alan: artık okunmaz ve yazılmaz (yıllık fiyat türetilir). Şemada
+   *  geriye dönük uyum için duruyor. */
+  price_yearly_monthly?: number;
   /** Süreli (deneme) planın kaç ay sürdüğü. 0 = süresiz, ücretli planlar 0. */
   trial_months: number;
   features: string[];

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
-import { Button, ErrorText, Input, Label, Spinner } from "@/components/panel/ui";
-import { AUTH_CARD_CLASS, RESET_DONE_PARAM, errorMessage } from "@/components/panel/auth-card";
+import { Spinner } from "@/components/panel/ui";
+import { RESET_DONE_PARAM, errorMessage } from "@/components/panel/auth-card";
+import { AuthError, AuthHeading, AuthLabel, AuthPasswordInput, AuthSubmit } from "@/components/panel/auth-form";
 import { MIN_PASSWORD_LENGTH, newPasswordError } from "@/lib/password";
 
 // Şifre sıfırlama bağlantısının açtığı ekran. Belirteç açılışta sunucuya
@@ -101,41 +102,52 @@ export default function ResetPasswordPage() {
 
   if (phase === "checking") {
     return (
-      <div className={`${AUTH_CARD_CLASS} flex items-center justify-center gap-3 text-sm text-ink-soft`}>
+      <p role="status" className="flex items-center gap-3 text-[15px] text-ink-soft">
         <Spinner className="h-5 w-5 text-paprika" />
         Bağlantı kontrol ediliyor…
-      </div>
+      </p>
     );
   }
 
   if (phase === "invalid") {
     return (
-      <div className={AUTH_CARD_CLASS}>
-        <h1 className="font-display text-xl font-bold">Bağlantı kullanılamıyor</h1>
-        <p className="mt-2 text-sm leading-relaxed text-ink-soft">{invalidReason}</p>
-        <div className="mt-6 flex flex-col gap-3">
-          <Link href="/panel/forgot-password" className="text-center text-sm font-medium text-paprika hover:underline">
+      <>
+        <AuthHeading
+          title={
+            <>
+              Bağlantı
+              <br />
+              kullanılamıyor
+            </>
+          }
+          description={invalidReason}
+        />
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 text-[15px]">
+          <Link href="/panel/forgot-password" className="font-medium text-paprika hover:underline">
             Yeni bağlantı iste
           </Link>
-          <Link href="/panel/login" className="text-center text-sm text-ink-soft hover:underline">
+          <Link href="/panel/login" className="text-ink-soft hover:text-ink hover:underline">
             Giriş ekranına dön
           </Link>
         </div>
-      </div>
+      </>
     );
   }
 
   if (phase === "done") {
     return (
-      <div className={AUTH_CARD_CLASS} role="status">
-        <h1 className="font-display text-xl font-bold">Şifren güncellendi</h1>
-        <p className="mt-2 text-sm text-ink-soft">
-          Güvenliğin için tüm cihazlardaki oturumların kapatıldı. Giriş ekranına yönlendiriliyorsun…
-        </p>
-        <Link
-          href={`/panel/login?${RESET_DONE_PARAM}=1`}
-          className="mt-6 block text-center text-sm font-medium text-paprika hover:underline"
-        >
+      <div role="status">
+        <AuthHeading
+          title={
+            <>
+              Şifren
+              <br />
+              güncellendi
+            </>
+          }
+          description="Güvenliğin için tüm cihazlardaki oturumların kapatıldı. Giriş ekranına yönlendiriliyorsun…"
+        />
+        <Link href={`/panel/login?${RESET_DONE_PARAM}=1`} className="mt-10 inline-block text-[15px] font-medium text-paprika hover:underline">
           Hemen giriş yap
         </Link>
       </div>
@@ -143,15 +155,22 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className={AUTH_CARD_CLASS}>
-      <h1 className="font-display text-xl font-bold">Yeni şifreni belirle</h1>
-      <p className="mt-1 text-sm text-ink-soft">En az {MIN_PASSWORD_LENGTH} karakter olmalı.</p>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <>
+      <AuthHeading
+        title={
+          <>
+            Yeni şifreni
+            <br />
+            belirle
+          </>
+        }
+        description={`En az ${MIN_PASSWORD_LENGTH} karakter olmalı.`}
+      />
+      <form onSubmit={handleSubmit} className="mt-10 space-y-6">
         <div>
-          <Label htmlFor="password">Yeni şifre</Label>
-          <Input
+          <AuthLabel htmlFor="password">Yeni şifre</AuthLabel>
+          <AuthPasswordInput
             id="password"
-            type="password"
             required
             minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
@@ -160,24 +179,21 @@ export default function ResetPasswordPage() {
           />
         </div>
         <div>
-          <Label htmlFor="passwordConfirm">Yeni şifre tekrar</Label>
-          <Input
+          <AuthLabel htmlFor="passwordConfirm">Yeni şifre tekrar</AuthLabel>
+          <AuthPasswordInput
             id="passwordConfirm"
-            type="password"
             required
             autoComplete="new-password"
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
           />
           {passwordConfirm.length > 0 && password !== passwordConfirm && (
-            <p className="mt-1.5 text-sm text-paprika-deep">Şifreler eşleşmiyor.</p>
+            <p className="mt-2 text-sm text-paprika-deep">Şifreler eşleşmiyor.</p>
           )}
         </div>
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={loading} className="w-full">
-          Şifremi güncelle
-        </Button>
+        <AuthError>{error}</AuthError>
+        <AuthSubmit loading={loading}>Şifremi güncelle</AuthSubmit>
       </form>
-    </div>
+    </>
   );
 }

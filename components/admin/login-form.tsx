@@ -101,7 +101,7 @@ export function AdminLoginForm() {
       </p>
 
       {notice && (
-        <p role="status" className="mt-4 rounded-xl border border-herb/30 bg-herb/10 px-3.5 py-2.5 text-sm text-herb">
+        <p role="status" className="mt-4 rounded-md border border-herb/30 bg-herb/10 px-3.5 py-2.5 text-sm text-herb">
           {notice}
         </p>
       )}

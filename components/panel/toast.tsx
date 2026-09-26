@@ -32,18 +32,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((message: string, type: ToastType = "success") => {
     const id = ++idRef.current;
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2600);
+    // Hata ve uzun mesajlar daha uzun kalır: okunmadan kaybolan bir hata,
+    // hiç gösterilmemiş sayılır.
+    const duration = Math.min(8000, Math.max(type === "error" ? 6000 : 3200, message.length * 55));
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), duration);
   }, []);
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-2">
+      {/* Mobilde sabit eylem çubuğu ekranın altındayken bildirimler onun üstüne çıkar. */}
+      <div className="pointer-events-none fixed bottom-5 left-5 right-5 z-[60] flex flex-col items-end gap-2 sm:left-auto max-lg:[html[data-action-bar]_&]:bottom-24">
         {toasts.map((t) => (
           <div
             key={t.id}
-            role="status"
-            className={`toast-in pointer-events-auto flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-sm font-medium shadow-[0_16px_36px_-12px_rgba(35,24,18,0.45)] ${
+            role={t.type === "error" ? "alert" : "status"}
+            className={`toast-in pointer-events-auto flex max-w-md items-center gap-2.5 rounded-md border px-4 py-3 text-sm font-medium shadow-xl shadow-ink/20 ${
               t.type === "success"
                 ? "border-herb/30 bg-paper text-ink"
                 : "border-paprika/40 bg-paper text-paprika-deep"

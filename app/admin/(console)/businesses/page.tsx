@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ButtonLink } from "@/components/admin/button-link";
 import { StatusBadge, PlanBadge } from "@/components/admin/badges";
-import { Button, Card, EmptyState, Input, PageHeader, Select } from "@/components/panel/ui";
+import { Button, EmptyState, Input, PageHeader, Select, Table } from "@/components/panel/ui";
 import { requireAdmin } from "@/lib/admin-auth";
 import {
   BUSINESS_SORT_LABELS,
@@ -27,12 +27,12 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
     <>
       <PageHeader
         title="İşletmeler"
-        description={`${rows.length.toLocaleString("tr-TR")} hesap${filtered ? ` · filtreyle ${result.total.toLocaleString("tr-TR")}` : ""}`}
+        description={`${rows.length.toLocaleString("tr-TR")} hesap${filtered ? ` · filtreyle ${result.total.toLocaleString("tr-TR")}` : ""}. Her işletme bir hesaptır; giriş, plan ve erişim işlemleri işletmenin sayfasındadır.`}
       />
 
       {/* Sade GET formu: filtreler adres çubuğunda durur, bağlantı paylaşılabilir. */}
-      <form method="get" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
-        <Input name="q" defaultValue={query.q} placeholder="Ad, menü adresi ya da e-posta" aria-label="Ara" />
+      <form method="get" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_10rem_11rem_11rem_auto]">
+        <Input name="q" defaultValue={query.q} placeholder="Ad, menü adresi ya da e-posta" aria-label="Ara" className="sm:col-span-2 lg:col-span-1" />
         <Select name="plan" defaultValue={query.plan} aria-label="Plan">
           <option value="">Tüm planlar</option>
           {PLAN_ORDER.map((plan) => (
@@ -61,7 +61,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
             Filtrele
           </Button>
           {filtered && (
-            <ButtonLink href="/admin/businesses" variant="ghost" className="px-3">
+            <ButtonLink href="/admin/businesses" variant="ghost">
               Temizle
             </ButtonLink>
           )}
@@ -74,35 +74,42 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
           description={filtered ? "Aramayı ya da filtreleri değiştirmeyi dene." : "İlk kayıt geldiğinde burada görünecek."}
         />
       ) : (
-        <Card className="overflow-hidden">
-          {/* Satırlar kartın kenarına kadar tıklanabilir olsun diye kart boşluğu geri alınır. */}
-          <ul className="-mx-6 -my-6 divide-y divide-line">
+        <Table>
+          <thead>
+            <tr>
+              <th>İşletme</th>
+              <th>Plan</th>
+              <th>Durum</th>
+              <th className="hidden md:table-cell">Plan bitişi</th>
+              <th className="hidden md:table-cell">Kayıt</th>
+            </tr>
+          </thead>
+          <tbody>
             {result.items.map((row) => (
-              <li key={row.id}>
-                <Link
-                  href={`/admin/businesses/${row.id}`}
-                  className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-6 py-4 transition-colors hover:bg-crema/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-ink">{row.name || "Adsız hesap"}</p>
-                    <p className="truncate text-sm text-ink-soft">
-                      {row.slug ? `${row.slug} · ` : ""}
-                      {row.email}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <PlanBadge plan={row.plan} />
-                    <StatusBadge status={businessStatus(row)} />
-                    <span className="w-full text-right font-mono text-[11px] text-ink-soft sm:w-auto">
-                      {row.plan_expires_at ? `Bitiş ${formatAdminDay(row.plan_expires_at)} · ` : ""}
-                      Kayıt {formatAdminDay(row.created)}
-                    </span>
-                  </div>
-                </Link>
-              </li>
+              <tr key={row.id}>
+                <td className="max-w-[18rem]">
+                  <Link href={`/admin/businesses/${row.id}`} className="block truncate font-semibold text-ink hover:text-paprika">
+                    {row.name || "Adsız hesap"}
+                  </Link>
+                  <p className="truncate text-[13px] text-ink-soft">
+                    {row.slug ? `${row.slug} · ` : ""}
+                    {row.email}
+                  </p>
+                </td>
+                <td>
+                  <PlanBadge plan={row.plan} />
+                </td>
+                <td>
+                  <StatusBadge status={businessStatus(row)} />
+                </td>
+                <td className="hidden whitespace-nowrap font-mono text-[12px] text-ink-soft md:table-cell">
+                  {row.plan_expires_at ? formatAdminDay(row.plan_expires_at) : "Süresiz"}
+                </td>
+                <td className="hidden whitespace-nowrap font-mono text-[12px] text-ink-soft md:table-cell">{formatAdminDay(row.created)}</td>
+              </tr>
             ))}
-          </ul>
-        </Card>
+          </tbody>
+        </Table>
       )}
 
       {result.totalPages > 1 && (

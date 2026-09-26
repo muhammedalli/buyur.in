@@ -69,7 +69,7 @@ function UpgradeCard({
   }, [preferredBilling]);
 
   return (
-    <div className="flex flex-col rounded-2xl border border-line bg-paper p-5">
+    <div className="flex flex-col rounded-md border border-line bg-paper p-5">
       <p className="font-display text-lg font-bold">{PLAN_LABELS[plan]}</p>
       <p className="mt-1 text-sm text-ink-soft">{planPitch(plan)}</p>
 
@@ -84,7 +84,7 @@ function UpgradeCard({
               role="radio"
               aria-checked={active}
               onClick={() => setBilling(option)}
-              className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${active ? "border-paprika bg-paprika/5" : "border-line hover:border-ink/30"
+              className={`rounded-md border px-3 py-2.5 text-left transition-colors ${active ? "border-paprika bg-paprika/5" : "border-line hover:border-ink/30"
                 }`}
             >
               <span className="block font-mono text-[10px] uppercase tracking-wider text-ink-soft">
@@ -102,7 +102,7 @@ function UpgradeCard({
         })}
       </div>
       ) : (
-        <p className="mt-4 rounded-xl border border-line px-3 py-2.5 text-sm text-ink-soft">
+        <p className="mt-4 rounded-md border border-line px-3 py-2.5 text-sm text-ink-soft">
           Güncel fiyat için bize WhatsApp&apos;tan yazın.
         </p>
       )}
@@ -157,7 +157,7 @@ export default function PlanPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <PlanUsageCard business={business} />
 
-        <div className="rounded-2xl border border-line bg-paper p-5">
+        <div className="rounded-md border border-line bg-paper p-5">
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Planınızda neler var</p>
           <ul className="mt-3 space-y-2 text-sm">
             {featureMatrix().filter((row) => row.values[current] !== false).map((row) => (
@@ -176,7 +176,7 @@ export default function PlanPage() {
           </ul>
 
           {usage.limited && (
-            <p className="mt-4 rounded-xl bg-crema/70 px-4 py-3 text-xs leading-relaxed text-ink-soft">
+            <p className="mt-4 rounded-md bg-crema/70 px-4 py-3 text-xs leading-relaxed text-ink-soft">
               Freemium&apos;da süre ve menü görüntülenme birlikte izlenir; hangisi önce dolarsa plan sona erer.
               Verileriniz silinmez — yükselttiğinizde menünüz ve analizleriniz olduğu gibi devam eder.
             </p>
@@ -197,14 +197,14 @@ export default function PlanPage() {
           ))}
         </div>
       ) : (
-        <div className="relative mt-6 overflow-hidden rounded-2xl border border-ink bg-ink px-8 py-10 text-center text-paper">
+        <div className="relative mt-6 overflow-hidden rounded-md border border-ink bg-ink px-8 py-10 text-center text-paper">
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.15]"
             style={{ background: "radial-gradient(60% 90% at 50% 0%, var(--color-paprika), transparent)" }}
             aria-hidden
           />
           <div className="relative flex flex-col items-center gap-3">
-            <span className="inline-flex rounded-full bg-paprika/15 p-3 text-paprika">
+            <span className="inline-flex rounded-md bg-paprika/15 p-3 text-paprika">
               <SparkIcon size={22} />
             </span>
             <p className="font-mono text-[11px] uppercase tracking-wider text-paper/60">En üst seviye</p>
@@ -217,7 +217,10 @@ export default function PlanPage() {
               href={planWhatsappLink(PLAN_LABELS.elite)}
               target="_blank"
               rel="noopener noreferrer"
-              className={buttonClass("outline", "mt-1 border-paper/25 text-paper")}
+              // Kitin açık zeminli hâli koyu kartta okunur. Rengi className ile
+              // ezmek (text-paper) açık zeminde açık yazı bırakıp etiketi
+              // görünmez yapıyordu.
+              className={buttonClass("outline", "mt-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paprika")}
             >
               <WhatsappIcon size={14} /> WhatsApp ile iletişime geç
             </a>
@@ -225,7 +228,7 @@ export default function PlanPage() {
         </div>
       )}
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-line bg-paper">
+      <div className="mt-8 overflow-x-auto rounded-md border border-line bg-paper">
         <table className="w-full text-[13px] sm:min-w-[640px] sm:text-sm">
           <thead>
             <tr className="border-b border-line bg-crema/50 text-left">

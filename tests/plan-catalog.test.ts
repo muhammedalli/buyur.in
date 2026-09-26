@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { PLAN_SEEDS } from "../scripts/plan-catalog.mjs";
 import { afterEach, beforeEach } from "vitest";
-import { applyPlanPrices, planPricing, resetPlanPrices, yearlyDiscountPercent, yearlyTotal, formatTL } from "@/lib/pricing";
+import {
+  applyPlanPrices,
+  planPricing,
+  resetPlanPrices,
+  yearlyDiscountPercent,
+  yearlyMonthlyPrice,
+  yearlyTotal,
+  formatTL,
+} from "@/lib/pricing";
+import { applySystemSettings, resetSystemSettings } from "@/lib/system-settings";
 import { DEFAULT_PLAN_ENTITLEMENTS, PLAN_ORDER, entitlementsFromRecord } from "@/lib/entitlements";
 
 // Landing'deki fiyat kartları bu katalogdan okunuyor (components/pricing-plans.tsx);
@@ -32,10 +41,15 @@ describe("paket kataloğunun vaatleri", () => {
 // Fiyat kodda YAŞAMAZ: kaynak PocketBase kaydıdır (lib/pricing.ts onu okur).
 // Tohum katalog (plan-catalog.mjs) yeni ortam kurulumu içindir; burada tohumu
 // canlı kayıt gibi yükleyip beklenen ilan tablosunu (kuruşuna kadar) kilitliyoruz.
+// Her planın TEK fiyatı vardır (aylık); yıllık karşılık sistem ayarındaki
+// indirim oranından türetilir (varsayılan %20).
 const PRICING = (plan: "premium" | "elite") => planPricing(plan)!;
 
 beforeEach(() => applyPlanPrices(PLAN_SEEDS));
-afterEach(() => resetPlanPrices());
+afterEach(() => {
+  resetPlanPrices();
+  resetSystemSettings();
+});
 
 describe("paket kataloğu ile ilan edilen fiyat", () => {
   it("her plan için kayıttaki fiyat siteye aynen yansır", () => {
@@ -43,8 +57,32 @@ describe("paket kataloğu ile ilan edilen fiyat", () => {
       const seed = PLAN_SEEDS.find((entry) => entry.key === plan);
       expect(seed, `${plan} katalogda yok`).toBeDefined();
       expect(planPricing(plan)?.monthly).toBe(seed!.price_monthly);
-      expect(planPricing(plan)?.yearlyMonthly).toBe(seed!.price_yearly_monthly);
+      expect(planPricing(plan)?.yearlyMonthly).toBe(yearlyMonthlyPrice(seed!.price_monthly, 20));
     }
+  });
+
+  it("katalogda ikinci (yıllık) fiyat yok: yıllık karşılık yalnızca indirimden türetilir", () => {
+    for (const seed of PLAN_SEEDS) expect(seed).not.toHaveProperty("price_yearly_monthly");
+    // Kayıtta eski alan dursa bile okunmaz.
+    applyPlanPrices([{ key: "premium", price_monthly: 249, price_yearly_monthly: 1 } as never]);
+    expect(planPricing("premium")).toEqual({ monthly: 249, yearlyMonthly: 199.2 });
+  });
+
+  it("indirim oranı değişince yıllık fiyat her yerde onunla hesaplanır", () => {
+    applySystemSettings([{ key: "yearly_discount_percent", value: 25 }]);
+    expect(PRICING("premium").yearlyMonthly).toBe(186.75);
+    expect(yearlyDiscountPercent(PRICING("premium"))).toBe(25);
+    expect(formatTL(yearlyTotal(PRICING("elite")))).toBe("6.741₺");
+
+    // Sınır dışı değer yok sayılır; yedek (%20) geçerli kalır.
+    applySystemSettings([{ key: "yearly_discount_percent", value: 150 }]);
+    expect(PRICING("premium").yearlyMonthly).toBe(199.2);
+  });
+
+  it("yıllık karşılık kuruşa yuvarlanır (kayan nokta artığı taşımaz)", () => {
+    expect(yearlyMonthlyPrice(249, 20)).toBe(199.2);
+    expect(yearlyMonthlyPrice(99.99, 15)).toBe(84.99);
+    expect(yearlyMonthlyPrice(100, 0)).toBe(100);
   });
 
   it("ücretli planın kaydı okunamadıysa fiyat uydurulmaz (null), Freemium 0₺", () => {
@@ -55,12 +93,11 @@ describe("paket kataloğu ile ilan edilen fiyat", () => {
   });
 
   it("eksik ya da bozuk fiyat alanlı kayıt yok sayılır", () => {
-    applyPlanPrices([
-      { key: "premium", price_monthly: 249 },
-      { key: "elite", price_monthly: "749", price_yearly_monthly: 599.2 },
-    ]);
+    applyPlanPrices([{ key: "premium" }, { key: "elite", price_monthly: "749" }]);
     expect(planPricing("premium")).toBeNull();
     expect(planPricing("elite")).toBeNull();
+    applyPlanPrices([{ key: "premium", price_monthly: -1 }]);
+    expect(planPricing("premium")).toBeNull();
   });
 
   // Ürün/kategori/işletme sayısı sınırı ürün kararı olarak kaldırıldı: şemada

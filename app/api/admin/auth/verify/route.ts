@@ -3,6 +3,7 @@ import { createServerPB } from "@/lib/pocketbase";
 import { getServicePB, hasServiceCredentials } from "@/lib/pocketbase-server";
 import { ADMIN_COLLECTION, adminCookieOptions, isServiceAccountEmail } from "@/lib/admin-auth";
 import { recordAdminAction } from "@/lib/admin-audit";
+import { auditRequestContext } from "@/lib/system-audit";
 import { ADMIN_COOKIE_NAME, ADMIN_PENDING_COOKIE_NAME, ADMIN_PENDING_COOKIE_PATH } from "@/lib/admin-cookie";
 import { isAdminRole } from "@/lib/admin-roles";
 import {
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     action: "admin.login",
     targetCollection: ADMIN_COLLECTION,
     targetId: admin.id,
-    ip: clientIp(req),
+    ...auditRequestContext(req),
   }).catch((err) => console.error("[admin-verify] giriş kaydı yazılamadı", admin.id, err));
 
   const res = NextResponse.json({ ok: true });

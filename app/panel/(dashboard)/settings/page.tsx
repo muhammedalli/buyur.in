@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
@@ -15,7 +15,7 @@ import { checkBusinessPhone } from "@/lib/phone";
 import { BUSINESS_COLLECTION, contactEmailPatch, publicContactEmail } from "@/lib/business-account";
 import { highlightLabels } from "@/lib/labels";
 import { HighlightIcon } from "@/components/icons";
-import { Card, ErrorText, FormActions, FormStatusFooter, Input, Label, PageHeader, SaveStatus, Select, Spinner, Tabs, Textarea } from "@/components/panel/ui";
+import { Card, FORM_STACK, FormActions, Input, Label, PageHeader, Select, Spinner, Tabs, Textarea } from "@/components/panel/ui";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { useToast } from "@/components/panel/toast";
 import { StarIcon } from "@/components/icons";
@@ -85,7 +85,7 @@ function ProfileImages({
   return (
     <div className="pb-2">
       {/* Kapak */}
-      <div className="relative h-36 w-full overflow-hidden rounded-2xl border border-line bg-crema/40 sm:h-44">
+      <div className="relative h-36 w-full overflow-hidden rounded-md border border-line bg-crema/40 sm:h-44">
         {coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={coverUrl} alt="Kapak" className="h-full w-full object-cover" />
@@ -141,6 +141,51 @@ function ProfileImages({
   );
 }
 
+/** Formun kayıttan türetilen değerleri. Hem ilk değer hem "kaydedilmemiş
+ *  değişiklik" karşılaştırmasının tabanı buradan gelir; kayıttan sonra form
+ *  da bununla tazelenir ki kayıtlı hâl ile form birebir aynı olsun. */
+function settingsValues(business: Business) {
+  return {
+    name: business.name,
+    slug: business.slug,
+    description: business.description,
+    // Menüde görünen e-posta: ayrı bir iletişim adresi ya da (görünürlüğü
+    // açıksa) giriş e-postası. Tek kaynak kuralı lib/business-account.ts'te.
+    email: publicContactEmail(business),
+    phone: business.phone,
+    address: business.address,
+    workingHours: business.working_hours,
+    highlights: business.highlights ?? [],
+    whatsapp: business.whatsapp,
+    instagram: business.instagram,
+    tiktok: business.tiktok,
+    youtube: business.youtube,
+    facebook: business.facebook,
+    googleMapsUrl: business.google_maps_url,
+    googleReviewUrl: business.google_review_url,
+    wifiPassword: business.wifi_password,
+    theme: business.theme || "paprika",
+    themeColor: business.theme_color || "",
+    menuBg: business.menu_bg || DEFAULT_SURFACE,
+    font: business.font || DEFAULT_FONT,
+    logoUrl: business.logo_url,
+    coverUrl: business.cover_url,
+    mainLang: mainLocale(business),
+    // Ana dil dışındaki aktif ek diller.
+    languages: activeNonMainLocales(business),
+    translations: business.translations ?? {},
+  };
+}
+
+type SettingsValues = ReturnType<typeof settingsValues>;
+
+/** Karşılaştırma için sıradan bağımsız dil listesi: aynı diller farklı
+ *  sırayla açılıp kapandıysa değişiklik sayılmaz. */
+function comparable(values: SettingsValues): string {
+  const order = (l: Locale) => SUPPORTED_LOCALES.indexOf(l);
+  return JSON.stringify({ ...values, languages: [...values.languages].sort((a, b) => order(a) - order(b)) });
+}
+
 export default function SettingsPage() {
   const { business, isLoading, setBusiness } = useBusiness();
 
@@ -152,40 +197,103 @@ export default function SettingsPage() {
 }
 
 function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: Business) => void }) {
-  const [name, setName] = useState(business.name);
-  const [slug, setSlug] = useState(business.slug);
-  const [description, setDescription] = useState(business.description);
-  // Menüde görünen e-posta: ayrı bir iletişim adresi ya da (görünürlüğü
-  // açıksa) giriş e-postası. Tek kaynak kuralı lib/business-account.ts'te.
-  const [email, setEmail] = useState(publicContactEmail(business));
-  const [phone, setPhone] = useState(business.phone);
-  const [address, setAddress] = useState(business.address);
-  const [workingHours, setWorkingHours] = useState(business.working_hours);
-  const [highlights, setHighlights] = useState<Highlight[]>(business.highlights ?? []);
-  const [whatsapp, setWhatsapp] = useState(business.whatsapp);
-  const [instagram, setInstagram] = useState(business.instagram);
-  const [tiktok, setTiktok] = useState(business.tiktok);
-  const [youtube, setYoutube] = useState(business.youtube);
-  const [facebook, setFacebook] = useState(business.facebook);
-  const [googleMapsUrl, setGoogleMapsUrl] = useState(business.google_maps_url);
-  const [googleReviewUrl, setGoogleReviewUrl] = useState(business.google_review_url);
-  const [wifiPassword, setWifiPassword] = useState(business.wifi_password);
-  const [theme, setTheme] = useState(business.theme || "paprika");
-  const [themeColor, setThemeColor] = useState(business.theme_color || "");
-  const [menuBg, setMenuBg] = useState(business.menu_bg || DEFAULT_SURFACE);
-  const [font, setFont] = useState(business.font || DEFAULT_FONT);
+  const initial = settingsValues(business);
+  const [name, setName] = useState(initial.name);
+  const [slug, setSlug] = useState(initial.slug);
+  const [description, setDescription] = useState(initial.description);
+  const [email, setEmail] = useState(initial.email);
+  const [phone, setPhone] = useState(initial.phone);
+  const [address, setAddress] = useState(initial.address);
+  const [workingHours, setWorkingHours] = useState(initial.workingHours);
+  const [highlights, setHighlights] = useState<Highlight[]>(initial.highlights);
+  const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
+  const [instagram, setInstagram] = useState(initial.instagram);
+  const [tiktok, setTiktok] = useState(initial.tiktok);
+  const [youtube, setYoutube] = useState(initial.youtube);
+  const [facebook, setFacebook] = useState(initial.facebook);
+  const [googleMapsUrl, setGoogleMapsUrl] = useState(initial.googleMapsUrl);
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(initial.googleReviewUrl);
+  const [wifiPassword, setWifiPassword] = useState(initial.wifiPassword);
+  const [theme, setTheme] = useState(initial.theme);
+  const [themeColor, setThemeColor] = useState(initial.themeColor);
+  const [menuBg, setMenuBg] = useState(initial.menuBg);
+  const [font, setFont] = useState(initial.font);
   const template: Template = "liste";
-  const [logoUrl, setLogoUrl] = useState(business.logo_url);
-  const [coverUrl, setCoverUrl] = useState(business.cover_url);
-  const [mainLang, setMainLang] = useState<Locale>(mainLocale(business));
-  // Ana dil dışındaki aktif ek diller.
-  const [languages, setLanguages] = useState<Locale[]>(activeNonMainLocales(business));
-  const [translations, setTranslations] = useState<Translations>(business.translations ?? {});
+  const [logoUrl, setLogoUrl] = useState(initial.logoUrl);
+  const [coverUrl, setCoverUrl] = useState(initial.coverUrl);
+  const [mainLang, setMainLang] = useState<Locale>(initial.mainLang);
+  const [languages, setLanguages] = useState<Locale[]>(initial.languages);
+  const [translations, setTranslations] = useState<Translations>(initial.translations);
   const [tab, setTab] = useState<SettingsTab>("genel");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const { toast } = useToast();
+
+  const current: SettingsValues = {
+    name,
+    slug,
+    description,
+    email,
+    phone,
+    address,
+    workingHours,
+    highlights,
+    whatsapp,
+    instagram,
+    tiktok,
+    youtube,
+    facebook,
+    googleMapsUrl,
+    googleReviewUrl,
+    wifiPassword,
+    theme,
+    themeColor,
+    menuBg,
+    font,
+    logoUrl,
+    coverUrl,
+    mainLang,
+    languages,
+    translations,
+  };
+  const currentJson = comparable(current);
+  const baselineJson = useMemo(() => comparable(settingsValues(business)), [business]);
+  const dirty = currentJson !== baselineJson;
+
+  // Kullanıcı formu düzelttikçe eski hata çubukta asılı kalmasın.
+  useEffect(() => {
+    setError("");
+  }, [currentJson]);
+
+  /** Kayıttan sonra form kayıtlı hâle eşitlenir (ör. adres slug'a çevrildi). */
+  function applyValues(values: SettingsValues) {
+    setName(values.name);
+    setSlug(values.slug);
+    setDescription(values.description);
+    setEmail(values.email);
+    setPhone(values.phone);
+    setAddress(values.address);
+    setWorkingHours(values.workingHours);
+    setHighlights(values.highlights);
+    setWhatsapp(values.whatsapp);
+    setInstagram(values.instagram);
+    setTiktok(values.tiktok);
+    setYoutube(values.youtube);
+    setFacebook(values.facebook);
+    setGoogleMapsUrl(values.googleMapsUrl);
+    setGoogleReviewUrl(values.googleReviewUrl);
+    setWifiPassword(values.wifiPassword);
+    setTheme(values.theme);
+    setThemeColor(values.themeColor);
+    setMenuBg(values.menuBg);
+    setFont(values.font);
+    setLogoUrl(values.logoUrl);
+    setCoverUrl(values.coverUrl);
+    setMainLang(values.mainLang);
+    setLanguages(values.languages);
+    setTranslations(values.translations);
+  }
 
   // Kaydedilmiş (veritabanındaki) ana dil — içerik taşımasının kaynağı budur.
   const savedMainLang = mainLocale(business);
@@ -296,11 +404,9 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         languages,
         translations: baseTranslations,
       });
-      // Taşıma sonrası form da yeni baz dile göre görünmeli.
-      setDescription(baseDescription);
-      setPhone(phoneCheck.value);
-      setWhatsapp(whatsappCheck.value);
-      setTranslations(baseTranslations);
+      // Form kayıtlı hâle eşitlenir: taşınan metinler, düzenlenen telefon ve
+      // slug'a çevrilen adres dahil. "Kaydedilmemiş değişiklik" kalmaz.
+      applyValues(settingsValues(updated));
       onSaved(updated);
       setSavedAt(Date.now());
       toast(mainLangChanged ? "Ayarlar kaydedildi, içerik yeni ana dile taşındı" : "Ayarlar kaydedildi");
@@ -331,11 +437,10 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
   return (
     <div>
       <PageHeader title="İşletme ayarları" description="Menünün görünümünü ve bilgilerini düzenle." />
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <FormActions saving={saving} saved={!!savedAt} />
-        <ErrorText>{error}</ErrorText>
+      <form onSubmit={handleSubmit} className={FORM_STACK}>
+        <FormActions saving={saving} dirty={dirty} savedAt={savedAt ?? business.updated ?? null} error={error || undefined} />
 
-        <Tabs tabs={SETTINGS_TABS} active={tab} onChange={setTab} />
+        <Tabs tabs={SETTINGS_TABS} active={tab} onChange={setTab} className="" />
 
         {tab === "genel" && (
           <div className="space-y-8">
@@ -360,7 +465,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
               </div>
               <div>
                 <Label htmlFor="b-slug">Menü adresi</Label>
-                <div className="flex items-center gap-1 rounded-2xl border border-line bg-crema/40 px-4 py-2.5 text-sm">
+                <div className="flex items-center gap-1 rounded-md border border-line bg-crema/40 px-4 py-2.5 text-sm">
                   <input
                     id="b-slug"
                     required
@@ -372,13 +477,19 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                 </div>
                 <p className="mt-1.5 text-xs text-ink-soft">Adresi değiştirirsen eski QR kodların çalışmaz, yeniden bastırman gerekir.</p>
               </div>
+              {/* Ana dil değişikliği kaydedilene kadar metinler KAYITLI ana dile
+                  göre düzenlenir: baz alan hâlâ o dilin metnidir. Yeni ana dili
+                  "Ana" diye göstermek, oraya yazılan metni kayıttaki taşımada
+                  eski dilin kutusuna gönderirdi (diller birbirini ezerdi). */}
               <MultiLangFields
-                locales={[mainLang, ...languages]}
-                mainLocale={mainLang}
+                locales={[savedMainLang, ...SUPPORTED_LOCALES.filter((l) => l !== savedMainLang && (l === mainLang || languages.includes(l)))]}
+                mainLocale={savedMainLang}
                 base={{ description }}
                 onBaseChange={(_, v) => setDescription(v)}
                 translations={translations}
                 onTranslationsChange={setTranslations}
+                title="İşletme açıklaması"
+                translate={{ business, kind: "business" }}
                 fields={[{ key: "description", label: "Açıklama", multiline: true }]}
               />
               <div className="grid gap-3 sm:grid-cols-2">
@@ -422,7 +533,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                 return (
                   <div
                     key={l}
-                    className={`rounded-2xl border p-4 transition-colors ${isMain ? "border-paprika bg-paprika/5" : "border-line"}`}
+                    className={`rounded-md border p-4 transition-colors ${isMain ? "border-paprika bg-paprika/5" : "border-line"}`}
                   >
                     <div className="flex items-center justify-between">
                       <button
@@ -463,7 +574,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
               })}
             </div>
             {mainLangChanged && (
-              <div className="rounded-2xl border border-paprika/40 bg-paprika/5 p-4 text-xs text-ink">
+              <div className="rounded-md border border-paprika/40 bg-paprika/5 p-4 text-xs text-ink">
                 <p className="font-semibold">Ana dil {localeLabels[savedMainLang]} → {localeLabels[mainLang]} olarak değişecek.</p>
                 <p className="mt-1 text-ink-soft">
                   Kaydedince menüdeki tüm metinler taşınır: şu anki {localeLabels[savedMainLang]} metinleri{" "}
@@ -505,7 +616,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                     );
                   })}
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-3 rounded-2xl border border-line p-3">
+                <div className="mt-1 flex flex-wrap items-center gap-3 rounded-md border border-line p-3">
                   <label
                     className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 shadow-sm ${brandIsCustom ? "border-ink ring-2 ring-ink/20" : "border-white"
                       }`}
@@ -553,11 +664,11 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                         type="button"
                         key={key}
                         onClick={() => setMenuBg(key)}
-                        className={`flex items-center gap-2.5 rounded-xl border-2 p-2.5 text-left transition-colors ${active ? "border-paprika" : "border-line hover:border-paprika/50"
+                        className={`flex items-center gap-2.5 rounded-md border-2 p-2.5 text-left transition-colors ${active ? "border-paprika" : "border-line hover:border-paprika/50"
                           }`}
                       >
                         <span
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/10"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-black/10"
                           style={{ background: s.swatch[0] }}
                         >
                           <span className="h-3.5 w-3.5 rounded-full" style={{ background: s.swatch[2] }} />
@@ -581,7 +692,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                         key={key}
                         onClick={() => setFont(key)}
                         style={{ fontFamily: f.stack }}
-                        className={`rounded-xl border-2 p-3 text-left transition-colors ${active ? "border-paprika" : "border-line hover:border-paprika/50"
+                        className={`rounded-md border-2 p-3 text-left transition-colors ${active ? "border-paprika" : "border-line hover:border-paprika/50"
                           }`}
                       >
                         <span className="block text-lg font-bold leading-tight">Ag</span>
@@ -594,10 +705,10 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             </div>
 
             {/* Canlı önizleme */}
-            <div className="lg:sticky lg:top-24 lg:self-start">
+            <div className="lg:sticky lg:top-[calc(var(--app-header-h,69px)+5rem)] lg:self-start">
               <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Önizleme</p>
               <div
-                className="overflow-hidden rounded-3xl border shadow-lg"
+                className="overflow-hidden rounded-md border shadow-lg"
                 style={{
                   background: surfacePreview.vars.paper,
                   color: surfacePreview.vars.ink,
@@ -752,8 +863,6 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </Card>
         )}
 
-        <ErrorText>{error}</ErrorText>
-        <FormStatusFooter status={<SaveStatus saving={saving} savedAt={savedAt ?? business.updated ?? null} />} />
       </form>
     </div>
   );

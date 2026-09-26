@@ -52,7 +52,7 @@ function readAsDataUrl(file: File): Promise<string> {
 
 function UncertainBadge({ field }: { field: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-paprika/40 bg-paprika/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-paprika-deep">
+    <span className="inline-flex items-center rounded-md border border-paprika/40 bg-paprika/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-paprika-deep">
       {UNCERTAIN_LABELS[field] ?? field}
     </span>
   );
@@ -67,7 +67,7 @@ function PlanStat({ value, label, tone = "default" }: { value: number; label: st
         ? "border-line bg-crema/50 text-ink-soft"
         : "border-line bg-crema/50 text-ink";
   return (
-    <div className={`rounded-xl border px-3 py-2.5 text-center ${toneClass}`}>
+    <div className={`rounded-md border px-3 py-2.5 text-center ${toneClass}`}>
       <div className="font-display text-xl font-bold leading-none">{value}</div>
       <div className="mt-1 text-[11px] leading-tight">{label}</div>
     </div>
@@ -93,14 +93,14 @@ function ProductRow({
   const missingPrice = product.price === null;
 
   return (
-    <div className={`rounded-xl border p-3 ${missingPrice ? "border-paprika/40 bg-paprika/5" : "border-line"}`}>
+    <div className={`rounded-md border p-3 ${missingPrice ? "border-paprika/40 bg-paprika/5" : "border-line"}`}>
       <div className="flex items-start gap-3">
         <button
           type="button"
           disabled={disabled}
           onClick={() => setPicking(true)}
           title="Görsel seç"
-          className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-crema text-ink-soft transition-colors hover:border-paprika disabled:opacity-50"
+          className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-crema text-ink-soft transition-colors hover:border-paprika disabled:opacity-50"
         >
           {product.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -116,7 +116,7 @@ function ProductRow({
             disabled={disabled}
             onChange={(e) => onChange({ ...product, name: e.target.value })}
             placeholder="Ürün adı"
-            className="w-full rounded-lg border border-line bg-paper px-3 py-1.5 text-sm font-semibold outline-none focus:border-paprika"
+            className="w-full rounded-md border border-line bg-paper px-3 py-1.5 text-sm font-semibold outline-none focus:border-paprika"
           />
           <textarea
             value={product.description}
@@ -124,7 +124,7 @@ function ProductRow({
             onChange={(e) => onChange({ ...product, description: e.target.value })}
             placeholder="Açıklama (opsiyonel)"
             rows={2}
-            className="w-full rounded-lg border border-line bg-paper px-3 py-1.5 text-sm outline-none focus:border-paprika"
+            className="w-full rounded-md border border-line bg-paper px-3 py-1.5 text-sm outline-none focus:border-paprika"
           />
           {product.uncertain.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -154,7 +154,7 @@ function ProductRow({
                   uncertain: raw === "" ? product.uncertain : product.uncertain.filter((f) => f !== "price"),
                 });
               }}
-              className="w-24 rounded-lg border border-line bg-paper px-2 py-1.5 text-right font-mono text-sm outline-none focus:border-paprika"
+              className="w-24 rounded-md border border-line bg-paper px-2 py-1.5 text-right font-mono text-sm outline-none focus:border-paprika"
             />
             <span className="font-mono text-xs text-ink-soft">₺</span>
           </div>
@@ -576,7 +576,7 @@ export function MenuImport({ business }: { business: Business }) {
             disabled={busy}
             accept="image/jpeg,image/png,image/webp,application/pdf"
             onChange={(e) => handleFiles(e.target.files)}
-            className="block w-full cursor-pointer text-sm text-ink-soft transition file:mr-4 file:cursor-pointer file:rounded-full file:border-0 file:bg-crema file:px-4 file:py-2 file:text-sm file:font-semibold hover:file:bg-line disabled:opacity-50"
+            className="block w-full cursor-pointer text-sm text-ink-soft transition file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-crema file:px-4 file:py-2 file:text-sm file:font-semibold hover:file:bg-line disabled:opacity-50"
           />
 
           {files.length > 0 && (
@@ -584,7 +584,7 @@ export function MenuImport({ business }: { business: Business }) {
               {files.map((file, i) => (
                 <div
                   key={i}
-                  className="relative aspect-[3/4] overflow-hidden rounded-lg border border-line bg-crema"
+                  className="relative aspect-[3/4] overflow-hidden rounded-md border border-line bg-crema"
                 >
                   {file.isPdf ? (
                     <div className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center">
@@ -601,7 +601,7 @@ export function MenuImport({ business }: { business: Business }) {
           )}
 
           {fingerprint !== "" && scannedPrints.includes(fingerprint) && (
-            <p className="mt-4 rounded-xl border border-line bg-crema/50 px-3 py-2 text-xs leading-relaxed text-ink-soft">
+            <p className="mt-4 rounded-md border border-line bg-crema/50 px-3 py-2 text-xs leading-relaxed text-ink-soft">
               Bu sayfalar bu oturumda tarandı. Yeniden taramak kotanızdan bir hak daha harcar.
             </p>
           )}
@@ -705,13 +705,13 @@ export function MenuImport({ business }: { business: Business }) {
         {categories && (
           <div className="space-y-4">
             {importError && (
-              <div className="rounded-2xl border border-paprika/40 bg-paprika/5 px-4 py-3 text-sm leading-relaxed">
+              <div className="rounded-md border border-paprika/40 bg-paprika/5 px-4 py-3 text-sm leading-relaxed">
                 {importError}
               </div>
             )}
 
             {missingPriceCount > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-paprika/40 bg-paprika/5 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-paprika/40 bg-paprika/5 px-4 py-3">
                 <p className="text-sm">
                   <strong>{missingPriceCount} ürünün fiyatı okunamadı.</strong>{" "}
                   <span className="text-ink-soft">
@@ -726,7 +726,7 @@ export function MenuImport({ business }: { business: Business }) {
 
             <div className="space-y-5">
               {categories.map((category) => (
-                <div key={category.id} className="rounded-xl border border-line p-4">
+                <div key={category.id} className="rounded-md border border-line p-4">
                   <input
                     value={category.name}
                     disabled={busy}
@@ -738,7 +738,7 @@ export function MenuImport({ business }: { business: Business }) {
                           ) ?? null
                       )
                     }
-                    className="mb-3 w-full rounded-lg border border-transparent bg-transparent px-1 py-1 font-display text-lg font-bold text-[var(--brand)] outline-none focus:border-line focus:bg-paper"
+                    className="mb-3 w-full rounded-md border border-transparent bg-transparent px-1 py-1 font-display text-lg font-bold text-[var(--brand)] outline-none focus:border-line focus:bg-paper"
                   />
                   <div className="space-y-2">
                     {category.products.map((product) => (
@@ -832,7 +832,7 @@ export function MenuImport({ business }: { business: Business }) {
             </div>
 
             {planEmpty && (
-              <p className="rounded-xl border border-herb/40 bg-herb/10 px-4 py-3 text-sm leading-relaxed">
+              <p className="rounded-md border border-herb/40 bg-herb/10 px-4 py-3 text-sm leading-relaxed">
                 Bu taramadaki her şey menünüzde zaten var. Yazılacak yeni bir kayıt yok — muhtemelen bu
                 menüyü daha önce aktardınız.
               </p>
@@ -850,7 +850,7 @@ export function MenuImport({ business }: { business: Business }) {
 
             <div className="space-y-2">
               {plan.categories.map((planned) => (
-                <div key={planned.draft.id} className="rounded-xl border border-line px-4 py-3">
+                <div key={planned.draft.id} className="rounded-md border border-line px-4 py-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-display font-bold">{planned.draft.name}</span>
                     <span
@@ -930,7 +930,7 @@ export function MenuImport({ business }: { business: Business }) {
               {bulkImages.results.map((result, index) => (
                 <div
                   key={`${result.name}-${index}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-md border border-line px-3 py-2 text-sm"
                 >
                   <span className="min-w-0 truncate">{result.name}</span>
                   <span

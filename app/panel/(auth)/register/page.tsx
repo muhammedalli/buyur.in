@@ -1,22 +1,44 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
-import { Button, ErrorText, Input, Label } from "@/components/panel/ui";
+import { MailIcon, PhoneIcon, UtensilsIcon } from "@/components/icons";
+import {
+  AuthAlternative,
+  AuthError,
+  AuthHeading,
+  AuthInput,
+  AuthLabel,
+  AuthNotice,
+  AuthPasswordInput,
+  AuthSubmit,
+} from "@/components/panel/auth-form";
 import { PLAN_LABELS } from "@/lib/entitlements";
 import { parsePlanIntent, savePlanIntent, type IntentPlan } from "@/lib/plan-intent";
 import { captureAttribution, trackMarketingEvent } from "@/lib/marketing-events";
 import { OTP_RESEND_SECONDS } from "@/lib/otp-client";
 import { checkSignupPhone } from "@/lib/phone";
 import { newPasswordError } from "@/lib/password";
-import { AUTH_CARD_CLASS, errorMessage } from "@/components/panel/auth-card";
+import { errorMessage } from "@/components/panel/auth-card";
+import { markLogin } from "@/lib/auth-persistence";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
 
-const START_TITLES: Record<IntentPlan, string> = {
-  premium: "Premium'u başlat",
-  elite: "Elite'i başlat",
+const START_TITLES: Record<IntentPlan, ReactNode> = {
+  premium: (
+    <>
+      Premium&apos;u
+      <br />
+      başlat
+    </>
+  ),
+  elite: (
+    <>
+      Elite&apos;i
+      <br />
+      başlat
+    </>
+  ),
 };
 
 export default function RegisterPage() {
@@ -112,6 +134,8 @@ export default function RegisterPage() {
         return;
       }
       await pb.collection(BUSINESS_COLLECTION).authWithPassword(email, password);
+      // Yeni hesap hatırlanır; kısa ömürlü oturum isteyen giriş ekranından seçer.
+      markLogin(true);
       trackMarketingEvent("signup_completed", { plan_intent: intent ?? "freemium" });
       router.replace("/panel");
     } catch {
@@ -123,16 +147,26 @@ export default function RegisterPage() {
 
   if (step === "code") {
     return (
-      <div className={AUTH_CARD_CLASS}>
-        <h1 className="font-display text-xl font-bold">E-postanı doğrula</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          <span className="font-medium text-ink">{email}</span> adresine 6 haneli bir kod gönderdik. Gelen kutunda yoksa
-          spam klasörüne bak.
-        </p>
-        <form onSubmit={handleCodeSubmit} className="mt-6 space-y-4">
+      <>
+        <AuthHeading
+          title={
+            <>
+              E-postanı
+              <br />
+              doğrula
+            </>
+          }
+          description={
+            <>
+              <span className="font-medium text-ink">{email}</span> adresine 6 haneli bir kod gönderdik. Gelen kutunda
+              yoksa spam klasörüne bak.
+            </>
+          }
+        />
+        <form onSubmit={handleCodeSubmit} className="mt-10 space-y-6">
           <div>
-            <Label htmlFor="code">Doğrulama kodu</Label>
-            <Input
+            <AuthLabel htmlFor="code">Doğrulama kodu</AuthLabel>
+            <AuthInput
               id="code"
               required
               inputMode="numeric"
@@ -141,16 +175,16 @@ export default function RegisterPage() {
               placeholder="000000"
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="text-center font-mono text-lg tracking-[0.5em]"
+              className="text-center font-mono text-xl tracking-[0.5em]"
             />
           </div>
-          <ErrorText>{error}</ErrorText>
-          {notice && <p className="text-sm text-herb">{notice}</p>}
-          <Button type="submit" loading={loading} disabled={code.length !== 6} className="w-full">
+          <AuthError>{error}</AuthError>
+          <AuthNotice>{notice}</AuthNotice>
+          <AuthSubmit loading={loading} disabled={code.length !== 6}>
             Hesabı oluştur
-          </Button>
+          </AuthSubmit>
         </form>
-        <div className="mt-6 flex items-center justify-between text-sm">
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-[15px]">
           <button
             type="button"
             onClick={() => {
@@ -159,7 +193,7 @@ export default function RegisterPage() {
               setError("");
               setNotice("");
             }}
-            className="text-ink-soft hover:underline"
+            className="text-ink-soft hover:text-ink hover:underline"
           >
             Bilgileri düzenle
           </button>
@@ -172,50 +206,67 @@ export default function RegisterPage() {
             {cooldown > 0 ? `Tekrar gönder (${cooldown})` : "Kodu tekrar gönder"}
           </button>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className={AUTH_CARD_CLASS}>
-      <h1 className="font-display text-xl font-bold">{intent ? START_TITLES[intent] : "Ücretsiz hesap aç"}</h1>
-      <p className="mt-1 text-sm text-ink-soft">
-        {intent
-          ? `Önce hesabını aç ve menünü kur; ${PLAN_LABELS[intent]} geçişini panelden tek tıkla başlatırsın. Kredi kartı şimdi istenmez.`
-          : "Kredi kartı gerekmez, 5 dakikada kurulur."}
-      </p>
-      <form onSubmit={handleDetailsSubmit} className="mt-6 space-y-4">
+    <>
+      <AuthHeading
+        title={
+          intent ? (
+            START_TITLES[intent]
+          ) : (
+            <>
+              Ücretsiz
+              <br />
+              hesap aç
+            </>
+          )
+        }
+        description={
+          intent
+            ? `Önce hesabını aç ve menünü kur; ${PLAN_LABELS[intent]} geçişini panelden tek tıkla başlatırsın. Kredi kartı şimdi istenmez.`
+            : "Kredi kartı gerekmez, 5 dakikada kurulur. Telefon, işletmenin iletişim numarası olarak kaydedilir."
+        }
+      />
+      <form onSubmit={handleDetailsSubmit} className="mt-7 space-y-4">
         <div>
-          <Label htmlFor="name">İşletme adı</Label>
-          <Input
+          <AuthLabel htmlFor="name">İşletme adı</AuthLabel>
+          <AuthInput
             id="name"
             required
             autoComplete="organization"
             placeholder="Alpha Cafe"
+            icon={<UtensilsIcon size={20} />}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="email">E-posta</Label>
-          <Input
+          <AuthLabel htmlFor="email">E-posta</AuthLabel>
+          <AuthInput
             id="email"
             type="email"
             required
             autoComplete="email"
+            placeholder="ornek@isletme.com"
+            icon={<MailIcon size={20} />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
-          <Label htmlFor="phone">Telefon</Label>
-          <Input
+          <AuthLabel htmlFor="phone">Telefon</AuthLabel>
+          <AuthInput
             id="phone"
             type="tel"
             required
             inputMode="tel"
             autoComplete="tel"
             placeholder="0532 123 45 67"
+            icon={<PhoneIcon size={19} />}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             onBlur={() => {
@@ -223,17 +274,14 @@ export default function RegisterPage() {
               const check = checkSignupPhone(phone);
               if (check.ok) setPhone(check.value);
             }}
-            aria-describedby="phone-hint"
           />
-          <p id="phone-hint" className="mt-1.5 text-xs text-ink-soft">
-            İşletmenin iletişim numarası olarak kaydedilir; ayarlardan değiştirebilirsin.
-          </p>
         </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor="password">Şifre</Label>
-          <Input
+          <AuthLabel htmlFor="password">Şifre</AuthLabel>
+          <AuthPasswordInput
             id="password"
-            type="password"
             required
             autoComplete="new-password"
             value={password}
@@ -241,30 +289,23 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <Label htmlFor="passwordConfirm">Şifre tekrar</Label>
-          <Input
+          <AuthLabel htmlFor="passwordConfirm">Şifre tekrar</AuthLabel>
+          <AuthPasswordInput
             id="passwordConfirm"
-            type="password"
             required
             autoComplete="new-password"
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
           />
-          {passwordConfirm.length > 0 && password !== passwordConfirm && (
-            <p className="mt-1.5 text-sm text-paprika">Şifreler eşleşmiyor.</p>
-          )}
         </div>
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={loading} className="w-full">
-          Doğrulama kodu gönder
-        </Button>
+        </div>
+        {passwordConfirm.length > 0 && password !== passwordConfirm && (
+          <p className="text-sm text-paprika-deep">Şifreler eşleşmiyor.</p>
+        )}
+        <AuthError>{error}</AuthError>
+        <AuthSubmit loading={loading}>Doğrulama kodu gönder</AuthSubmit>
       </form>
-      <p className="mt-6 text-center text-sm text-ink-soft">
-        Zaten hesabın var mı?{" "}
-        <Link href="/panel/login" className="font-medium text-paprika hover:underline">
-          Giriş yap
-        </Link>
-      </p>
-    </div>
+      <AuthAlternative question="Zaten hesabın var mı?" href="/panel/login" label="Giriş yap" />
+    </>
   );
 }

@@ -1,7 +1,9 @@
-// Giriş/kayıt/şifre ekranlarının ortak parçaları. Kart sınıfı tek yerde:
-// dar ekranda (320px) iç boşluk küçülür, form alanları sıkışmaz.
+// Giriş/kayıt/şifre ekranlarının ortak yardımcıları. İşletme ekranlarının
+// görsel parçaları components/panel/auth-form.tsx'te; buradaki kart sınıfı
+// yalnızca yönetim girişinde (admin.buyur.in) kullanılır: dar ekranda (320px)
+// iç boşluk küçülür, form alanları sıkışmaz.
 
-export const AUTH_CARD_CLASS = "rounded-2xl border border-line bg-paper p-6 sm:p-8";
+export const AUTH_CARD_CLASS = "rounded-md border border-line bg-paper p-6 sm:p-8";
 
 /** Şifre sıfırlandıktan sonra giriş ekranına eklenen işaret. */
 export const RESET_DONE_PARAM = "sifre-yenilendi";

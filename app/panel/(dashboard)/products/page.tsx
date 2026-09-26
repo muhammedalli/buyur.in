@@ -26,19 +26,28 @@ export default function ProductsPage() {
   async function load() {
     if (!business) return;
     setLoading(true);
-    const [cats, prods] = await Promise.all([
-      pb.collection("buyur_categories").getFullList<Category>({
-        filter: pb.filter("business = {:id}", { id: business.id }),
-        sort: "order,created",
-      }),
-      pb.collection("buyur_products").getFullList<Product>({
-        filter: pb.filter("business = {:id}", { id: business.id }),
-        sort: "order,created",
-      }),
-    ]);
-    setCategories(cats);
-    setProducts(prods);
-    setLoading(false);
+    try {
+      // requestKey: null — efekt iki kez çalışınca (StrictMode, işletme tazelenmesi)
+      // SDK aynı isteği otomatik iptal edip yakalanmamış hataya çeviriyordu.
+      const [cats, prods] = await Promise.all([
+        pb.collection("buyur_categories").getFullList<Category>({
+          filter: pb.filter("business = {:id}", { id: business.id }),
+          sort: "order,created",
+          requestKey: null,
+        }),
+        pb.collection("buyur_products").getFullList<Product>({
+          filter: pb.filter("business = {:id}", { id: business.id }),
+          sort: "order,created",
+          requestKey: null,
+        }),
+      ]);
+      setCategories(cats);
+      setProducts(prods);
+    } catch {
+      toast("Ürünler yüklenemedi. Sayfayı yenileyip tekrar dene.", "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function toggleAvailable(product: Product) {
@@ -160,7 +169,7 @@ export default function ProductsPage() {
               <div className="space-y-3">
                 {items.map((product) => (
                   <Card key={product.id} className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-crema">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-crema">
                       {product.images?.[0] && (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />

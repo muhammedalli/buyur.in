@@ -17,7 +17,7 @@ export function SuspensionBanner() {
   );
 
   return (
-    <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-paprika/40 bg-paprika/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-6 flex flex-col gap-3 rounded-md border border-paprika/40 bg-paprika/5 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 shrink-0 text-paprika" aria-hidden>
           <LockIcon size={18} />

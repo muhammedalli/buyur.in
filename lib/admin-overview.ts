@@ -55,7 +55,7 @@ export function computeOverview(rows: AdminBusinessRow[], now: Date = new Date()
   const weekStart = todayStart - 6 * DAY_MS;
   const period = aiPeriodKey(now);
 
-  const byStatus: Record<BusinessStatus, number> = { live: 0, setup: 0, offline: 0, suspended: 0 };
+  const byStatus: Record<BusinessStatus, number> = { live: 0, setup: 0, offline: 0, suspended: 0, deleted: 0 };
   const byPlan = Object.fromEntries(PLAN_ORDER.map((p) => [p, 0])) as Record<Plan, number>;
   let newToday = 0;
   let newThisWeek = 0;
@@ -67,8 +67,10 @@ export function computeOverview(rows: AdminBusinessRow[], now: Date = new Date()
 
   for (const row of rows) {
     const status = businessStatus(row);
-    const plan = normalizePlan(row.plan);
     byStatus[status] += 1;
+    // Silinen hesap hiçbir platform sayısına girmez; yalnızca kendi sayısı tutulur.
+    if (status === "deleted") continue;
+    const plan = normalizePlan(row.plan);
     byPlan[plan] += 1;
 
     const created = time(row.created);
@@ -102,7 +104,7 @@ export function computeOverview(rows: AdminBusinessRow[], now: Date = new Date()
 
   withExpiry.sort((a, b) => a.daysLeft - b.daysLeft);
   return {
-    total: rows.length,
+    total: rows.length - byStatus.deleted,
     newToday,
     newThisWeek,
     byStatus,

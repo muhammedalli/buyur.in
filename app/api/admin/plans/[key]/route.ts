@@ -2,11 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getServicePB } from "@/lib/pocketbase-server";
 import { authenticateAdminRequest } from "@/lib/admin-auth";
 import { auditFailureMessage, runAuditedUpdate } from "@/lib/admin-audit";
+import { auditRequestContext } from "@/lib/system-audit";
 import { reasonError } from "@/lib/admin-business-actions";
 import { buildPlanPatch, type PlanFormValues } from "@/lib/admin-plan-edit";
 import { PLAN_ORDER } from "@/lib/entitlements";
 import { ensurePlanCatalog, resetPlanCatalogCache } from "@/lib/plan-catalog-loader";
-import { clientIp } from "@/lib/rate-limit";
 import type { PlanRecord } from "@/lib/types";
 
 // Plan kaydını (buyur_plans) düzenler — yalnızca super_admin. Yazma admin'in
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ key
     id: record.id,
     patch: patch.patch,
     reason,
-    ip: clientIp(req),
+    ...auditRequestContext(req),
   });
   if (!result.ok) {
     console.error("[admin-plans] plan kaydedilemedi", key, result.reason, result.error);

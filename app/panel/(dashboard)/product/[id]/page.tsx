@@ -17,15 +17,19 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const businessId = business?.id;
 
+  // Yalnızca işletme KİMLİĞİNE bağlı: işletme kaydı tazelendiğinde (sekmeye
+  // dönüş, plan değişikliği) ürün yeniden yüklenip açık form sökülmesin —
+  // sökülürse kaydedilmemiş değişiklikler, AI'ın doldurduğu çeviriler dahil,
+  // kaybolurdu. "Yükleniyor" yalnızca ilk açılışta gösterilir.
   useEffect(() => {
-    if (!business) return;
-    load();
-  }, [business, id]);
+    if (!businessId) return;
+    load(businessId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businessId, id]);
 
-  async function load() {
-    if (!business) return;
-    setLoading(true);
+  async function load(businessId: string) {
     try {
       // requestKey: null -> React StrictMode'un dev'de effect'i iki kez
       // çalıştırması bu isteklerin SDK tarafından otomatik iptal edilmesine
@@ -33,7 +37,7 @@ export default function EditProductPage() {
       const [prod, cats] = await Promise.all([
         pb.collection("buyur_products").getOne<Product>(id, { requestKey: null }),
         pb.collection("buyur_categories").getFullList<Category>({
-          filter: pb.filter("business = {:id}", { id: business.id }),
+          filter: pb.filter("business = {:id}", { id: businessId }),
           requestKey: null,
           sort: "order,created",
         }),
@@ -57,6 +61,7 @@ export default function EditProductPage() {
       <PageHeader title={product.name} />
       <div className="space-y-8">
         <ProductForm
+          key={`form:${product.id}`}
           business={business}
           categories={categories}
           initial={product}
@@ -64,7 +69,7 @@ export default function EditProductPage() {
             setProduct(updated);
           }}
         />
-        <ProductOptionsEditor business={business} productId={product.id} />
+        <ProductOptionsEditor key={`options:${product.id}`} business={business} productId={product.id} />
       </div>
     </div>
   );

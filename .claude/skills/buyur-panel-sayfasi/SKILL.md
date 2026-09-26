@@ -95,12 +95,14 @@ export default function OrnekPage() {
 ## 4. Form sayfalarında ek zorunluluklar
 
 ```tsx
-const draft = useDraft<FormValues>(`urun:${id}`, values);
+const draft = useFormDraft<FormValues>(`urun:${id}`, values, baseline, initial?.updated);
 ```
 
 - `DraftBanner` ile önceki oturumdan kalan taslağı geri yükleme seçeneği sun
-- `SaveStatus` ile kaydetme durumunu göster
-- `FormActions` ile kaydet/iptal düğmelerini yerleştir
+- `FormActions` yapışkan eylem çubuğudur: kaydet/iptal + durum satırı
+  (`dirty={draft.dirty}`, `savedAt`, `draftSavedAt`, `error`); form `className={FORM_STACK}`
+- Kayıt durumu formun altına ayrıca yazılmaz; alana bağlı AI eylemi alanın yanında
+  durur (`MultiLangFields` → `translate`), çubukta tekrar edilmez
 - Kayıt başarılı olunca `draft.clear()`
 - Yarım veri canlı menüye **yazılmaz** — taslak tarayıcıda durur
 
@@ -125,7 +127,8 @@ if (!isFeatureAvailable(business.plan, "campaigns")) {
 - [ ] Yükleniyor / boş / hata durumları var
 - [ ] Sorgular `pb.filter()` ile parametreli, sıralama `order,created`
 - [ ] Yıkıcı işlemler `useConfirm()` ile onaylanıyor
-- [ ] Form sayfalarında `useDraft()` var
+- [ ] Form sayfalarında `useFormDraft()` ve yapışkan `FormActions` var
+- [ ] Köşe yarıçapı 6px (`rounded-md`); sayılar `StatGroup`, listeler `Table`
 - [ ] Plana bağlıysa `isFeatureAvailable()` + `UpgradeNotice`
 - [ ] Çevrilebilir alanlar `MultiLangFields` ile
 - [ ] Tüm kullanıcı metinleri Türkçe

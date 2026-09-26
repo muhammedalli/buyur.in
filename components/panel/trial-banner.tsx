@@ -19,7 +19,7 @@ export function TrialBanner() {
 
   return (
     <div
-      className={`mb-6 flex flex-col gap-3 rounded-2xl border px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
+      className={`mb-6 flex flex-col gap-3 rounded-md border px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${
         usage.exhausted ? "border-paprika/40 bg-paprika/5" : "border-line bg-crema/60"
       }`}
     >

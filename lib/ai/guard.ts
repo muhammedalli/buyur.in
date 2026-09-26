@@ -73,3 +73,34 @@ export function openaiClient(): OpenAI | GuardFailure {
 export function isGuardFailure(value: unknown): value is GuardFailure {
   return typeof value === "object" && value !== null && (value as GuardFailure).ok === false;
 }
+
+/** OpenAI çağrısının hatasını kullanıcının anlayacağı bir yanıta çevirir.
+ *  "Bir hata oluştu" yerine ne olduğu ve ne yapılacağı söylenir. Geçici
+ *  hatalar (zaman aşımı, bağlantı, yoğunluk) `retryable: true` taşır: istemci
+ *  yalnızca bunları kendiliğinden bir kez daha dener; yapılandırma ya da kota
+ *  sorunu tekrar denemekle düzelmez. Ayrıntı yalnızca sunucu günlüğüne yazılır. */
+export function aiErrorResponse(error: unknown, fallback: string): NextResponse {
+  const reply = (message: string, status: number, retryable = false) =>
+    NextResponse.json({ error: message, retryable }, { status });
+  if (error instanceof OpenAI.APIConnectionTimeoutError) {
+    return reply("Yapay zekâ servisi zamanında yanıt vermedi. Birkaç saniye sonra tekrar deneyin.", 504, true);
+  }
+  if (error instanceof OpenAI.APIConnectionError) {
+    return reply("Yapay zekâ servisine bağlanılamadı. Birkaç saniye sonra tekrar deneyin.", 502, true);
+  }
+  if (error instanceof OpenAI.RateLimitError) {
+    return error.code === "insufficient_quota"
+      ? reply("Yapay zekâ servisinin kullanım kotası dolmuş. Yöneticinize bildirin.", 503)
+      : reply("Yapay zekâ servisi şu an yoğun. Birkaç saniye sonra tekrar deneyin.", 503, true);
+  }
+  if (error instanceof OpenAI.AuthenticationError || error instanceof OpenAI.PermissionDeniedError) {
+    return reply("Yapay zekâ servisinin yapılandırmasında bir sorun var. Yöneticinize bildirin.", 503);
+  }
+  if (error instanceof OpenAI.BadRequestError) {
+    return reply("Bu içerik yapay zekâ tarafından işlenemedi. Metni kontrol edip tekrar deneyin.", 422);
+  }
+  if (error instanceof OpenAI.InternalServerError) {
+    return reply("Yapay zekâ servisi geçici bir hata verdi. Tekrar deneyin.", 502, true);
+  }
+  return reply(fallback, 500);
+}

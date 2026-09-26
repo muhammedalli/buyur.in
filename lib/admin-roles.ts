@@ -19,6 +19,7 @@ export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
 
 export const ADMIN_ACTIONS = [
   "logs.view",
+  "ai.view",
   "business.view",
   "business.note",
   "business.password_reset",
@@ -27,9 +28,14 @@ export const ADMIN_ACTIONS = [
   "business.plan_assign",
   "business.suspend",
   "business.slug_change",
+  "business.edit",
+  "business.content",
+  "business.email_change",
   "business.delete",
   "plans.edit",
+  "settings.edit",
   "admins.manage",
+  "system.view",
 ] as const;
 
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
@@ -37,9 +43,12 @@ export type AdminAction = (typeof ADMIN_ACTIONS)[number];
 /** Destek rolü müşteriye yardım eder ama gelir ve erişim kararı vermez:
  *  plan atama, askıya alma, silme ve fiyat değişikliği super_admin'dedir.
  *  Deneme uzatma ve AI kotası sıfırlama destek görüşmesinde anında
- *  gerekebildiği için destekte kalır. */
+ *  gerekebildiği için destekte kalır. İşletme adına içerik/bilgi düzenleme
+ *  ve giriş e-postası değiştirme de super_admin'de: müşterinin canlı
+ *  menüsüne ve hesabına dokunur. AI kullanımı salt okunurdur, destekte. */
 const SUPPORT_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   "logs.view",
+  "ai.view",
   "business.view",
   "business.note",
   "business.password_reset",

@@ -65,7 +65,7 @@ export function BarList({
                 onPointerLeave={() => setHovered(null)}
                 onFocus={() => setHovered(item.key)}
                 onBlur={() => setHovered(null)}
-                className={`group rounded-lg px-1 py-0.5 outline-none transition-colors ${
+                className={`group rounded-md px-1 py-0.5 outline-none transition-colors ${
                   interactive ? "cursor-pointer hover:bg-crema/60 focus-visible:bg-crema/60" : ""
                 }`}
               >
@@ -149,7 +149,7 @@ export function ColumnChart({
               }}
             />
             {hovered === index && (
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-paper px-2 py-1 text-xs shadow-[0_10px_24px_-14px_rgba(35,24,18,0.6)]">
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-paper px-2 py-1 text-xs shadow-[0_10px_24px_-14px_rgba(35,24,18,0.6)]">
                 <span className="font-semibold tabular-nums">{valueFormatter(value)}</span>{" "}
                 <span className="text-ink-soft">{labels[index]}</span>
               </div>

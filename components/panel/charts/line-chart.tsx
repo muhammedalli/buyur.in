@@ -176,7 +176,7 @@ export function LineChart({
 
       {hoverIndex !== null && (
         <div
-          className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-xl border border-line bg-paper px-3 py-2 shadow-[0_12px_30px_-16px_rgba(35,24,18,0.6)]"
+          className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-md border border-line bg-paper px-3 py-2 shadow-[0_12px_30px_-16px_rgba(35,24,18,0.6)]"
           style={{ left: tooltipLeft }}
         >
           <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">

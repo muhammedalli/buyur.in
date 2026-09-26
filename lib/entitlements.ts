@@ -143,7 +143,6 @@ export interface PlanRecordLike {
   description?: string;
   features?: unknown;
   price_monthly?: unknown;
-  price_yearly_monthly?: unknown;
   trial_months?: number;
   limits?: unknown;
 }

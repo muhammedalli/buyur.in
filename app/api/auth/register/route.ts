@@ -14,6 +14,7 @@ import { checkSignupPhone } from "@/lib/phone";
 import { newPasswordError } from "@/lib/password";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { initialPlanFields } from "@/lib/plan-period";
+import { auditRequestContext, recordSystemAudit } from "@/lib/system-audit";
 
 // Kayıt akışının ikinci adımı: kodu doğrular ve işletme hesabını açar.
 // 1 işletme hesabı = 1 buyur_businesses kaydı = 1 kimlik: giriş bilgileri,
@@ -95,8 +96,9 @@ export async function POST(req: NextRequest) {
       .getFirstListItem<{ key: string; trial_months?: number }>("is_default = true", { requestKey: null })
       .catch(() => null);
 
+    let created: { id: string; plan?: string };
     try {
-      await pb.collection(BUSINESS_COLLECTION).create(
+      created = await pb.collection(BUSINESS_COLLECTION).create(
         {
           email,
           password,
@@ -123,6 +125,14 @@ export async function POST(req: NextRequest) {
     // superuser'a açık, servis hesabı 400 alıyor; üstelik uygulamada hiçbir yer
     // okumuyor — adresin kanıtı zaten OTP'nin kendisi.
     await clearOtpRecords(pb, email);
+    await recordSystemAudit({
+      actor: { type: "business", id: created.id, email },
+      action: "business.register",
+      targetCollection: BUSINESS_COLLECTION,
+      targetId: created.id,
+      after: { name, email, phone: phone.value, plan: created.plan ?? "" },
+      ...auditRequestContext(req),
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[register] hata", err);

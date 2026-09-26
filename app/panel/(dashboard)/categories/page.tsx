@@ -32,22 +32,31 @@ export default function CategoriesPage() {
   async function load() {
     if (!business) return;
     setLoading(true);
-    const [list, products] = await Promise.all([
-      pb.collection("buyur_categories").getFullList<Category>({
-        filter: pb.filter("business = {:id}", { id: business.id }),
-        sort: "order,created",
-      }),
-      pb.collection("buyur_products").getFullList<{ id: string; category: string }>({
-        filter: pb.filter("business = {:id}", { id: business.id }),
-        fields: "id,category",
-        batch: 500,
-      }),
-    ]);
-    const counts = new Map<string, number>();
-    for (const product of products) counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
-    setCategories(list);
-    setProductCounts(counts);
-    setLoading(false);
+    try {
+      // requestKey: null — efekt iki kez çalışınca SDK aynı isteği otomatik
+      // iptal edip yakalanmamış hataya çeviriyordu.
+      const [list, products] = await Promise.all([
+        pb.collection("buyur_categories").getFullList<Category>({
+          filter: pb.filter("business = {:id}", { id: business.id }),
+          sort: "order,created",
+          requestKey: null,
+        }),
+        pb.collection("buyur_products").getFullList<{ id: string; category: string }>({
+          filter: pb.filter("business = {:id}", { id: business.id }),
+          fields: "id,category",
+          batch: 500,
+          requestKey: null,
+        }),
+      ]);
+      const counts = new Map<string, number>();
+      for (const product of products) counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
+      setCategories(list);
+      setProductCounts(counts);
+    } catch {
+      toast("Kategoriler yüklenemedi. Sayfayı yenileyip tekrar dene.", "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDelete(category: Category) {

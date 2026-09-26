@@ -4,14 +4,13 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { pb } from "@/lib/pocketbase";
 import { useToast } from "@/components/panel/toast";
 import { allergenLabels, badgeLabels } from "@/lib/labels";
-import { Button, Card, DraftBanner, ErrorText, FormActions, FormStatusFooter, Input, Label, SaveStatus, Select, Spinner } from "@/components/panel/ui";
+import { Button, Card, DraftBanner, FORM_STACK, FormActions, Input, Label, Select, Spinner } from "@/components/panel/ui";
 import { ImageUploader } from "@/components/panel/image-uploader";
 import { ImagePicker, ImageSourceNote } from "@/components/panel/ai/image-picker";
 import { SearchIcon } from "@/components/icons";
 import { autoFindProductImage } from "@/lib/ai/find-image";
 import type { ProductImageSource } from "@/lib/ai/image-source";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
-import { AiTranslateButton } from "@/components/panel/ai/translate-button";
 import { useFormDraft } from "@/lib/use-draft";
 import { productNameTaken } from "@/lib/unique-name";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
@@ -116,6 +115,12 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
   };
   const draft = useFormDraft(`product:${initial?.id ?? `new:${business.id}`}`, current, baseline, initial?.updated);
 
+  // Kullanıcı formu düzelttikçe eski hata çubukta asılı kalmasın.
+  const currentJson = JSON.stringify(current);
+  useEffect(() => {
+    setError("");
+  }, [currentJson]);
+
   function applyDraft(value: ProductDraft) {
     // Taslaktaki kategori silinmişse mevcut seçim korunur.
     if (categories.some((cat) => cat.id === value.category)) setCategory(value.category);
@@ -196,6 +201,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
 
     if (!category) {
       setError("Bir kategori seç.");
+      toast("Bir kategori seç.", "error");
       return;
     }
 
@@ -234,6 +240,9 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         ? await pb.collection("buyur_products").update<Product>(initial.id, payload)
         : await pb.collection("buyur_products").create<Product>({ ...payload, order: 999 });
       draft.clear();
+      // Form kayıtla birebir aynı hâle getirilir (ör. "80.50" → 80.5); aksi
+      // hâlde kayıttan sonra da "kaydedilmemiş değişiklik" görünürdü.
+      applyDraft(toDraft(record, categories));
       setLastSavedAt(Date.now());
       toast(initial ? "Ürün güncellendi" : "Ürün eklendi");
       onSaved(record);
@@ -246,20 +255,15 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className={FORM_STACK}>
       <FormActions
         saving={saving}
+        dirty={draft.dirty}
+        savedAt={lastSavedAt ?? initial?.updated ?? null}
+        draftSavedAt={draft.draftSavedAt}
+        error={error || undefined}
         onCancel={onCancel}
         toggle={{ checked: isAvailable, onChange: setIsAvailable, label: "Satışta" }}
-        extra={
-          <AiTranslateButton
-            business={business}
-            kind="product"
-            fields={{ name, description, campaign_label: campaignLabel }}
-            translations={translations}
-            onTranslationsChange={setTranslations}
-          />
-        }
       />
       {draft.restorable && (
         <DraftBanner
@@ -271,7 +275,6 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           onDiscard={draft.discard}
         />
       )}
-      <ErrorText>{error}</ErrorText>
 
       <Card className="space-y-5">
         {/* Üstte solda kare görsel — ürün adı yazılınca otomatik doldurulur */}
@@ -334,7 +337,8 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           )}
         </div>
 
-        {/* Altında dil sekmeleri — ana dil ilk sırada ve açık */}
+        {/* Altında dil sekmeleri — ana dil ilk sırada ve açık. AI ile tamamla
+            kaydın bütün metinlerini (kampanya etiketi dahil) tek istekte çevirir. */}
         <MultiLangFields
           locales={activeLocales(business)}
           mainLocale={mainLocale(business)}
@@ -342,6 +346,8 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
+          title="Ad ve açıklama"
+          translate={{ business, kind: "product", fields: { name, description, campaign_label: campaignLabel } }}
           fields={[
             { key: "name", label: "Ürün adı", required: true, placeholder: "Izgara Köfte" },
             { key: "description", label: "Açıklama", multiline: true, rows: 3, placeholder: "El yapımı, közlenmiş biber ve pilav ile" },
@@ -437,7 +443,9 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
             onChange={(e) => setDiscountPercent(e.target.value)}
           />
         </div>
-        {/* Kampanya etiketi de dil bazlı — ana dil baz alan, diğerleri çeviri */}
+        {/* Kampanya etiketi de dil bazlı — ana dil baz alan, diğerleri çeviri.
+            Kendi kartında durduğu için tamamlama butonu da burada; yalnızca
+            etiketi çevirir. */}
         <MultiLangFields
           locales={activeLocales(business)}
           mainLocale={mainLocale(business)}
@@ -445,14 +453,12 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
+          title="Kampanya etiketi"
+          translate={{ business, kind: "product" }}
           fields={[{ key: "campaign_label", label: "Etiket", placeholder: "Haftanın kampanyası" }]}
         />
       </Card>
 
-      <ErrorText>{error}</ErrorText>
-      <FormStatusFooter
-        status={<SaveStatus saving={saving} savedAt={lastSavedAt ?? initial?.updated ?? null} draftSavedAt={draft.draftSavedAt} />}
-      />
     </form>
   );
 }

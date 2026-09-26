@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_COLLECTION, adminCookieOptions, authenticateAdminRequest } from "@/lib/admin-auth";
 import { recordAdminAction } from "@/lib/admin-audit";
+import { auditRequestContext } from "@/lib/system-audit";
 import { ADMIN_COOKIE_NAME } from "@/lib/admin-cookie";
-import { clientIp } from "@/lib/rate-limit";
 
 // Oturumu kapatır. Çerez her durumda silinir: oturum doğrulanamasa da
 // (süresi dolmuş, PocketBase'e ulaşılamıyor) kullanıcı çıkış yapabilmeli.
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       action: "admin.logout",
       targetCollection: ADMIN_COLLECTION,
       targetId: admin.id,
-      ip: clientIp(req),
+      ...auditRequestContext(req),
     }).catch((err) => console.error("[admin-logout] çıkış kaydı yazılamadı", admin.id, err));
   }
 

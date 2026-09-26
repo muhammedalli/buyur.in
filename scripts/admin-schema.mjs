@@ -23,14 +23,26 @@ export const TRUSTED_ADMIN = `(${ADMIN_BYPASS} && (@request.auth.role = "super_a
 export const SUPER_ADMIN = `(${ADMIN_BYPASS} && @request.auth.role = "super_admin")`;
 
 /** buyur_admins API kuralları. Bir admin yalnızca kendini görür, super_admin
- *  herkesi. Kendi kaydını güncelleyebilir (ad, şifre) ama ROLÜNÜ değiştiremez:
- *  aksi hâlde destek hesabı kendini super_admin yapabilirdi. Hesaplar API'den
- *  açılmaz; scripts/create-admin.mjs superuser token'ıyla açar. */
+ *  herkesi. Kendi kaydını güncelleyebilir (ad, şifre) ama ROLÜNÜ ve erişimini
+ *  değiştiremez: aksi hâlde destek hesabı kendini super_admin yapabilirdi.
+ *
+ *  super_admin panelden hesap açar, rol değiştirir ve erişimi kapatır
+ *  (app/api/admin/admins). Üç kilit:
+ *  - servis hesabına dokunamaz ve kimseyi servis rolüne alamaz (sunucunun
+ *    kimliğini bozmak kayıt/sayaç/AI yazımlarını durdururdu);
+ *  - kendi rolünü ve erişimini değiştiremez (kendini kilitleyemez; "son
+ *    super_admin" kuralının DB tarafındaki yarısı);
+ *  - erişimi kapalı hesap (`disabled_at`) giriş yapamaz ve token yenileyemez
+ *    (authRule). Eldeki token'ları hook düşürür (pocketbase/pb_hooks). */
+const NOT_SERVICE = `role != "${SERVICE_ROLE}" && @request.body.role != "${SERVICE_ROLE}"`;
+const OWN_ACCESS_UNTOUCHED = "@request.body.role:isset = false && @request.body.disabled_at:isset = false";
+
 export const ADMIN_RULES = {
   listRule: `id = @request.auth.id || ${SUPER_ADMIN}`,
   viewRule: `id = @request.auth.id || ${SUPER_ADMIN}`,
-  createRule: null,
-  updateRule: `(id = @request.auth.id && @request.body.role:isset = false) || ${SUPER_ADMIN}`,
-  deleteRule: SUPER_ADMIN,
-  manageRule: SUPER_ADMIN,
+  createRule: `${SUPER_ADMIN} && @request.body.role != "${SERVICE_ROLE}"`,
+  updateRule: `(id = @request.auth.id && ${OWN_ACCESS_UNTOUCHED}) || (${SUPER_ADMIN} && ${NOT_SERVICE} && (id != @request.auth.id || (${OWN_ACCESS_UNTOUCHED})))`,
+  deleteRule: `${SUPER_ADMIN} && role != "${SERVICE_ROLE}" && id != @request.auth.id`,
+  manageRule: `${SUPER_ADMIN} && role != "${SERVICE_ROLE}"`,
+  authRule: 'disabled_at = ""',
 };

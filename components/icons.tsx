@@ -93,6 +93,23 @@ export function ArrowLeftIcon(p: IconProps) {
   );
 }
 
+export function ArrowRightIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </Svg>
+  );
+}
+
+export function CheckIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <polyline points="5 12.5 10 17.5 19 7" />
+    </Svg>
+  );
+}
+
 export function ChevronLeftIcon(p: IconProps) {
   return (
     <Svg {...p}>
@@ -105,6 +122,14 @@ export function ChevronRightIcon(p: IconProps) {
   return (
     <Svg {...p}>
       <polyline points="9 18 15 12 9 6" />
+    </Svg>
+  );
+}
+
+export function ChevronDownIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <polyline points="6 9 12 15 18 9" />
     </Svg>
   );
 }
@@ -223,6 +248,17 @@ export function EyeIcon(p: IconProps) {
     <Svg {...p}>
       <path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" />
       <circle cx="12" cy="12" r="3" />
+    </Svg>
+  );
+}
+
+export function EyeOffIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.8 0 8.65 3.07 9.94 6.65a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-1.67 2.93" />
+      <path d="M14.08 14.16a3 3 0 0 1-4.24-4.24" />
+      <path d="M17.48 17.5A10.75 10.75 0 0 1 2.06 12.35a1 1 0 0 1 0-.7 10.8 10.8 0 0 1 4.44-5.14" />
+      <line x1="2" y1="2" x2="22" y2="22" />
     </Svg>
   );
 }

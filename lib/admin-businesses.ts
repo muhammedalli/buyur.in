@@ -6,12 +6,12 @@
 
 import type PocketBase from "pocketbase";
 import { getServicePB } from "@/lib/pocketbase-server";
-import { ADMIN_LOG_COLLECTION } from "@/lib/admin-audit";
+import { AUDIT_LOG_COLLECTION } from "@/lib/audit-log";
 import { ADMIN_BUSINESS_ROW_FIELDS, type AdminBusinessRow } from "@/lib/admin-business-list";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { STATS_COLLECTION } from "@/lib/analytics/rollup";
 import { totalMetrics } from "@/lib/analytics/query";
-import type { AdminLog, AdminNote, Business, DailyStat, QrCode, Review } from "@/lib/types";
+import type { AdminLog, AdminNote, Business, DailyStat } from "@/lib/types";
 
 export const ADMIN_NOTE_COLLECTION = "buyur_admin_notes";
 
@@ -34,11 +34,10 @@ export interface BusinessActivitySummary {
 
 export interface BusinessDetail {
   business: Business;
-  counts: { products: number; categories: number; qrCodes: number; reviews: number };
-  reviews: Review[];
-  qrCodes: QrCode[];
+  counts: { products: number; categories: number };
   notes: AdminNote[];
-  /** Son işlemler (kısa); tamamı denetim kaydında. */
+  /** İşletmenin son etkinliği (kısa): sahibinin, yönetimin ve sistemin
+   *  işlemleri birlikte. Tamamı denetim kaydında, işletme filtresiyle. */
   logs: AdminLog[];
   logTotal: number;
   /** Okunamazsa null: özet yok diye sayfa açılmamazlık etmesin. */
@@ -62,7 +61,9 @@ async function count(pb: PocketBase, collection: string, businessId: string): Pr
 
 /** İşletme yoksa null (sayfa 404 verir). Kalan okumalar tek turda paralel:
  *  gecikmenin kaynağı sıralı PocketBase turlarıdır. Rollup TETİKLENMEZ —
- *  yönetim ekranı istatistik yazmamalı; eksik günler cron'la kapanır. */
+ *  yönetim ekranı istatistik yazmamalı; eksik günler cron'la kapanır.
+ *  Yalnızca detay ekranında gösterilen veri okunur (QR ve değerlendirme
+ *  listeleri işletmenin kendi panelinde). */
 export async function loadBusinessDetail(id: string): Promise<BusinessDetail | null> {
   const pb = await getServicePB();
   let business: Business;
@@ -74,18 +75,15 @@ export async function loadBusinessDetail(id: string): Promise<BusinessDetail | n
   }
 
   const byBusiness = pb.filter("business = {:id}", { id });
-  const [products, categories, qrTotal, reviewTotal, reviews, qrCodes, notes, logs, activity] = await Promise.all([
+  const [products, categories, notes, logs, activity] = await Promise.all([
     count(pb, "buyur_products", id),
     count(pb, "buyur_categories", id),
-    count(pb, "buyur_qr_codes", id),
-    count(pb, "buyur_reviews", id),
-    pb.collection("buyur_reviews").getList<Review>(1, 5, { filter: byBusiness, sort: "-created", requestKey: null }).then((r) => r.items),
-    pb.collection("buyur_qr_codes").getList<QrCode>(1, 50, { filter: byBusiness, sort: "-created", requestKey: null }).then((r) => r.items),
     pb.collection(ADMIN_NOTE_COLLECTION).getList<AdminNote>(1, 50, { filter: byBusiness, sort: "-created", requestKey: null }).then((r) => r.items),
     pb
-      .collection(ADMIN_LOG_COLLECTION)
+      .collection(AUDIT_LOG_COLLECTION)
       .getList<AdminLog>(1, 10, {
-        filter: pb.filter("target_collection = {:c} && target_id = {:id}", { c: BUSINESS_COLLECTION, id }),
+        // Eski kayıtlarda işletme yalnızca hedefte durur (göç doldurmadıysa).
+        filter: pb.filter("business_id = {:id} || (target_collection = {:c} && target_id = {:id})", { c: BUSINESS_COLLECTION, id }),
         sort: "-created",
         requestKey: null,
       }),
@@ -111,9 +109,7 @@ export async function loadBusinessDetail(id: string): Promise<BusinessDetail | n
 
   return {
     business,
-    counts: { products, categories, qrCodes: qrTotal, reviews: reviewTotal },
-    reviews,
-    qrCodes,
+    counts: { products, categories },
     notes,
     logs: logs.items,
     logTotal: logs.totalItems,

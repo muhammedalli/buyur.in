@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServicePB } from "@/lib/pocketbase-server";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { guardAiRequest, openaiClient, isGuardFailure, MENU_MODEL } from "@/lib/ai/guard";
+import { aiTokenUsage, recordAiAction } from "@/lib/system-audit";
 import { localeLabels, mainLocale } from "@/lib/i18n";
 import { buildScanPrompt, normalizeScanResult } from "@/lib/ai/menu-scan";
 import { aiUsage, aiPeriodKey } from "@/lib/entitlements";
@@ -182,6 +183,14 @@ export async function POST(req: NextRequest) {
 
     // Sonuç üreten tarama hatırlanır: aynı dosyalar yeniden gelirse uyarılır.
     if (repeatKey) rememberScan(repeatKey, Date.now());
+
+    recordAiAction(req, business, "ai.menu_scan", {
+      model: MENU_MODEL,
+      pages: parsed.pages.length,
+      categories: result.categories.length,
+      products: result.categories.reduce((sum, category) => sum + category.products.length, 0),
+      ...aiTokenUsage(response),
+    });
 
     return NextResponse.json({
       ...result,

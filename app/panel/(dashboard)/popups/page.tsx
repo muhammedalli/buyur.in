@@ -128,7 +128,7 @@ export default function AnnouncementsPage() {
             <div className="flex min-w-0 flex-1 basis-60 items-center gap-4">
               {p.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image_url} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" />
+                <img src={p.image_url} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
               )}
               <div className="min-w-0">
                 <p className="font-display font-bold">

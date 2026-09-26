@@ -53,12 +53,12 @@ export function QrShare({ business }: { business: Business }) {
 
   return (
     <Card className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-center">
-      <div className="flex shrink-0 items-center justify-center rounded-2xl border border-line bg-crema/40 p-3">
+      <div className="flex shrink-0 items-center justify-center rounded-md border border-line bg-crema/40 p-3">
         {qrDataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={qrDataUrl} alt="Menü QR kodu" className="h-32 w-32" />
         ) : (
-          <div className="h-32 w-32 animate-pulse rounded-xl bg-crema" />
+          <div className="h-32 w-32 animate-pulse rounded-md bg-crema" />
         )}
       </div>
       <div className="min-w-0 flex-1">

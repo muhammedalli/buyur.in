@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { pb } from "@/lib/pocketbase";
 import { useToast } from "@/components/panel/toast";
-import { Card, DraftBanner, ErrorText, FormActions, FormStatusFooter, Label, SaveStatus } from "@/components/panel/ui";
+import { Card, DraftBanner, FORM_STACK, FormActions, Label } from "@/components/panel/ui";
 import { ImageUploader } from "@/components/panel/image-uploader";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
-import { AiTranslateButton } from "@/components/panel/ai/translate-button";
 import { useFormDraft } from "@/lib/use-draft";
 import { categoryNameTaken } from "@/lib/unique-name";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
@@ -59,12 +58,14 @@ export function CategoryForm({
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const { toast } = useToast();
 
-  const draft = useFormDraft(
-    `category:${initial?.id ?? `new:${business.id}`}`,
-    { name, description, imageUrl, isActive, translations },
-    baseline,
-    initial?.updated
-  );
+  const current: CategoryDraft = { name, description, imageUrl, isActive, translations };
+  const draft = useFormDraft(`category:${initial?.id ?? `new:${business.id}`}`, current, baseline, initial?.updated);
+
+  // Kullanıcı formu düzelttikçe eski hata çubukta asılı kalmasın.
+  const currentJson = JSON.stringify(current);
+  useEffect(() => {
+    setError("");
+  }, [currentJson]);
 
   function applyDraft(value: CategoryDraft) {
     setName(value.name);
@@ -97,6 +98,8 @@ export function CategoryForm({
         ? await pb.collection("buyur_categories").update<Category>(initial.id, payload)
         : await pb.collection("buyur_categories").create<Category>({ ...payload, business: business.id, order: order ?? 0 });
       draft.clear();
+      // Form kayıtla birebir aynı hâle gelir; "kaydedilmemiş değişiklik" kalmaz.
+      applyDraft(toDraft(record));
       setLastSavedAt(Date.now());
       toast(initial ? "Kategori güncellendi" : "Kategori eklendi");
       onSaved(record);
@@ -109,34 +112,28 @@ export function CategoryForm({
   }
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <FormActions
-          saving={saving}
-          onCancel={onCancel}
-          toggle={{ checked: isActive, onChange: setIsActive, label: "Menüde Göster" }}
-          extra={
-            <AiTranslateButton
-              business={business}
-              kind="category"
-              fields={{ name, description }}
-              translations={translations}
-              onTranslationsChange={setTranslations}
-            />
-          }
+    <form onSubmit={handleSubmit} className={FORM_STACK}>
+      <FormActions
+        saving={saving}
+        dirty={draft.dirty}
+        savedAt={lastSavedAt ?? initial?.updated ?? null}
+        draftSavedAt={draft.draftSavedAt}
+        error={error || undefined}
+        onCancel={onCancel}
+        toggle={{ checked: isActive, onChange: setIsActive, label: "Menüde göster" }}
+      />
+      {draft.restorable && (
+        <DraftBanner
+          savedAt={draft.restorable.savedAt}
+          onRestore={() => {
+            if (draft.restorable) applyDraft(draft.restorable.value);
+            draft.dismiss();
+          }}
+          onDiscard={draft.discard}
         />
-        {draft.restorable && (
-          <DraftBanner
-            savedAt={draft.restorable.savedAt}
-            onRestore={() => {
-              if (draft.restorable) applyDraft(draft.restorable.value);
-              draft.dismiss();
-            }}
-            onDiscard={draft.discard}
-          />
-        )}
-        <ErrorText>{error}</ErrorText>
+      )}
 
+      <Card className="space-y-6">
         {/* Üstte solda kare görsel */}
         <div className="w-32">
           <Label>Kategori görseli</Label>
@@ -151,15 +148,14 @@ export function CategoryForm({
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
+          title="Ad ve açıklama"
+          translate={{ business, kind: "category" }}
           fields={[
             { key: "name", label: "Kategori adı", required: true, placeholder: "Ana Yemekler" },
             { key: "description", label: "Açıklama", multiline: true },
           ]}
         />
-        <FormStatusFooter
-          status={<SaveStatus saving={saving} savedAt={lastSavedAt ?? initial?.updated ?? null} draftSavedAt={draft.draftSavedAt} />}
-        />
-      </form>
-    </Card>
+      </Card>
+    </form>
   );
 }

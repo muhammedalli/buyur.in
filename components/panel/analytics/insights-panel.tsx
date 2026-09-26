@@ -29,7 +29,7 @@ function ScoreCard({ score }: { score: MenuScore }) {
   if (!score.sufficient || score.score === null) {
     return (
       <ChartFrame title="Menü performans skoru">
-        <div className="rounded-xl border border-dashed border-line px-5 py-8 text-center">
+        <div className="rounded-md border border-dashed border-line px-5 py-8 text-center">
           <p className="text-sm font-semibold">Skor için henüz yeterli veri yok</p>
           <p className="mt-1 text-xs text-ink-soft">
             Skoru hesaplayabilmek için seçili dönemde en az {MIN_SESSIONS_FOR_SCORE} oturum gerekiyor — şu an{" "}
@@ -82,7 +82,7 @@ function ScoreCard({ score }: { score: MenuScore }) {
       {(score.strengths.length > 0 || score.weaknesses.length > 0) && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {score.strengths.length > 0 && (
-            <div className="rounded-xl border border-line px-4 py-3">
+            <div className="rounded-md border border-line px-4 py-3">
               <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: STATUS.good }}>
                 Güçlü
               </p>
@@ -90,7 +90,7 @@ function ScoreCard({ score }: { score: MenuScore }) {
             </div>
           )}
           {score.weaknesses.length > 0 && (
-            <div className="rounded-xl border border-line px-4 py-3">
+            <div className="rounded-md border border-line px-4 py-3">
               <p className="font-mono text-[11px] uppercase tracking-wider" style={{ color: STATUS.critical }}>
                 Geliştirilecek
               </p>
@@ -117,7 +117,7 @@ export function InsightsPanel() {
   }
 
   if (loading && !data) {
-    return <div className="h-40 animate-pulse rounded-2xl bg-crema/70" />;
+    return <div className="h-40 animate-pulse rounded-md bg-crema/70" />;
   }
 
   if (!data) return null;
@@ -128,7 +128,7 @@ export function InsightsPanel() {
 
       <ChartFrame title="İçgörüler" hint="Yalnızca istatistiksel eşiği geçen değişimler listelenir">
         {data.insights.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line px-5 py-8 text-center">
+          <div className="rounded-md border border-dashed border-line px-5 py-8 text-center">
             <p className="text-sm font-semibold">Şimdilik öne çıkan bir değişim yok</p>
             <p className="mt-1 text-xs text-ink-soft">
               Anlamlı bir artış, düşüş ya da fırsat yakaladığımızda burada göreceksiniz. Küçük dalgalanmaları
@@ -140,7 +140,7 @@ export function InsightsPanel() {
             {data.insights.map((insight) => {
               const style = KIND_STYLE[insight.kind];
               return (
-                <li key={insight.id} className="rounded-xl border border-line p-4" style={{ background: style.background }}>
+                <li key={insight.id} className="rounded-md border border-line p-4" style={{ background: style.background }}>
                   <p className="font-mono text-[10px] uppercase tracking-wider" style={{ color: style.color }}>
                     {style.label}
                   </p>

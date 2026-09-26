@@ -107,11 +107,11 @@ bellekte süzülür. Kurallar: `lib/admin-business-actions.ts`,
 
 ### Aşama 3: Planlar ve fiyatlar (yalnızca `super_admin`) ✅ (2026-09-25)
 *Kararlar:* kurallar `lib/admin-plan-edit.ts`. Varsayılan plan pasif yapılamaz;
-yıllıkta aylık fiyat aylıktan yüksek olamaz; formun bilmediği limit anahtarları
-korunur; boş sayı alanı "sınırsız" sayılmasın diye istemcide engellenir.
+formun bilmediği limit anahtarları korunur; boş sayı alanı "sınırsız" sayılmasın
+diye istemcide engellenir. (Aşama 6: yıllık fiyat ayrı alan değil, indirimden türetilir.)
 `is_default` değiştirme bilerek yok (tek varsayılan kuralı için ayrı akış gerekir).
-- `buyur_plans` düzenleme ekranı: ad, açıklama, `price_monthly`,
-  `price_yearly_monthly`, `trial_months`, `is_active`.
+- `buyur_plans` düzenleme ekranı: ad, açıklama, `price_monthly`, `trial_months`,
+  `is_active`.
 - `limits` ve `features` ham JSON olarak düzenlenmez. Form, `Feature` union'ından
   ve `FEATURE_LIMIT_KEYS` eşlemesinden üretilir.
 - Kaydetmeden önce etkiyi göster: "bu değişiklik N işletmeyi etkiler".
@@ -129,9 +129,46 @@ binlerce işletmede ayrı bir platform özeti gerekecek.
 - Önümüzdeki 7 ve 30 günde planı bitecek işletmeler, işletme detayına bağlantılı.
 - Toplam menü görüntüleme, QR tarama ve AI tarama kullanımı.
 
+### Aşama 5b: Super Admin paneli ve merkezi denetim kaydı ✅ (2026-09-26)
+*Kararlar (kullanıcı onaylı):* işletme panelinin yazmaları ve girişleri PocketBase
+hook'uyla kaydedilir (`pocketbase/pb_hooks`, kurulum `docs/audit-log.md`); işletme
+silme yumuşaktır (`deleted_at` + askı + `authRule`, geri alınabilir); super_admin
+yönetici hesabını panelden açar (geçici şifre bir kez gösterilir).
+*Ek kararlar:* kayıt koleksiyonu yeniden adlandırılmadı, genişletildi (`actor_*`,
+`business_id`, `meta`); yönetici hesabı silinmez, erişimi kapatılır; kimse kendi
+rolüne/erişimine dokunamaz (son süper yönetici kilidi bundan gelir); yönetimden
+içerik düzenleme dar kapsamlı (ad, açıklama, fiyat, kategori, görünürlük, indirim)
+ve içi dolu kategori silinemez; işletme bilgisi/içerik düzenleme ve giriş e-postası
+değiştirme super_admin'de. Sistem ekranı salt okunur (düzenlenebilir ayar yok).
+- `/admin/logs`: arama, tarih, işletme, yapan, yapan türü, işlem, kaynak filtreleri
+- İşletme detayı: tüm aktörlerin etkinlik geçmişi, bilgi düzenleme, silme/geri alma,
+  giriş e-postası; `/admin/businesses/[id]/menu`: kategori/ürün yönetimi
+- ~~`/admin/users`~~ (Aşama 6'da kaldırıldı): yöneticiler Sistem → Yönetim ekibi'ne,
+  işletme hesabının giriş etkinliği işletme detayına taşındı
+- `/admin/ai`: kota kullanımı, AI işlemleri, token toplamı; `/admin/system`: durum
+
+### Aşama 6: Sadeleştirme ✅ (2026-09-26)
+*Kararlar (kullanıcı isteği):* yönetimin temel birimi işletmedir; ayrı "Kullanıcılar"
+ekranı yok. Ekranlar az ama anlamlı veri gösterir: sayılar tek çerçevede özet
+şeridi (`StatGroup`), listeler geniş tablo (`Table`), köşe yarıçapı her yerde 6px.
+- Planın **tek fiyatı** var (`price_monthly`); yıllık ödeme = aylık fiyat − sistem
+  ayarındaki indirim (`buyur_settings.yearly_discount_percent`, varsayılan %20).
+  `price_yearly_monthly` artık okunmaz/yazılmaz (şemada geriye dönük uyum için duruyor).
+- `/admin/system`: "Genel ayarlar" (düzenlenebilir sistem değişkenleri, gerekçe +
+  denetim kaydı; `lib/system-settings.ts`) ve "Yönetim ekibi" sekmeleri. Plan kataloğu
+  ve ayrıntılı yapılandırma listesi burada yok; altyapı durumu genel bakışta kısa liste.
+- Genel bakış: özet şeridi (işletme, yayında, ürün, ziyaret), plan dağılımı, sistem
+  durumu, plan bitişleri (±30 gün) ve son önemli işlemler. Hesap/şifre işlemleri
+  başlıktaki hesap menüsünde.
+- İşletme detayı: tek bilgi kartı (son giriş dahil), özet şeridi, 3 temel işlem +
+  "Diğer işlemler" menüsü, etkinlik geçmişi, iç notlar. QR ve değerlendirme listeleri
+  kaldırıldı (işletmenin kendi panelinde).
+- Canlıya alma: `scripts/migrate-settings.mjs --dry-run` → çalıştır → hook dosyalarını
+  (buyur_settings eklendi) yeniden kopyala → deploy.
+
 ### Aşama 5: Sonraki işler (şimdilik yalnızca planla, kodlama)
 Önerilen sıra ve yaklaşım (2026-09-25):
-1. **Admin kullanıcı yönetimi** (`admins.manage`): liste (servis hesabı gizli),
+1. ~~**Admin kullanıcı yönetimi**~~ ✅ Aşama 5b. (`admins.manage`): liste (servis hesabı gizli),
    davet = `create-admin.mjs` mantığı sunucu ucunda (superuser token gerekir →
    ya bu işlem script olarak kalır ya da super_admin'in manageRule yetkisiyle
    yeni hesap için createRule açılır; ikincisi kural değişikliği ister), rol
@@ -143,8 +180,9 @@ binlerce işletmede ayrı bir platform özeti gerekecek.
    (stats_daily'den); genel bakışta bir liste.
 4. **Rollup durumu**: işletme başına son `stats_daily.date`; elle tetikleme
    `/api/analytics/rollup` ucunu admin oturumuyla çağırır.
-5. **AI maliyeti**: bugün sayaç var (ai_scans_used) ama maliyet yok; token
-   kullanımını `/api/ai/*` uçlarında yeni bir koleksiyona yazmak gerekir.
+5. **AI maliyeti**: token kullanımı artık denetim kaydında (`meta.input_tokens`,
+   `output_tokens`); `/admin/ai` son 30 günü toplar. Model fiyatıyla çarpılıp
+   işletme/gün bazında raporlanması kaldı.
 6. **Brevo teslim durumu**: Brevo webhook'u → yeni `buyur_email_events`.
 7. **Görsel denetimi, duyuru, sağlık ekranı**: ayrı ürün kararı ister.
 - Kayıt hunisi (OTP → doğrulama → kurulum → ilk ürün → ilk QR taraması)

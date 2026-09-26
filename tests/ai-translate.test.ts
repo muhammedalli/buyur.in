@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  mergeTranslations,
+  fillMissingTranslations,
+  missingLocales,
+  missingTranslations,
+  normalizeLocaleKey,
   normalizeTranslationResult,
   resolveTargetLocales,
   sanitizeEntries,
@@ -46,7 +49,7 @@ describe("sanitizeEntries", () => {
   // Kampanya (popup) formu da form içi çeviri butonunu kullanır; kendi bağlam
   // etiketi olmazsa model kampanya metnini ürün adı sanıp kısaltıyordu.
   it("tanınan kind değerlerini olduğu gibi korur", () => {
-    for (const kind of ["category", "product", "option", "popup"] as const) {
+    for (const kind of ["category", "product", "option", "popup", "business"] as const) {
       const [entry] = sanitizeEntries([{ id: "x", kind, fields: { name: "Test" } }]);
       expect(entry.kind).toBe(kind);
     }
@@ -131,24 +134,138 @@ describe("normalizeTranslationResult", () => {
     expect(normalizeTranslationResult(null, ["en"], allowed).size).toBe(0);
     expect(normalizeTranslationResult({ items: "olmaz" }, ["en"], allowed).size).toBe(0);
     expect(normalizeTranslationResult({ items: [null, 5] }, ["en"], allowed).size).toBe(0);
+    expect(normalizeTranslationResult("metin", ["en"], allowed).size).toBe(0);
+  });
+
+  // Modelin ara sıra yaptığı biçim sapmaları, içerik doğruyken kullanıcıya
+  // "çeviri üretilemedi" diye dönüyordu.
+  it("biçim sapmalarını tolere eder: çıplak dizi, kökte tek öğe, büyük harfli anahtar", () => {
+    const expected = { en: { name: "Soup", description: "Hot" } };
+    expect(
+      normalizeTranslationResult([{ id: "product:1", translations: { en: { name: "Soup", description: "Hot" } } }], ["en"], allowed).get("product:1")
+    ).toEqual(expected);
+    expect(
+      normalizeTranslationResult({ id: "product:1", translations: { en: { name: "Soup", description: "Hot" } } }, ["en"], allowed).get("product:1")
+    ).toEqual(expected);
+    expect(
+      normalizeTranslationResult({ items: [{ id: "product:1", translations: { EN: { Name: "Soup", DESCRIPTION: "Hot" } } }] }, ["en"], allowed).get(
+        "product:1"
+      )
+    ).toEqual(expected);
+  });
+
+  it("kimlik kuralı gevşemez: kökteki tek öğe de kimliksizse yazılmaz", () => {
+    expect(normalizeTranslationResult({ translations: { en: { name: "Soup" } } }, ["en"], allowed).size).toBe(0);
   });
 });
 
-describe("mergeTranslations", () => {
-  it("üretilmeyen dilin mevcut çevirisini silmez", () => {
-    const merged = mergeTranslations({ ru: { name: "Суп" } }, { en: { name: "Soup" } });
-    expect(merged).toEqual({ ru: { name: "Суп" }, en: { name: "Soup" } });
-  });
-
-  it("aynı dilde alan bazında üzerine yazar, diğer alanları korur", () => {
-    const merged = mergeTranslations(
-      { en: { name: "Old", description: "Kalsın" } },
-      { en: { name: "New" } }
+describe("missingLocales", () => {
+  it("istenip hiç üretilmeyen dilleri söyler", () => {
+    const result = normalizeTranslationResult(
+      { items: [{ id: "form", translations: { en: { name: "Soup" }, ar: { name: " " } } }] },
+      ["en", "ar", "ru"],
+      new Set(["form"])
     );
-    expect(merged.en).toEqual({ name: "New", description: "Kalsın" });
+    expect(missingLocales(result, ["en", "ar", "ru"])).toEqual(["ar", "ru"]);
   });
 
-  it("mevcut çeviri yoksa yenisini olduğu gibi yazar", () => {
-    expect(mergeTranslations(undefined, { en: { name: "Soup" } })).toEqual({ en: { name: "Soup" } });
+  it("her dil geldiyse boş döner", () => {
+    const result = normalizeTranslationResult(
+      { items: [{ id: "form", translations: { en: { name: "Soup" }, ru: { name: "Суп" } } }] },
+      ["en", "ru"],
+      new Set(["form"])
+    );
+    expect(missingLocales(result, ["en", "ru"])).toEqual([]);
+  });
+});
+
+// Dil kodu sapmaları: model "en-US" / "EN" / "en_GB" döndürdüğünde çeviri
+// sessizce elenip kullanıcıya "üretilemedi" denmemeli.
+describe("normalizeLocaleKey", () => {
+  it("bölge ve büyük harf farklarını sistem koduna indirger", () => {
+    expect(normalizeLocaleKey("en-US")).toBe("en");
+    expect(normalizeLocaleKey("en_GB")).toBe("en");
+    expect(normalizeLocaleKey(" EN ")).toBe("en");
+    expect(normalizeLocaleKey("ar-SA")).toBe("ar");
+  });
+
+  it("desteklenmeyen dili tanımaz", () => {
+    expect(normalizeLocaleKey("de")).toBeNull();
+    expect(normalizeLocaleKey("english")).toBeNull();
+  });
+
+  it("çıktıdaki bölgeli dil kodu doğru dile yazılır", () => {
+    const result = normalizeTranslationResult(
+      { items: [{ id: "form", translations: { "en-US": { name: "Soup" } } }] },
+      ["en"],
+      new Set(["form"])
+    );
+    expect(result.get("form")).toEqual({ en: { name: "Soup" } });
+  });
+});
+
+// "AI ile tamamla" sözleşmesi: yalnızca BOŞ çeviriler üretilir ve yazılır.
+// Elle girilmiş ya da onaylanmış bir çeviri, başka bir dilin ya da alanın
+// tamamlanması sırasında asla ezilmez.
+describe("missingTranslations", () => {
+  it("ana dilde metni olup hedefte boş kalan alanları dil dil döndürür", () => {
+    const missing = missingTranslations(
+      { name: "Çorba", description: "Sıcak" },
+      { en: { name: "Soup" }, ru: {} },
+      ["en", "ru"]
+    );
+    expect(missing).toEqual({ en: ["description"], ru: ["name", "description"] });
+  });
+
+  it("ana dilde boş olan alan çeviri beklemez", () => {
+    expect(missingTranslations({ name: "Çorba", description: "  " }, {}, ["en"])).toEqual({ en: ["name"] });
+  });
+
+  it("her şey doluysa boş döner", () => {
+    expect(missingTranslations({ name: "Çorba" }, { en: { name: "Soup" } }, ["en"])).toEqual({});
+  });
+
+  it("yalnızca boşluktan oluşan çeviri boş sayılır", () => {
+    expect(missingTranslations({ name: "Çorba" }, { en: { name: "   " } }, ["en"])).toEqual({ en: ["name"] });
+  });
+});
+
+describe("fillMissingTranslations", () => {
+  it("dolu çevirinin üzerine yazmaz, yalnızca boş alanı doldurur", () => {
+    const { merged, applied } = fillMissingTranslations(
+      { en: { name: "", description: "Elle yazıldı" } },
+      { en: { name: "Soup", description: "AI metni" } }
+    );
+    expect(merged.en).toEqual({ name: "Soup", description: "Elle yazıldı" });
+    expect(applied).toEqual({ en: { name: "Soup" } });
+  });
+
+  it("diller birbirini ezmez: bir dilin tamamlanması diğerine dokunmaz", () => {
+    const { merged } = fillMissingTranslations(
+      { en: { name: "Soup", description: "Manual" }, ru: { name: "Суп" } },
+      { ar: { name: "حساء", description: "ساخن" } }
+    );
+    expect(merged).toEqual({
+      en: { name: "Soup", description: "Manual" },
+      ru: { name: "Суп" },
+      ar: { name: "حساء", description: "ساخن" },
+    });
+  });
+
+  it("istek sürerken elle doldurulan alan korunur ve özetten çıkar", () => {
+    // Tıklama anında boştu; yanıt gelene kadar kullanıcı yazdı.
+    const latest = { en: { name: "Kullanıcının yazdığı" } };
+    const { merged, applied } = fillMissingTranslations(latest, { en: { name: "AI" } });
+    expect(merged.en?.name).toBe("Kullanıcının yazdığı");
+    expect(applied).toEqual({});
+  });
+
+  it("boş ve desteklenmeyen dil çıktısını yazmaz", () => {
+    const { merged, applied } = fillMissingTranslations({}, {
+      en: { name: "  " },
+      de: { name: "Suppe" },
+    } as never);
+    expect(merged).toEqual({});
+    expect(applied).toEqual({});
   });
 });

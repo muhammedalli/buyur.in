@@ -2,14 +2,15 @@ import { isFeatureAvailable } from "@/lib/entitlements";
 import { ROOT_DOMAIN } from "@/lib/site";
 import type { Business } from "@/lib/types";
 
-// Menü ve otomatik sitedeki platform imzası ("buyur.in ile hazırlandı") ile
-// menü logosunun götürdüğü adres tek yerden yönetilir. İleride bir partner
-// ya da beyaz etiket kurulumu gerekirse değişecek yer burasıdır.
+// Menü ve otomatik sitedeki platform imzası ("buyur.in ile hazırlandı") tek
+// yerden yönetilir. İleride bir partner ya da beyaz etiket kurulumu gerekirse
+// değişecek yer burasıdır. Menü başlığındaki logo platforma götürmez; misafir
+// işletmenin menüsünde kalır (components/menu/menu-provider.tsx).
 
 export interface PlatformBranding {
   /** İmzada görünen marka adı. */
   name: string;
-  /** İmzanın ve menü logosunun götürdüğü ana sayfa. */
+  /** İmzanın götürdüğü ana sayfa. */
   href: string;
 }
 

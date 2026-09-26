@@ -12,7 +12,7 @@ import { SparklesIcon } from "@/components/icons";
 //
 // Çoklu dil üretimi bilinçli olarak buradan kaldırıldı: toplu çeviri her
 // basışta tüm menüyü yeniden çeviriyordu. Artık çeviri, kategori/ürün formunun
-// sağ üstündeki "Diğer dilleri tamamla" butonuyla yalnızca düzenlenen kayıt
+// sağ üstündeki "AI ile tamamla" butonuyla yalnızca düzenlenen kayıt
 // için çalışır (bkz. components/panel/ai/translate-button.tsx).
 
 export default function AiPage() {
@@ -53,7 +53,7 @@ export default function AiPage() {
         title="Yapay Zeka"
         description="Fiziksel menünüzün fotoğrafını yükleyin, ürünler otomatik okunup listeye eklensin."
         action={
-          <div className="flex items-center gap-2 rounded-2xl border border-line bg-crema/40 px-4 py-2">
+          <div className="flex items-center gap-2 rounded-md border border-line bg-crema/40 px-4 py-2">
             <SparklesIcon size={16} className="text-paprika" />
             <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
               {usage.limit === null

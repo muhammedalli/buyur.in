@@ -18,6 +18,9 @@
   --color-line: #e0d3bf;
 
   --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  /* Giriş/kayıt ekranlarının büyük başlığı: görseldeki "Menünü güncel tut."
+     ile aynı editoryal serif dili. */
+  --font-editorial: "Playfair Display Variable", Georgia, "Times New Roman", serif;
   --font-body: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 }
@@ -94,16 +97,6 @@ body {
 .rise-5 { animation-delay: 0.5s; }
 .rise-6 { animation-delay: 0.6s; }
 
-/* Telefon mockup içindeki menünün hafif kayma animasyonu */
-@keyframes menu-drift {
-  0%, 18% { transform: translateY(0); }
-  45%, 70% { transform: translateY(-104px); }
-  95%, 100% { transform: translateY(0); }
-}
-.menu-drift {
-  animation: menu-drift 9s ease-in-out infinite;
-}
-
 /* ─── Landing page hareket katmanı ───────────────────────── */
 
 /* Hero arkasındaki sıcak ışık lekeleri — yavaşça sürüklenir */
@@ -115,18 +108,6 @@ body {
 .blob-drift {
   animation: blob-drift 18s ease-in-out infinite;
   will-change: transform;
-}
-
-/* Telefon mockup ve serbest kartların süzülmesi */
-@keyframes float-y {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-.float-y {
-  animation: float-y 6s ease-in-out infinite;
-}
-.float-y-slow {
-  animation: float-y 8s ease-in-out infinite;
 }
 
 /* "Canlı" göstergesi — nabız gibi genişleyen halka */
@@ -304,8 +285,8 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rise, .menu-drift, .toast-in, .cart-pop, .ken-burns,
-  .blob-drift, .float-y, .float-y-slow, .marquee-track,
+  .rise, .toast-in, .cart-pop, .ken-burns,
+  .blob-drift, .marquee-track,
   .stroke-draw, .drawer-in, .drawer-item {
     animation: none;
   }

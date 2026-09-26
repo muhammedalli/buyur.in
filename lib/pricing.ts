@@ -1,3 +1,4 @@
+import { systemSetting } from "@/lib/system-settings";
 import type { Plan } from "@/lib/types";
 
 // İlan edilen fiyatlar `buyur_plans` koleksiyonundan okunur — kodda rakam YOK.
@@ -5,6 +6,12 @@ import type { Plan } from "@/lib/types";
 // panel, yasal sayfalar ve yapılandırılmış veri (JSON-LD) aynı rakamı gösterir
 // (bkz. lib/plan-catalog-loader.ts). Tohum değerler yalnızca yeni bir ortamı
 // kurarken kullanılan scripts/plan-catalog.mjs içinde durur.
+//
+// Her planın TEK fiyatı vardır: aylık fiyat (`price_monthly`). Yıllık ödemenin
+// aylık karşılığı ondan türetilir: sistem ayarındaki yıllık indirim oranı
+// (lib/system-settings.ts → yearly_discount_percent, varsayılan %20) düşülür.
+// Kayıttaki eski `price_yearly_monthly` alanı artık okunmaz; iki fiyatın elle
+// ayrı ayrı tutulup birbirinden kopması böylece mümkün değil.
 //
 // Kayıt okunamamışsa ücretli planların fiyatı BİLİNMEZ (null): ekranlar rakam
 // uydurmak yerine "fiyat için bize yazın" der. Ücretsiz plan tanım gereği 0₺.
@@ -20,36 +27,47 @@ export const MONTHS_IN_YEAR = 12;
 
 const FREE: PlanPricing = { monthly: 0, yearlyMonthly: 0 };
 
-let livePricing: Partial<Record<Plan, PlanPricing>> = {};
+/** Plan → aylık fiyat (yıllık karşılık okuma anında hesaplanır: indirim
+ *  oranı fiyattan bağımsız değişebilir). */
+let liveMonthly: Partial<Record<Plan, number>> = {};
 
 export interface PlanPriceRecord {
   key?: string;
   price_monthly?: unknown;
-  price_yearly_monthly?: unknown;
 }
 
 const isPrice = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
 
-/** `buyur_plans` kayıtlarındaki fiyatları yükler. Geçersiz/eksik alanlı kayıt
- *  yok sayılır: yarım bir fiyat göstermektense hiç göstermemek daha güvenli. */
+/** Kuruşa yuvarlar: 249 × 0,8 kayan noktada 199.20000000000002 çıkıyor. */
+const toKurus = (amount: number) => Math.round(amount * 100) / 100;
+
+/** Aylık fiyattan yıllık ödemenin aylık karşılığı. */
+export function yearlyMonthlyPrice(monthly: number, discountPercent: number = systemSetting("yearly_discount_percent")): number {
+  return toKurus((monthly * (100 - discountPercent)) / 100);
+}
+
+/** `buyur_plans` kayıtlarındaki fiyatları yükler. Geçersiz/eksik fiyatlı kayıt
+ *  yok sayılır: yanlış bir fiyat göstermektense hiç göstermemek daha güvenli. */
 export function applyPlanPrices(records: PlanPriceRecord[]): void {
-  const next: Partial<Record<Plan, PlanPricing>> = {};
+  const next: Partial<Record<Plan, number>> = {};
   for (const record of records) {
     if (record.key !== "premium" && record.key !== "elite") continue;
-    if (!isPrice(record.price_monthly) || !isPrice(record.price_yearly_monthly)) continue;
-    next[record.key] = { monthly: record.price_monthly, yearlyMonthly: record.price_yearly_monthly };
+    if (!isPrice(record.price_monthly)) continue;
+    next[record.key] = record.price_monthly;
   }
-  livePricing = next;
+  liveMonthly = next;
 }
 
 export function resetPlanPrices(): void {
-  livePricing = {};
+  liveMonthly = {};
 }
 
 /** Planın ilan fiyatı; ücretli plan için kayıt okunamadıysa null. */
 export function planPricing(plan: Plan): PlanPricing | null {
   if (plan === "freemium") return FREE;
-  return livePricing[plan] ?? null;
+  const monthly = liveMonthly[plan];
+  if (monthly === undefined) return null;
+  return { monthly, yearlyMonthly: yearlyMonthlyPrice(monthly) };
 }
 
 /** Yıllık ödemede tek seferde tahsil edilen tutar. */

@@ -86,7 +86,7 @@ export default function CategoryAnalyticsPage() {
                 </ChartFrame>
               </div>
 
-              <div className="overflow-x-auto rounded-2xl border border-line bg-paper">
+              <div className="overflow-x-auto rounded-md border border-line bg-paper">
                 <table className="w-full min-w-[720px] text-sm">
                   <thead>
                     <tr className="border-b border-line bg-crema/50 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">

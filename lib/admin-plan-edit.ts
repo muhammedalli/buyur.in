@@ -5,6 +5,10 @@
 // `limits` ham JSON olarak düzenlenmez: özellik anahtarları FEATURE_LIMIT_KEYS
 // eşlemesinden üretilir, sayısal kotalar tek tek alanlardır. Formun bilmediği
 // anahtarlar (api_access, scheduled_reports…) olduğu gibi korunur.
+//
+// Planın tek fiyatı vardır (aylık). Yıllık ödemenin aylık karşılığı sistem
+// ayarındaki indirim oranıyla hesaplanır (lib/pricing.ts); formda ikinci bir
+// fiyat alanı yoktur, kayıttaki eski `price_yearly_monthly`'ye dokunulmaz.
 
 import {
   DEFAULT_PLAN_ENTITLEMENTS,
@@ -13,7 +17,7 @@ import {
   normalizePlan,
   type Feature,
 } from "@/lib/entitlements";
-import { formatTL } from "@/lib/pricing";
+import { formatTL, yearlyMonthlyPrice } from "@/lib/pricing";
 import type { PlanRecord } from "@/lib/types";
 
 export type EditableFeature = Exclude<Feature, "menu">;
@@ -37,8 +41,8 @@ export const FEATURE_LABELS: Record<EditableFeature, string> = {
 export interface PlanFormValues {
   name: string;
   description: string;
+  /** Aylık fiyat; yıllık ödemenin karşılığı bundan türetilir. */
   price_monthly: number;
-  price_yearly_monthly: number;
   /** 0 = süresiz. */
   trial_months: number;
   is_active: boolean;
@@ -54,7 +58,7 @@ export interface PlanFormValues {
 
 export type PlanRecordInput = Pick<
   PlanRecord,
-  "key" | "name" | "description" | "price_monthly" | "price_yearly_monthly" | "trial_months" | "is_active" | "is_default" | "features" | "limits"
+  "key" | "name" | "description" | "price_monthly" | "trial_months" | "is_active" | "is_default" | "features" | "limits"
 >;
 
 export const PLAN_LIMITS = {
@@ -83,7 +87,6 @@ export function planFormValues(record: PlanRecordInput): PlanFormValues {
     name: record.name ?? "",
     description: record.description ?? "",
     price_monthly: Number(record.price_monthly) || 0,
-    price_yearly_monthly: Number(record.price_yearly_monthly) || 0,
     trial_months: Number(record.trial_months) || 0,
     is_active: Boolean(record.is_active),
     features: Object.fromEntries(EDITABLE_FEATURES.map((f) => [f, effective.features[f]])) as Record<EditableFeature, boolean>,
@@ -114,11 +117,8 @@ export function buildPlanPatch(record: PlanRecordInput, input: PlanFormValues): 
   if (description.length > PLAN_LIMITS.descriptionMax) {
     return { ok: false, error: `Açıklama en fazla ${PLAN_LIMITS.descriptionMax} karakter olabilir.` };
   }
-  if (!isPrice(input.price_monthly) || !isPrice(input.price_yearly_monthly)) {
-    return { ok: false, error: "Fiyatlar 0 ya da pozitif bir sayı olmalı." };
-  }
-  if (input.price_yearly_monthly > input.price_monthly) {
-    return { ok: false, error: "Yıllık ödemedeki aylık fiyat, aylık fiyattan yüksek olamaz." };
+  if (!isPrice(input.price_monthly)) {
+    return { ok: false, error: "Fiyat 0 ya da pozitif bir sayı olmalı." };
   }
   if (!isWhole(input.trial_months, 0, PLAN_LIMITS.trialMonthsMax)) {
     return { ok: false, error: `Süre 0–${PLAN_LIMITS.trialMonthsMax} ay arasında tam sayı olmalı (0 = süresiz).` };
@@ -159,7 +159,6 @@ export function buildPlanPatch(record: PlanRecordInput, input: PlanFormValues): 
     name,
     description,
     price_monthly: input.price_monthly,
-    price_yearly_monthly: input.price_yearly_monthly,
     trial_months: input.trial_months,
     is_active: input.is_active,
     features: bullets,
@@ -169,7 +168,6 @@ export function buildPlanPatch(record: PlanRecordInput, input: PlanFormValues): 
     name: record.name ?? "",
     description: record.description ?? "",
     price_monthly: record.price_monthly ?? 0,
-    price_yearly_monthly: record.price_yearly_monthly ?? 0,
     trial_months: record.trial_months ?? 0,
     is_active: Boolean(record.is_active),
     features: Array.isArray(record.features) ? record.features : [],
@@ -183,8 +181,9 @@ export function buildPlanPatch(record: PlanRecordInput, input: PlanFormValues): 
 const limitText = (value: number | null, unit = "") => (value === null ? "sınırsız" : `${value.toLocaleString("tr-TR")}${unit}`);
 
 /** Değişikliğin işletmelere etkisi — onaydan önce gösterilir. Kapanan özellik
- *  en üstte: o plandaki işletmeler onu hemen kaybeder. */
-export function planChangeImpact(before: PlanFormValues, after: PlanFormValues): string[] {
+ *  en üstte: o plandaki işletmeler onu hemen kaybeder. İndirim oranı sistem
+ *  ayarıdır; istemcide canlı değeri bilinmediği için sunucudan verilir. */
+export function planChangeImpact(before: PlanFormValues, after: PlanFormValues, yearlyDiscountPercent: number): string[] {
   const lines: string[] = [];
   for (const feature of EDITABLE_FEATURES) {
     if (before.features[feature] && !after.features[feature]) lines.push(`Kapanacak: ${FEATURE_LABELS[feature]}`);
@@ -208,9 +207,10 @@ export function planChangeImpact(before: PlanFormValues, after: PlanFormValues):
     const show = (m: number) => (m === 0 ? "süresiz" : `${m} ay`);
     lines.push(`Süre: ${show(before.trial_months)} → ${show(after.trial_months)} (mevcut işletmelerin bitiş tarihi değişmez)`);
   }
-  if (before.price_monthly !== after.price_monthly || before.price_yearly_monthly !== after.price_yearly_monthly) {
+  if (before.price_monthly !== after.price_monthly) {
+    const yearly = (monthly: number) => formatTL(yearlyMonthlyPrice(monthly, yearlyDiscountPercent));
     lines.push(
-      `Fiyat (aylık / yıllıkta aylık): ${formatTL(before.price_monthly)} / ${formatTL(before.price_yearly_monthly)} → ${formatTL(after.price_monthly)} / ${formatTL(after.price_yearly_monthly)}`
+      `Aylık fiyat: ${formatTL(before.price_monthly)} → ${formatTL(after.price_monthly)} (yıllık ödemede ayda ${yearly(before.price_monthly)} → ${yearly(after.price_monthly)})`
     );
   }
   if (before.is_active !== after.is_active) {

@@ -51,7 +51,7 @@ export function useConfirm(): [(options: ConfirmOptions) => Promise<boolean>, Re
       onClick={() => close(false)}
     >
       <div
-        className="w-full max-w-md rounded-2xl border border-line bg-paper p-6 shadow-[0_30px_60px_-20px_rgba(35,24,18,0.5)]"
+        className="w-full max-w-md rounded-md border border-line bg-paper p-6 shadow-[0_30px_60px_-20px_rgba(35,24,18,0.5)]"
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="confirm-title" className="font-display text-lg font-bold">
@@ -59,7 +59,7 @@ export function useConfirm(): [(options: ConfirmOptions) => Promise<boolean>, Re
         </h2>
         {pending.description && <div className="mt-2 text-sm leading-relaxed text-ink-soft">{pending.description}</div>}
         {pending.details && pending.details.length > 0 && (
-          <ul className="mt-4 space-y-1.5 rounded-xl bg-crema/60 px-4 py-3 text-sm">
+          <ul className="mt-4 space-y-1.5 rounded-md bg-crema/60 px-4 py-3 text-sm">
             {pending.details.map((detail) => (
               <li key={detail} className="flex gap-2">
                 <span aria-hidden className="text-paprika">

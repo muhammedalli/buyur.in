@@ -52,7 +52,26 @@ async function refreshToken() {
   return true;
 }
 
+// Token'ın süresi JWT'nin `exp` alanından okunur. Süresi dolmuş token'ı
+// PocketBase 401 ile REDDETMEZ: isteği misafir olarak işler. Herkese açık
+// okumalar çalışmaya devam eder ama yazma kurala takılıp 404 döner — 401'e
+// bakarak tazelemek bu yüzden hiç tetiklenmiyordu. Süre bitmeden tazelenir.
+function tokenExpiresSoon(value, marginSeconds = 60) {
+  try {
+    const payload = JSON.parse(Buffer.from(value.split(".")[1], "base64url").toString("utf8"));
+    return typeof payload.exp !== "number" || payload.exp - marginSeconds <= Date.now() / 1000;
+  } catch {
+    return true;
+  }
+}
+
 async function pbFetch(path, init = {}, retry = true) {
+  if ((!token || tokenExpiresSoon(token)) && !(await refreshToken()) && token && tokenExpiresSoon(token, 0)) {
+    throw new Error(
+      "PocketBase superuser token'ının süresi dolmuş ve yenilenemedi. .mcp.json içindeki " +
+        "POCKETBASE_ADMIN_TOKEN'ı yenileyin veya POCKETBASE_ADMIN_EMAIL/POCKETBASE_ADMIN_PASSWORD ekleyin."
+    );
+  }
   const res = await fetch(`${PB_URL}${path}`, {
     ...init,
     headers: {

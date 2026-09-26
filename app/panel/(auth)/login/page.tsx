@@ -6,8 +6,20 @@ import { useRouter } from "next/navigation";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
-import { Button, ErrorText, Input, Label } from "@/components/panel/ui";
-import { AUTH_CARD_CLASS, RESET_DONE_PARAM } from "@/components/panel/auth-card";
+import { markLogin } from "@/lib/auth-persistence";
+import { MailIcon } from "@/components/icons";
+import { RESET_DONE_PARAM } from "@/components/panel/auth-card";
+import {
+  AuthAlternative,
+  AuthCheckbox,
+  AuthError,
+  AuthHeading,
+  AuthInput,
+  AuthLabel,
+  AuthNotice,
+  AuthPasswordInput,
+  AuthSubmit,
+} from "@/components/panel/auth-form";
 
 /** Giriş hatasını kullanıcının diliyle anlatır. Ağ hatası "şifre hatalı"
  *  diye gösterilirse kullanıcı doğru şifresini boşuna değiştirmeye kalkar. */
@@ -24,6 +36,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,6 +55,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await pb.collection(BUSINESS_COLLECTION).authWithPassword(email.trim(), password);
+      markLogin(remember);
       router.replace("/panel");
     } catch (err) {
       setError(loginErrorMessage(err));
@@ -51,58 +65,54 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={AUTH_CARD_CLASS}>
-      <h1 className="font-display text-xl font-bold">Panele giriş yap</h1>
-      <p className="mt-1 text-sm text-ink-soft">Menünü yönetmek için giriş yap.</p>
-      {notice && (
-        <p role="status" className="mt-4 rounded-xl border border-herb/30 bg-herb/10 px-3.5 py-2.5 text-sm text-herb">
-          {notice}
-        </p>
-      )}
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+    <>
+      <AuthHeading
+        title={
+          <>
+            Panele
+            <br />
+            giriş yap
+          </>
+        }
+        description="Menünü yönetmek için giriş yap."
+      />
+      <form onSubmit={handleSubmit} className="mt-10 space-y-6">
+        <AuthNotice>{notice}</AuthNotice>
         <div>
-          <Label htmlFor="email">E-posta</Label>
-          <Input
+          <AuthLabel htmlFor="email">E-posta</AuthLabel>
+          <AuthInput
             id="email"
             type="email"
             required
             autoComplete="email"
+            placeholder="ornek@isletme.com"
+            icon={<MailIcon size={20} />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
-          <div className="mb-1.5 flex items-baseline justify-between gap-3">
-            <Label htmlFor="password" className="mb-0">
-              Şifre
-            </Label>
-            <Link
-              href="/panel/forgot-password"
-              className="text-xs font-medium text-paprika hover:underline"
-            >
-              Şifremi unuttum
-            </Link>
-          </div>
-          <Input
+          <AuthLabel htmlFor="password">Şifre</AuthLabel>
+          <AuthPasswordInput
             id="password"
-            type="password"
             required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        <ErrorText>{error}</ErrorText>
-        <Button type="submit" loading={loading} className="w-full">
-          Giriş yap
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <AuthCheckbox checked={remember} onChange={setRemember}>
+            Beni hatırla
+          </AuthCheckbox>
+          <Link href="/panel/forgot-password" className="text-[15px] font-medium text-paprika hover:underline lg:text-base">
+            Şifremi unuttum?
+          </Link>
+        </div>
+        <AuthError>{error}</AuthError>
+        <AuthSubmit loading={loading}>Giriş yap</AuthSubmit>
       </form>
-      <p className="mt-6 text-center text-sm text-ink-soft">
-        Hesabın yok mu?{" "}
-        <Link href="/panel/register" className="font-medium text-paprika hover:underline">
-          Kayıt ol
-        </Link>
-      </p>
-    </div>
+      <AuthAlternative question="Hesabın yok mu?" href="/panel/register" label="Kayıt ol" />
+    </>
   );
 }

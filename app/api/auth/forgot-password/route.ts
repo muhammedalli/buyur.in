@@ -6,6 +6,8 @@ import { isValidEmail, normalizeEmail } from "@/lib/otp";
 import { RESET_TTL_MINUTES } from "@/lib/password-reset";
 import { sendPasswordResetLink } from "@/lib/password-reset-mail";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { BUSINESS_COLLECTION } from "@/lib/business-account";
+import { auditRequestContext, recordSystemAudit } from "@/lib/system-audit";
 
 // Şifremi unuttum — birinci adım: kayıtlı adrese tek kullanımlık sıfırlama
 // bağlantısı gönderir.
@@ -55,7 +57,16 @@ export async function POST(req: NextRequest) {
     // Art arda basılan "gönder" gelen kutusunu doldurmasın; yanıt yine aynı
     // ("throttled" da kabul edildi olarak döner).
     try {
-      await sendPasswordResetLink(pb, { email, name: user.name });
+      const sent = await sendPasswordResetLink(pb, { email, name: user.name });
+      if (sent !== "throttled") {
+        await recordSystemAudit({
+          actor: { type: "business", id: user.id, email },
+          action: "business.password_reset_request",
+          targetCollection: BUSINESS_COLLECTION,
+          targetId: user.id,
+          ...auditRequestContext(req),
+        });
+      }
     } catch (err) {
       console.error("[forgot-password] mail gönderilemedi", user.id, err);
       return NextResponse.json({ error: "E-posta şu anda gönderilemiyor, biraz sonra tekrar dene." }, { status: 502 });

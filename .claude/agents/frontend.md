@@ -57,7 +57,7 @@ const [confirm, confirmDialog] = useConfirm();
 
 1. **UI kitinden çık, elle yazma.** `Button`, `AiButton`, `Card`, `PageHeader`,
    `Input`, `Textarea`, `Select`, `Switch`, `Tabs`, `EmptyState`,
-   `UpgradeNotice`, `FormActions`, `SaveStatus`, `DraftBanner`, `Spinner`,
+   `UpgradeNotice`, `FormActions`, `StatGroup`, `Table`, `Dropdown`, `DraftBanner`, `Spinner`,
    `ErrorText` hazır. Yeni varyant gerekiyorsa **kite ekle**, sayfaya gömme.
 2. **Taslak zorunlu.** Form sayfalarında `useDraft()`. Yarım girilmiş bir fiyat
    masadaki müşteriye yansımamalı — kaydetmeden canlıya yazma.

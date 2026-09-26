@@ -14,7 +14,7 @@ export default async function AdminLoginPage() {
     <div className="flex min-h-dvh flex-col bg-paper px-5 py-5 sm:px-8 sm:py-6">
       <div className="flex items-center gap-3">
         <Logo />
-        <span className="rounded-full border border-line px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+        <span className="rounded-md border border-line px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
           Yönetim
         </span>
       </div>

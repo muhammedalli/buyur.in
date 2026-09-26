@@ -100,7 +100,7 @@ export function PlanUsageCard({ business, compact = false }: { business: Busines
 
   if (!usage.limited) {
     return (
-      <div className="rounded-2xl border border-line bg-paper p-5">
+      <div className="rounded-md border border-line bg-paper p-5">
         <div className="flex items-baseline justify-between gap-3">
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Plan</p>
           <Link
@@ -127,7 +127,7 @@ export function PlanUsageCard({ business, compact = false }: { business: Busines
   const upgrades = upgradePlans(plan);
 
   return (
-    <div className="rounded-2xl border border-line bg-paper p-5">
+    <div className="rounded-md border border-line bg-paper p-5">
       <div className="flex items-baseline justify-between gap-3">
         <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Plan</p>
         <Link
@@ -159,7 +159,7 @@ export function PlanUsageCard({ business, compact = false }: { business: Busines
 
       {message && !compact && (
         <div
-          className="mt-4 rounded-xl px-4 py-3"
+          className="mt-4 rounded-md px-4 py-3"
           style={{ background: usage.exhausted ? "rgba(194,56,20,0.08)" : "rgba(184,128,26,0.10)" }}
         >
           <p className="flex items-center gap-1.5 text-sm font-semibold">

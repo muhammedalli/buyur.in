@@ -116,7 +116,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
           <p className="mt-1 text-xs text-ink-soft">Boy, ekstra malzeme gibi fiyat farkı yaratan opsiyonlar.</p>
         </div>
         {editingId === null && (
-          <Button type="button" variant="outline" onClick={startAdd}>
+          <Button type="button" variant="outline" size="sm" onClick={startAdd}>
             + Ekle
           </Button>
         )}
@@ -130,7 +130,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
 
       <div className="space-y-2">
         {options.map((opt) => (
-          <div key={opt.id} className="flex items-center justify-between rounded-2xl border border-line px-4 py-2.5 text-sm">
+          <div key={opt.id} className="flex items-center justify-between rounded-md border border-line px-4 py-2.5 text-sm">
             <div>
               <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">
                 {tField(opt, "group_name", main, main)}
@@ -156,7 +156,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
       </div>
 
       {editingId !== null && (
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-line bg-crema/30 p-4">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-line bg-crema/30 p-4">
           {/* Grup ve seçenek adı dil bazlı — ana dil baz alan, diğerleri çeviri */}
           <MultiLangFields
             locales={activeLocales(business)}
@@ -165,6 +165,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
             onBaseChange={setBaseField}
             translations={form.translations}
             onTranslationsChange={(next) => setForm((f) => ({ ...f, translations: next }))}
+            translate={{ business, kind: "option" }}
             fields={[
               { key: "group_name", label: "Grup", required: true, placeholder: "Boy" },
               { key: "name", label: "Seçenek", required: true, placeholder: "Büyük" },

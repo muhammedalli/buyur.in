@@ -1,105 +1,146 @@
+import { AuditLogList } from "@/components/admin/audit-log-list";
 import { ButtonLink } from "@/components/admin/button-link";
-import { Card, EmptyState, PageHeader } from "@/components/panel/ui";
+import { Button, Card, EmptyState, Input, PageHeader, Select } from "@/components/panel/ui";
 import { requireAdmin } from "@/lib/admin-auth";
-import { ADMIN_LOG_COLLECTION, adminLogActionLabel, adminLogChangeLines } from "@/lib/admin-audit";
-import { formatAdminDate } from "@/lib/admin-format";
-import type { AdminLog } from "@/lib/types";
+import { loadAuditPage, loadBusinessNames, resolveBusinessIds } from "@/lib/admin-logs";
+import {
+  AUDIT_ACTION_GROUPS,
+  AUDIT_ACTION_LABELS,
+  AUDIT_ACTOR_LABELS,
+  AUDIT_ACTOR_TYPES,
+  AUDIT_RESOURCE_LABELS,
+  auditLogHref,
+  hasAuditFilters,
+  parseAuditLogQuery,
+} from "@/lib/audit-log";
 
 export const dynamic = "force-dynamic";
 
-const PER_PAGE = 50;
-
-function pageFrom(value: string | undefined): number {
-  const page = Number.parseInt(value ?? "", 10);
-  return Number.isFinite(page) && page > 0 ? page : 1;
-}
+// Merkezi denetim kaydı: yönetici, işletme, sistem ve veritabanı yöneticisi
+// işlemleri tek listede. Filtreler adres çubuğunda durur (sade GET formu):
+// bağlantı paylaşılabilir, işletme detayındaki "tüm geçmiş" buraya
+// işletme filtresiyle gelir.
 
 export default async function AdminLogsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ pb }, params] = await Promise.all([requireAdmin({ action: "logs.view" }), searchParams]);
-  const page = pageFrom(params.sayfa);
-  // İşletme detayındaki "tüm geçmiş" bağlantısı: tek bir kaydın geçmişi.
-  const target = /^[a-z0-9]{1,30}$/.test(params.hedef ?? "") ? (params.hedef as string) : "";
-  const pageHref = (n: number) => `/admin/logs?${new URLSearchParams({ ...(target ? { hedef: target } : {}), sayfa: String(n) })}`;
+  const parsed = parseAuditLogQuery(params);
+  const businessIds = await resolveBusinessIds(pb, parsed.business);
+  const query = { ...parsed, businessIds };
 
   // Hata sayfa sınırına (app/admin/error.tsx) gider: kayıt okunamıyorsa boş
   // liste göstermek "hiç işlem yok" diye yanlış okunurdu.
-  const result = await pb.collection(ADMIN_LOG_COLLECTION).getList<AdminLog>(page, PER_PAGE, {
-    sort: "-created",
-    ...(target ? { filter: pb.filter("target_id = {:target}", { target }) } : {}),
-    requestKey: null,
-  });
+  const result = await loadAuditPage(pb, query);
+  const names = await loadBusinessNames(pb, result.items);
+  const filtered = hasAuditFilters(parsed);
+  const href = (patch: Parameters<typeof auditLogHref>[1]) => auditLogHref(parsed, { page: 1, ...patch });
+
+  const actionsByGroup = AUDIT_ACTION_GROUPS.map((group) => ({
+    ...group,
+    actions: Object.keys(AUDIT_ACTION_LABELS).filter((action) =>
+      group.prefix === "plan" ? action.startsWith("plan.") || action.startsWith("plans.") : action.startsWith(group.prefix)
+    ),
+  }));
 
   return (
     <>
       <PageHeader
         title="Denetim kaydı"
         description={
-          target
-            ? `Yalnızca ${target} kaydıyla ilgili işlemler.`
-            : "Yönetim panelinde yapılan her işlem burada. Kayıtlar değiştirilemez ve silinemez."
+          parsed.target
+            ? `Yalnızca ${parsed.target} kaydıyla ilgili işlemler.`
+            : "Sistemde kim, ne zaman, neyi değiştirdi. Kayıtlar değiştirilemez ve silinemez."
         }
-        action={target ? <ButtonLink href="/admin/logs" variant="ghost" className="px-3">Tüm kayıtlar</ButtonLink> : undefined}
       />
 
+      <form method="get" className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Input
+          name="q"
+          defaultValue={parsed.q}
+          placeholder="Ara: ürün adı, e-posta, gerekçe, kimlik…"
+          aria-label="Ara"
+          className="sm:col-span-2"
+        />
+        <Input name="isletme" defaultValue={parsed.business} placeholder="İşletme: ad, menü adresi ya da kimlik" aria-label="İşletme" />
+        <Input name="kullanici" defaultValue={parsed.actor} placeholder="Yapan: e-posta ya da kimlik" aria-label="Yapan" />
+        <Select name="aktor" defaultValue={parsed.actorType} aria-label="Yapan türü">
+          <option value="">Tüm yapanlar</option>
+          {AUDIT_ACTOR_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {AUDIT_ACTOR_LABELS[type]}
+            </option>
+          ))}
+        </Select>
+        <Select name="islem" defaultValue={parsed.action} aria-label="İşlem tipi">
+          <option value="">Tüm işlemler</option>
+          {actionsByGroup.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.actions.map((action) => (
+                <option key={action} value={action}>
+                  {AUDIT_ACTION_LABELS[action]}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </Select>
+        <Select name="kaynak" defaultValue={parsed.resource} aria-label="Kaynak">
+          <option value="">Tüm kaynaklar</option>
+          {Object.entries(AUDIT_RESOURCE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+        <div className="grid grid-cols-2 gap-2">
+          <Input type="date" name="baslangic" defaultValue={parsed.from} aria-label="Başlangıç tarihi" title="Başlangıç" />
+          <Input type="date" name="bitis" defaultValue={parsed.to} aria-label="Bitiş tarihi" title="Bitiş" />
+        </div>
+        {parsed.target && <input type="hidden" name="hedef" value={parsed.target} />}
+        <div className="flex gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">
+          <Button type="submit" className="flex-1 lg:flex-none">
+            Filtrele
+          </Button>
+          {filtered && (
+            <ButtonLink href="/admin/logs" variant="ghost">
+              Temizle
+            </ButtonLink>
+          )}
+        </div>
+      </form>
+
+      {parsed.business && businessIds.length === 0 && (
+        <p role="status" className="mb-4 rounded-md border border-paprika/30 bg-paprika/10 px-4 py-3 text-sm text-paprika">
+          “{parsed.business}” ile eşleşen işletme bulunamadı.
+        </p>
+      )}
+
       {result.items.length === 0 ? (
-        <EmptyState title="Henüz kayıt yok" description="Yöneticiler giriş yaptıkça ve işlem yaptıkça burada görünecek." />
+        <EmptyState
+          title={filtered ? "Eşleşen kayıt yok" : "Henüz kayıt yok"}
+          description={filtered ? "Filtreleri genişletmeyi dene." : "İşlem yapıldıkça burada görünecek."}
+        />
       ) : (
-        <Card>
-          <ul className="divide-y divide-line">
-            {result.items.map((log) => {
-              const changes = adminLogChangeLines(log);
-              return (
-                <li key={log.id} className="py-4 text-sm first:pt-0 last:pb-0">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <p className="min-w-0">
-                      <span className="font-semibold text-ink">{adminLogActionLabel(log.action)}</span>
-                      <span className="text-ink-soft"> · </span>
-                      <span className="break-all text-ink-soft">{log.admin_email}</span>
-                    </p>
-                    <p className="font-mono text-[11px] text-ink-soft">
-                      {formatAdminDate(log.created)}
-                      {log.ip ? ` · ${log.ip}` : ""}
-                    </p>
-                  </div>
-                  {log.target_collection && (
-                    <p className="mt-1 break-all font-mono text-[11px] text-ink-soft">
-                      {log.target_collection}
-                      {log.target_id ? ` / ${log.target_id}` : ""}
-                    </p>
-                  )}
-                  {changes.length > 0 && (
-                    <ul className="mt-2 space-y-0.5 font-mono text-[12px] text-ink">
-                      {changes.map((line) => (
-                        <li key={line} className="break-all">
-                          {line}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {log.reason && <p className="mt-2 text-ink-soft">Gerekçe: {log.reason}</p>}
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
+        <>
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            {result.totalItems.toLocaleString("tr-TR")} kayıt
+          </p>
+          <Card>
+            <AuditLogList
+              logs={result.items}
+              businessNames={names}
+              filterHref={({ actor, action }) => href({ ...(actor ? { actor } : {}), ...(action ? { action } : {}) })}
+            />
+          </Card>
+        </>
       )}
 
       {result.totalPages > 1 && (
         <nav aria-label="Sayfalar" className="mt-6 flex items-center justify-between gap-3">
-          {page > 1 ? (
-            <ButtonLink href={pageHref(page - 1)}>
-              Önceki
-            </ButtonLink>
-          ) : (
-            <span />
-          )}
+          {result.page > 1 ? <ButtonLink href={auditLogHref(parsed, { page: result.page - 1 })}>Önceki</ButtonLink> : <span />}
           <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-            {page} / {result.totalPages}
+            {result.page} / {result.totalPages}
           </span>
-          {page < result.totalPages ? (
-            <ButtonLink href={pageHref(page + 1)}>
-              Sonraki
-            </ButtonLink>
+          {result.page < result.totalPages ? (
+            <ButtonLink href={auditLogHref(parsed, { page: result.page + 1 })}>Sonraki</ButtonLink>
           ) : (
             <span />
           )}

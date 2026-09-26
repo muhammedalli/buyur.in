@@ -13,15 +13,18 @@ export default function NewCategoryPage() {
   const [nextOrder, setNextOrder] = useState(0);
   const [loadingCount, setLoadingCount] = useState(true);
 
+  const businessId = business?.id;
+
+  // İşletme kimliğine bağlı; requestKey: null ile StrictMode'da iptal edilen
+  // istek yakalanmamış hataya dönmez. Sayı okunamazsa kategori sona eklenir.
   useEffect(() => {
-    if (!business) return;
+    if (!businessId) return;
     pb.collection("buyur_categories")
-      .getList(1, 1, { filter: pb.filter("business = {:id}", { id: business.id }) })
-      .then((res) => {
-        setNextOrder(res.totalItems);
-        setLoadingCount(false);
-      });
-  }, [business]);
+      .getList(1, 1, { filter: pb.filter("business = {:id}", { id: businessId }), fields: "id", requestKey: null })
+      .then((res) => setNextOrder(res.totalItems))
+      .catch(() => setNextOrder(999))
+      .finally(() => setLoadingCount(false));
+  }, [businessId]);
 
   if (isLoading || loadingCount || !business) {
     return <p className="text-ink-soft">Yükleniyor…</p>;

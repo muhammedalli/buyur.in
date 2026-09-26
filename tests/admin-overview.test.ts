@@ -53,10 +53,25 @@ describe("admin genel bakış", () => {
       row({ id: "e", plan: "premium", suspended_at: "2026-09-20 10:00:00.000Z" }),
     ];
     const o = computeOverview(rows, now);
-    expect(o.byStatus).toEqual({ live: 3, setup: 1, offline: 0, suspended: 1 });
+    expect(o.byStatus).toEqual({ live: 3, setup: 1, offline: 0, suspended: 1, deleted: 0 });
     expect(o.byPlan).toEqual({ freemium: 2, premium: 2, elite: 1 });
     // Kurulumu bitmiş 4 hesaptan 3'ü ücretli (askıdaki de dahil).
     expect(o.paidShare).toBe(0.75);
+  });
+
+  it("silinen hesap hiçbir platform sayısına girmez", () => {
+    const at = "2026-09-20 10:00:00.000Z";
+    const rows = [
+      row({ id: "a", plan: "premium" }),
+      row({ id: "x", plan: "elite", deleted_at: at, suspended_at: at, menu_views: 900, ai_scans_used: 3, ai_scans_period: "2026-09" }),
+    ];
+    const o = computeOverview(rows, now);
+    expect(o.total).toBe(1);
+    expect(o.byStatus.deleted).toBe(1);
+    expect(o.byStatus.suspended).toBe(0);
+    expect(o.byPlan.elite).toBe(0);
+    expect(o.menuViewsTotal).toBe(0);
+    expect(o.aiScansThisMonth).toBe(0);
   });
 
   it("bitişe göre 7 gün, 30 gün ve geçmiş listeleri; askı ve kurulum hariç", () => {

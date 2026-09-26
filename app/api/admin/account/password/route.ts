@@ -2,10 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerPB } from "@/lib/pocketbase";
 import { ADMIN_COLLECTION, adminCookieOptions, authenticateAdminRequest } from "@/lib/admin-auth";
 import { recordAdminAction } from "@/lib/admin-audit";
+import { auditRequestContext } from "@/lib/system-audit";
 import { ADMIN_COOKIE_NAME } from "@/lib/admin-cookie";
 import { ADMIN_SESSION_TTL_MS, readSessionSecret, sealAdminCookie } from "@/lib/admin-session";
 import { newPasswordError } from "@/lib/password";
-import { clientIp } from "@/lib/rate-limit";
 import type { Admin } from "@/lib/types";
 
 // Yöneticinin kendi şifresini değiştirmesi. İlk hesap scripts/create-admin.mjs
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     action: "admin.password_change",
     targetCollection: ADMIN_COLLECTION,
     targetId: admin.id,
-    ip: clientIp(req),
+    ...auditRequestContext(req),
   }).catch((err) => console.error("[admin-password] kayıt yazılamadı", admin.id, err));
 
   const res = NextResponse.json({ ok: true });

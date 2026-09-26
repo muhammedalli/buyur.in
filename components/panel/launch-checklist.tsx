@@ -126,7 +126,7 @@ export function LaunchChecklist({
   if (complete) {
     if (dismissed) return null;
     return (
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-herb/30 bg-herb/5 px-6 py-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border border-herb/30 bg-herb/5 px-6 py-4">
         <p className="flex items-center gap-2 text-sm">
           <span className="text-herb">
             <CheckCircleIcon size={18} />
@@ -155,7 +155,7 @@ export function LaunchChecklist({
   }
 
   return (
-    <section aria-labelledby="launch-title" className="mb-8 overflow-hidden rounded-2xl border border-line bg-paper">
+    <section aria-labelledby="launch-title" className="mb-8 overflow-hidden rounded-md border border-line bg-paper">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5">
         <div>
           <p className="font-mono text-[11px] uppercase tracking-wider text-paprika">Menünü yayına hazırla</p>

@@ -21,15 +21,16 @@ export interface ShowcaseEntry {
   quote?: { text: string; author: string };
 }
 
-/** Hero'daki "Canlı örneği incele" bu menüye gider. */
-export const DEMO_SLUG = "vezirhan";
+/** Ana sitedeki örnek işletme: hero'daki "Canlı örneği incele" / "Örnek menüyü
+ *  incele" ve canlı menü bölümü bu menüye gider. Gerçek bir müşteri değildir;
+ *  adı "Demo"dur ve her yerde "Demo menü" diye etiketlenir. */
+export const DEMO_SLUG = "aslan";
 
 export const SHOWCASE: ShowcaseEntry[] = [
   {
     slug: DEMO_SLUG,
     kind: "demo",
-    city: "İstanbul",
-    highlight: "Çok dilli menü · kampanya pop-up'ı · alerjen ve kalori bilgisi · sepet",
+    highlight: "Fotoğraflı ürünler · Türkçe/İngilizce dil seçimi · sepet",
   },
 ];
 

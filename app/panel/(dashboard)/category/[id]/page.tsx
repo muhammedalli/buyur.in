@@ -15,9 +15,12 @@ export default function EditCategoryPage() {
   const { business, isLoading: businessLoading } = useBusiness();
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
+  const businessId = business?.id;
 
+  // İşletme kaydı tazelendiğinde (sekmeye dönüş) kayıt yeniden okunmaz;
+  // yalnızca başka bir kayda/işletmeye geçildiğinde okunur.
   useEffect(() => {
-    if (!business) return;
+    if (!businessId) return;
     // requestKey: null -> React StrictMode'un dev'de effect'i iki kez
     // çalıştırması bu isteği SDK'nın otomatik iptal etmesine yol açabilir;
     // iptal edilen isteği "kayıt bulunamadı" sanıp listeye atmayalım.
@@ -29,7 +32,7 @@ export default function EditCategoryPage() {
         if (!isCancelled) router.replace("/panel/categories");
       })
       .finally(() => setLoading(false));
-  }, [business, id, router]);
+  }, [businessId, id, router]);
 
   if (businessLoading || loading || !business || !category) {
     return <p className="text-ink-soft">Yükleniyor…</p>;
@@ -39,6 +42,7 @@ export default function EditCategoryPage() {
     <div>
       <PageHeader title={category.name} />
       <CategoryForm
+        key={category.id}
         business={business}
         initial={category}
         onSaved={(updated) => {

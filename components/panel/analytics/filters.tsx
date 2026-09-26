@@ -173,7 +173,7 @@ function Dropdown({
         onBlur={() => window.setTimeout(() => setOpen(false), 120)}
         aria-expanded={open}
         aria-label={label}
-        className="flex items-center gap-2 rounded-full border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink transition-colors hover:border-paprika hover:text-paprika"
+        className="flex items-center gap-2 rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink transition-colors hover:border-paprika hover:text-paprika"
       >
         {icon}
         {active?.label ?? label}
@@ -183,7 +183,7 @@ function Dropdown({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-2xl border border-line bg-paper py-1 shadow-[0_18px_40px_-20px_rgba(35,24,18,0.55)]">
+        <div className="absolute left-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-md border border-line bg-paper py-1 shadow-[0_18px_40px_-20px_rgba(35,24,18,0.55)]">
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -244,13 +244,13 @@ export function AnalyticsFilterBar({ children }: { children?: ReactNode }) {
       <button
         type="button"
         onClick={() => setCustomOpen((open) => !open)}
-        className="rounded-full border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink-soft transition-colors hover:border-paprika hover:text-paprika"
+        className="rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink-soft transition-colors hover:border-paprika hover:text-paprika"
       >
         Özel aralık
       </button>
 
       {customOpen && (
-        <div className="flex items-center gap-2 rounded-full border border-line bg-crema/50 px-3 py-1.5">
+        <div className="flex items-center gap-2 rounded-md border border-line bg-crema/50 px-3 py-1.5">
           <input
             type="date"
             value={filters.from ?? ""}

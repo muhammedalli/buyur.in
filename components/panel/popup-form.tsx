@@ -1,14 +1,31 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { pb } from "@/lib/pocketbase";
 import { useToast } from "@/components/panel/toast";
-import { Card, ErrorText, FormActions, FormStatusFooter, Label, SaveStatus } from "@/components/panel/ui";
+import { Card, FORM_STACK, FormActions, Label } from "@/components/panel/ui";
 import { ImageUploader } from "@/components/panel/image-uploader";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
-import { AiTranslateButton } from "@/components/panel/ai/translate-button";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Business, Popup } from "@/lib/types";
+
+interface PopupValues {
+  title: string;
+  message: string;
+  imageUrl: string;
+  isActive: boolean;
+  translations: Translations;
+}
+
+function toValues(popup?: Popup): PopupValues {
+  return {
+    title: popup?.title ?? "",
+    message: popup?.message ?? "",
+    imageUrl: popup?.image_url ?? "",
+    isActive: popup?.is_active ?? true,
+    translations: popup?.translations ?? {},
+  };
+}
 
 export function PopupForm({
   business,
@@ -21,14 +38,28 @@ export function PopupForm({
   onSaved: (popup: Popup) => void;
   onCancel?: () => void;
 }) {
-  const [title, setTitle] = useState(initial?.title ?? "");
-  const [message, setMessage] = useState(initial?.message ?? "");
-  const [imageUrl, setImageUrl] = useState(initial?.image_url ?? "");
-  const [isActive, setIsActive] = useState(initial?.is_active ?? true);
-  const [translations, setTranslations] = useState<Translations>(initial?.translations ?? {});
+  const baseline = useMemo(
+    () => toValues(initial),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initial?.id, initial?.updated]
+  );
+  const [title, setTitle] = useState(baseline.title);
+  const [message, setMessage] = useState(baseline.message);
+  const [imageUrl, setImageUrl] = useState(baseline.imageUrl);
+  const [isActive, setIsActive] = useState(baseline.isActive);
+  const [translations, setTranslations] = useState<Translations>(baseline.translations);
   const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState("");
   const { toast } = useToast();
+
+  const currentJson = JSON.stringify({ title, message, imageUrl, isActive, translations } satisfies PopupValues);
+  const dirty = currentJson !== JSON.stringify(baseline);
+
+  // Kullanıcı formu düzelttikçe eski hata çubukta asılı kalmasın.
+  useEffect(() => {
+    setError("");
+  }, [currentJson]);
 
   function setBaseField(field: TranslatableField, value: string) {
     if (field === "title") setTitle(value);
@@ -51,6 +82,14 @@ export function PopupForm({
       const record = initial
         ? await pb.collection("buyur_popups").update<Popup>(initial.id, payload)
         : await pb.collection("buyur_popups").create<Popup>(payload);
+      // Form kayıtla birebir aynı hâle gelir; "kaydedilmemiş değişiklik" kalmaz.
+      const saved = toValues(record);
+      setTitle(saved.title);
+      setMessage(saved.message);
+      setImageUrl(saved.imageUrl);
+      setIsActive(saved.isActive);
+      setTranslations(saved.translations);
+      setSavedAt(Date.now());
       toast(initial ? "Kampanya güncellendi" : "Kampanya eklendi");
       onSaved(record);
     } catch {
@@ -62,24 +101,16 @@ export function PopupForm({
   }
 
   return (
-    <Card>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <FormActions
-          saving={saving}
-          onCancel={onCancel}
-          toggle={{ checked: isActive, onChange: setIsActive, label: "Aktif" }}
-          extra={
-            <AiTranslateButton
-              business={business}
-              kind="popup"
-              fields={{ title, message }}
-              translations={translations}
-              onTranslationsChange={setTranslations}
-            />
-          }
-        />
-        <ErrorText>{error}</ErrorText>
-
+    <form onSubmit={handleSubmit} className={FORM_STACK}>
+      <FormActions
+        saving={saving}
+        dirty={dirty}
+        savedAt={savedAt ?? initial?.updated ?? null}
+        error={error || undefined}
+        onCancel={onCancel}
+        toggle={{ checked: isActive, onChange: setIsActive, label: "Aktif" }}
+      />
+      <Card className="space-y-5">
         {/* Üstte solda kare görsel */}
         <div className="w-32">
           <Label>Görsel (opsiyonel)</Label>
@@ -93,13 +124,14 @@ export function PopupForm({
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
+          title="Başlık ve mesaj"
+          translate={{ business, kind: "popup" }}
           fields={[
             { key: "title", label: "Başlık", required: true, placeholder: "Bu hafta sonuna özel!" },
             { key: "message", label: "Mesaj", multiline: true, rows: 3 },
           ]}
         />
-        <FormStatusFooter status={<SaveStatus saving={saving} savedAt={initial?.updated ?? null} />} />
-      </form>
-    </Card>
+      </Card>
+    </form>
   );
 }

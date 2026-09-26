@@ -71,12 +71,12 @@ function QrCard({
 
   return (
     <Card className="flex gap-4">
-      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-line bg-crema/40 p-2">
+      <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-md border border-line bg-crema/40 p-2">
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={dataUrl} alt={`${code.name} QR kodu`} className="h-full w-full" />
         ) : (
-          <div className="h-full w-full animate-pulse rounded-lg bg-crema" />
+          <div className="h-full w-full animate-pulse rounded-md bg-crema" />
         )}
       </div>
 
@@ -393,7 +393,7 @@ export default function QrCodesPage() {
       {codes === null ? (
         <p className="mt-6 text-sm text-ink-soft">QR kodları yükleniyor…</p>
       ) : codes.length === 0 ? (
-        <p className="mt-6 rounded-2xl border border-dashed border-line px-6 py-10 text-center text-sm text-ink-soft">
+        <p className="mt-6 rounded-md border border-dashed border-line px-6 py-10 text-center text-sm text-ink-soft">
           Henüz etiketli QR kodunuz yok. Masa QR&apos;larını toplu oluşturun ya da vitrin, Instagram gibi yerler için tek
           tek ekleyin — hangisinin işe yaradığını ölçebilirsiniz.
         </p>

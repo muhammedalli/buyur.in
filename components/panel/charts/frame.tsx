@@ -35,14 +35,14 @@ export function ChartLegend({ items }: { items: LegendItem[] }) {
 
 export function ChartSkeleton({ height = 220 }: { height?: number }) {
   return (
-    <div className="animate-pulse rounded-xl bg-crema/70" style={{ height }} role="status" aria-label="Grafik yükleniyor" />
+    <div className="animate-pulse rounded-md bg-crema/70" style={{ height }} role="status" aria-label="Grafik yükleniyor" />
   );
 }
 
 export function ChartEmpty({ height = 220, label }: { height?: number; label: string }) {
   return (
     <div
-      className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-line px-6 text-center"
+      className="flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line px-6 text-center"
       style={{ minHeight: height }}
     >
       <p className="text-sm font-semibold">Henüz yeterli veri yok</p>
@@ -73,7 +73,7 @@ export function ChartTable({ columns, rows }: { columns: ChartTableColumn[]; row
         {open ? "Tabloyu gizle" : "Tabloyu göster"}
       </button>
       {open && (
-        <div className="mt-2 max-h-64 overflow-auto rounded-xl border border-line">
+        <div className="mt-2 max-h-64 overflow-auto rounded-md border border-line">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-crema/80 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">
               <tr>
@@ -121,7 +121,7 @@ export function ChartFrame({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl border border-line bg-paper p-5 ${className}`}>
+    <section className={`rounded-md border border-line bg-paper p-5 ${className}`}>
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-display text-base font-bold">{title}</h3>

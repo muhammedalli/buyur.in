@@ -71,6 +71,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [pathname, business]);
 
   function handleLogout() {
+    // Çıkış denetim kaydına yazılsın (app/api/auth/logout). Beklenmez:
+    // keepalive isteği sayfa değişse de gider, çıkış bu isteğe bağlı değildir.
+    const token = pb.authStore.token;
+    if (token) {
+      fetch("/api/auth/logout", { method: "POST", headers: { Authorization: token }, keepalive: true }).catch(() => undefined);
+    }
     pb.authStore.clear();
     router.replace("/panel/login");
   }
@@ -80,7 +86,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-dvh overflow-x-clip bg-crema/30 [--panel-header-h:69px]">
+    <div className="min-h-dvh overflow-x-clip bg-crema/30 [--app-header-h:69px] [--panel-header-h:69px]">
       <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
         <div className="mx-auto flex h-[calc(var(--panel-header-h)-1px)] max-w-6xl items-center justify-between px-5">
           <Link href="/panel">
@@ -145,7 +151,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-2.5 rounded-2xl px-3 py-2.5 text-sm transition-colors ${active
+                    className={`flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors ${active
                         ? "bg-paprika/10 font-semibold text-paprika"
                         : "text-ink-soft hover:bg-crema/70 hover:text-ink"
                       }`}
