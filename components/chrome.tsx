@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { whatsappLink } from "@/lib/site";
 import { LEGAL_DOCS, legalPath } from "@/lib/legal";
+import { RELEASE_NOTES_SLUG, docPath } from "@/lib/docs";
 import { WhatsappIcon } from "@/components/icons";
 
 /**
@@ -37,6 +38,15 @@ const footerNav = [
       { label: "Canlı demo", href: "/#canli-menu" },
       { label: "Nasıl çalışır", href: "/#nasil" },
       { label: "Fiyatlar", href: "/#fiyat" },
+    ],
+  },
+  {
+    title: "Yardım",
+    links: [
+      { label: "Yardım merkezi", href: "/docs" },
+      { label: "Hızlı başlangıç", href: docPath("hizli-baslangic") },
+      { label: "Çoklu dil ve AI çeviri", href: docPath("coklu-dil") },
+      { label: "Sürüm notları", href: docPath(RELEASE_NOTES_SLUG) },
     ],
   },
   {
@@ -114,7 +124,7 @@ export function Footer() {
             </a>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
             {footerNav.map((col) => (
               <div key={col.title} className="flex flex-col gap-3">
                 <span className="font-mono text-[12px] uppercase tracking-wider text-paper">

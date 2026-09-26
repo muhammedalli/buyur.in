@@ -48,6 +48,7 @@ app/
   site/[slug]/       → işletmeye otomatik üretilen tanıtım sitesi
   api/               → track, upload, ai/scan, analytics
   blog/, yasal/      → pazarlama & hukuki içerik
+  docs/              → YARDIM MERKEZİ (/docs, rehberler + /docs/surum-notlari; içerik lib/docs.ts)
 components/
   menu/              → müşteri menüsü bileşenleri (MenuProvider bağlamı)
   panel/             → panel UI kiti, formlar, grafikler
@@ -221,3 +222,22 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 - İş kuralı değiştiyse `tests/` altındaki ilgili sözleşme testini güncelleyin
 - `bun run test` ve `bun run build` yeşil olmadan iş bitmiş sayılmaz
 - Menü sayfası mobilde **2 saniyenin altında** açılmalı; trafiğin %95+'ı mobildir
+- Her geliştirme bir **sürüm notuyla** biter (§12)
+
+---
+
+## 12. Sürüm Notları ve Dokümantasyon
+
+**Her geliştirme sonrası sürüm notu yazılır — istisnasız.** Commit/PR/deploy öncesinde:
+
+1. `lib/release-notes.ts` → `RELEASE_NOTES` dizisinin **başına** yeni kayıt. Sürüm semver'dir:
+   yeni özellik → minor (`0.8.0` → `0.9.0`), yalnızca düzeltme → patch (`0.8.0` → `0.8.1`)
+2. `items` işletme sahibinin diliyle yazılır (ne değişti, ona ne kazandırdı; dosya adı yok).
+   Tür: `yeni` / `iyileştirme` / `düzeltme` / `güvenlik`. Teknik ayrıntı, göç ve yayın adımı `internal`'a
+3. `package.json` → `version` aynı sürüme çekilir
+4. `bun run changelog` → `CHANGELOG.md` üretilir. **CHANGELOG.md elle düzenlenmez**
+5. Kullanıcının gördüğü davranış değiştiyse yardım merkezi rehberi (`lib/docs.ts`) aynı değişiklikte
+   güncellenir ve `updated` ilerletilir. Rehberde fiyat/kota rakamı yazılmaz (§4) — "planınıza göre" denir
+
+`tests/release-notes.test.ts` package.json ↔ en son sürüm, CHANGELOG ↔ kaynak ve sürüm sıralamasını kilitler.
+Kullanıcıya görünen hâli: `/docs/surum-notlari` (footer ve panel yan menüsünden bağlı).

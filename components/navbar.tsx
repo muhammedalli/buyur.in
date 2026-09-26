@@ -11,6 +11,7 @@ const links = [
   { href: "/#canli-menu", label: "Canlı demo" },
   { href: "/#nasil", label: "Nasıl çalışır" },
   { href: "/#fiyat", label: "Fiyatlar" },
+  { href: "/docs", label: "Dökümantasyon" },
 ];
 
 // Hamburger — açıkken çizgiler çarpıya dönüşür (tek SVG, animasyonlu).
@@ -67,16 +68,14 @@ export function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b bg-paper/85 backdrop-blur-md transition-all duration-300 ${
-        scrolled || open
+      className={`sticky top-0 z-50 border-b bg-paper/85 backdrop-blur-md transition-all duration-300 ${scrolled || open
           ? "border-line shadow-[0_8px_30px_-16px_rgba(35,24,18,0.35)]"
           : "border-transparent"
-      }`}
+        }`}
     >
       <nav
-        className={`mx-auto flex max-w-6xl items-center justify-between px-5 transition-all duration-300 ${
-          scrolled ? "py-3" : "py-4"
-        }`}
+        className={`mx-auto flex max-w-6xl items-center justify-between px-5 transition-all duration-300 ${scrolled ? "py-3" : "py-4"
+          }`}
       >
         <Link href="/" aria-label="buyur ana sayfa" className="shrink-0">
           <Logo />

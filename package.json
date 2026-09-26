@@ -1,11 +1,12 @@
 {
   "name": "buyur",
-  "version": "0.1.0",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "brand": "node scripts/build-brand-assets.mjs",
+    "changelog": "bun scripts/changelog.ts",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",

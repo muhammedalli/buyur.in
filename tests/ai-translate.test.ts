@@ -7,6 +7,9 @@ import {
   normalizeTranslationResult,
   resolveTargetLocales,
   sanitizeEntries,
+  buildTranslationPrompt,
+  entrySourceFields,
+  unsavedLocales,
 } from "@/lib/ai/translate";
 
 // AI çeviri sözleşmesi. Korunan en kritik kural: ÇEVİRİ YALNIZCA METNE DOKUNUR.
@@ -191,7 +194,7 @@ describe("normalizeLocaleKey", () => {
 
   it("desteklenmeyen dili tanımaz", () => {
     expect(normalizeLocaleKey("de")).toBeNull();
-    expect(normalizeLocaleKey("english")).toBeNull();
+    expect(normalizeLocaleKey("deutsch")).toBeNull();
   });
 
   it("çıktıdaki bölgeli dil kodu doğru dile yazılır", () => {
@@ -267,5 +270,85 @@ describe("fillMissingTranslations", () => {
     } as never);
     expect(merged).toEqual({});
     expect(applied).toEqual({});
+  });
+});
+
+// Canlıda görülen model sapmaları. Her biri "Yapay zekâ çeviri üretemedi" ya
+// da "dolduruldu dendi ama alan boş" şikâyetinin somut kaynağıydı.
+describe("normalizeTranslationResult — model sapmaları", () => {
+  const ids = new Set(["form"]);
+
+  it("dil adını kod yerine kullanan yanıtı okur", () => {
+    const result = normalizeTranslationResult(
+      { items: [{ id: "form", translations: { English: { name: "Meatballs" }, Arabic: { name: "كفتة" } } }] },
+      ["en", "ar"],
+      ids
+    );
+    expect(result.get("form")).toEqual({ en: { name: "Meatballs" }, ar: { name: "كفتة" } });
+  });
+
+  it("bilinmeyen kimliği yine reddeder — sapma toleransı kimlik kuralını gevşetmez", () => {
+    const result = normalizeTranslationResult(
+      { items: [{ id: "uydurma", translations: { en: { name: "X" } } }] },
+      ["en"],
+      new Set(["product:1", "product:2"])
+    );
+    expect(result.size).toBe(0);
+  });
+
+  it("kimliğe göre sözlük biçimini okur", () => {
+    const result = normalizeTranslationResult({ form: { en: { name: "Tea" } } }, ["en"], ids);
+    expect(result.get("form")).toEqual({ en: { name: "Tea" } });
+  });
+
+  it("translations sarmalı olmadan kökteki dil anahtarlarını okur", () => {
+    const result = normalizeTranslationResult({ items: [{ id: "form", en: { name: "Tea" } }] }, ["en"], ids);
+    expect(result.get("form")).toEqual({ en: { name: "Tea" } });
+  });
+
+  it("dizi biçimindeki çevirileri okur", () => {
+    const result = normalizeTranslationResult(
+      { items: [{ id: "form", translations: [{ locale: "en", name: "Tea" }] }] },
+      ["en"],
+      ids
+    );
+    expect(result.get("form")).toEqual({ en: { name: "Tea" } });
+  });
+
+  it("farklı kök anahtar altındaki listeyi okur", () => {
+    const result = normalizeTranslationResult({ results: [{ id: "form", translations: { en: { name: "Tea" } } }] }, ["en"], ids);
+    expect(result.get("form")).toEqual({ en: { name: "Tea" } });
+  });
+
+  it("gönderilmeyen alana uydurulan çeviriyi eler", () => {
+    const entries = sanitizeEntries([{ id: "form", kind: "product", fields: { name: "Çay" } }]);
+    const result = normalizeTranslationResult(
+      { items: [{ id: "form", translations: { en: { name: "Tea", description: "Hot black tea" } } }] },
+      ["en"],
+      ids,
+      entrySourceFields(entries)
+    );
+    expect(result.get("form")).toEqual({ en: { name: "Tea" } });
+  });
+});
+
+describe("buildTranslationPrompt", () => {
+  it("şema örneği gönderilen alanlardan kurulur — kampanya başlığı name olarak dönmesin", () => {
+    const prompt = buildTranslationPrompt(["en"], { tr: "Türkçe", en: "English", ar: "العربية", ru: "Русский" }, [
+      "title",
+      "message",
+    ]);
+    expect(prompt).toContain('"en": { "title": "string", "message": "string" }');
+    expect(prompt).not.toContain('"name": "string"');
+  });
+});
+
+describe("unsavedLocales", () => {
+  it("ayarlarda eklenip kaydedilmemiş dili bulur", () => {
+    expect(unsavedLocales({ main_language: "tr", languages: ["en"] }, ["tr", "en", "ru"])).toEqual(["ru"]);
+  });
+
+  it("görünen diller verilmezse boş döner", () => {
+    expect(unsavedLocales({ main_language: "tr", languages: [] })).toEqual([]);
   });
 });

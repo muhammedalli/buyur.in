@@ -162,6 +162,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 );
               })}
             </nav>
+            {/* Yeni sekmede açılır: yardım okurken açık formdaki değişiklik kaybolmasın. */}
+            <a
+              href="/docs"
+              target="_blank"
+              rel="noopener"
+              className="mt-6 block border-t border-line/60 px-3 pt-4 text-xs text-ink-soft transition-colors hover:text-paprika"
+            >
+              Yardım merkezi ↗
+            </a>
           </aside>
         )}
         <main className="min-w-0 flex-1 py-10">

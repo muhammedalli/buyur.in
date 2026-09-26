@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { createServerPB } from "@/lib/pocketbase";
 import { ROOT_DOMAIN, menuHost } from "@/lib/site";
 import { LEGAL_DOCS, legalPath } from "@/lib/legal";
+import { DOC_GUIDES, RELEASE_NOTES_SLUG, docPath } from "@/lib/docs";
+import { latestRelease } from "@/lib/release-notes";
 import { isSuspended } from "@/lib/business-suspension";
 
 async function getActiveBusinessUrls(): Promise<MetadataRoute.Sitemap> {
@@ -42,6 +44,25 @@ function legalUrls(): MetadataRoute.Sitemap {
   ];
 }
 
+/** Yardım merkezi ve sürüm notları. */
+function docUrls(): MetadataRoute.Sitemap {
+  return [
+    { url: `https://${ROOT_DOMAIN}/docs`, changeFrequency: "weekly", priority: 0.5 },
+    ...DOC_GUIDES.map((guide) => ({
+      url: `https://${ROOT_DOMAIN}${docPath(guide.slug)}`,
+      lastModified: new Date(guide.updated),
+      changeFrequency: "monthly" as const,
+      priority: 0.5,
+    })),
+    {
+      url: `https://${ROOT_DOMAIN}${docPath(RELEASE_NOTES_SLUG)}`,
+      lastModified: new Date(latestRelease().date),
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
+  ];
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const businessUrls = await getActiveBusinessUrls();
 
@@ -52,6 +73,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 1,
     },
+    ...docUrls(),
     ...legalUrls(),
     ...businessUrls,
   ];

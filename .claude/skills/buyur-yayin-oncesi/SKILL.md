@@ -92,7 +92,15 @@ grep -rn "NEXT_PUBLIC_" --include="*.ts" --include="*.tsx" lib app components | 
 - `select` alanı genişlediyse göçte elle güncellendi
 - Yeni alan opsiyonel; eski kayıtlar için varsayılan davranış belli
 
-## 10. Raporlama
+## 10. Sürüm notu ve yardım merkezi (her geliştirmede ZORUNLU)
+
+- `lib/release-notes.ts` → `RELEASE_NOTES` başına yeni kayıt: `version` (semver; yeni özellik = minor, yalnızca düzeltme = patch), `date`, `title`, kullanıcı dilinde `items` (yeni / iyileştirme / düzeltme / güvenlik), `internal` (dosyalar, göç, yayın adımı)
+- `package.json` → `version` aynı sürüme çekildi
+- `bun run changelog` çalıştırıldı (CHANGELOG.md elle düzenlenmez)
+- Kullanıcının gördüğü bir davranış değiştiyse `lib/docs.ts`'teki ilgili rehber güncellendi, `updated` ilerletildi; yeni özellik = yeni bölüm ya da rehber
+- `tests/release-notes.test.ts` yeşil
+
+## 11. Raporlama
 
 Kullanıcıya şunları söyle:
 

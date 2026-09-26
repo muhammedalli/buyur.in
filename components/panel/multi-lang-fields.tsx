@@ -73,7 +73,7 @@ export function MultiLangFields({
   const [aiNote, setAiNote] = useState<{ tone: "done" | "error"; text: string } | null>(null);
   const active = locales.includes(tab) ? tab : mainLocale;
   const isMain = active === mainLocale;
-  const showTranslate = Boolean(translate && canAiTranslate(translate.business));
+  const showTranslate = Boolean(translate && canAiTranslate(translate.business, locales));
 
   function setTranslation(locale: Locale, field: TranslatableField, value: string) {
     onTranslationsChange({ ...translations, [locale]: { ...translations[locale], [field]: value } });
@@ -116,6 +116,7 @@ export function MultiLangFields({
               fields={translate.fields ?? base}
               translations={translations}
               onTranslationsChange={onTranslationsChange}
+              visibleLocales={locales}
               onDone={(result) => {
                 setAiNote({ tone: "done", text: `${result.summary} Kontrol edip kaydedin.` });
                 // Ana dil sekmesinde kalan kullanıcı dolan alanı görmeden

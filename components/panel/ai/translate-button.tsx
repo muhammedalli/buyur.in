@@ -6,7 +6,7 @@ import { useToast } from "@/components/panel/toast";
 import { AiActionButton } from "@/components/panel/ui";
 import { activeNonMainLocales, localeNamesTr, SUPPORTED_LOCALES } from "@/lib/i18n";
 import type { Locale, TranslatableField, Translations } from "@/lib/i18n";
-import { fillMissingTranslations, missingTranslations, type TranslationKind } from "@/lib/ai/translate";
+import { fillMissingTranslations, missingTranslations, unsavedLocales, type TranslationKind } from "@/lib/ai/translate";
 import { isFeatureAvailable } from "@/lib/entitlements";
 import type { Business } from "@/lib/types";
 
@@ -29,6 +29,12 @@ import type { Business } from "@/lib/types";
 //    ve yalnızca boş alanlara birleştirilir.
 //  - Özet gerçekten yazılan alanlardan kurulur: "dolduruldu" denip alanın boş
 //    kaldığı bir durum olmaz; eksik kalan diller açıkça söylenir.
+//  - Ayarlarda yeni eklenen ama henüz kaydedilmemiş dil sekmede görünüyor,
+//    sunucu ise yalnızca kayıtlı dilleri kabul ediyordu: buton ya hiç
+//    görünmüyor ya da o dili sessizce atlıyordu → kaydedilmemiş dil açıkça
+//    söylenir.
+//  - Yeniden deneme beklemesi iptali dinlemiyordu; sayfadan çıkılsa bile
+//    ikinci istek atılıyordu → bekleme de iptal edilebilir.
 
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 1200;
@@ -43,9 +49,29 @@ const FIELD_NAMES: Record<TranslatableField, string> = {
   message: "mesaj",
 };
 
-/** Bu işletmede yapay zekâ çevirisi sunulabilir mi: ek dil açık ve plan izin veriyor. */
-export function canAiTranslate(business: Business): boolean {
-  return activeNonMainLocales(business).length > 0 && isFeatureAvailable(business, "ai_translation");
+/** Bu işletmede yapay zekâ çevirisi sunulabilir mi: ek dil açık ve plan izin
+ *  veriyor. `visibleLocales` formda görünen dillerdir (ayarlarda kaydedilmemiş
+ *  yeni dil de olabilir); öyle bir dil varsa buton görünür ve kaydetmeyi söyler. */
+export function canAiTranslate(business: Business, visibleLocales?: Locale[]): boolean {
+  if (!isFeatureAvailable(business, "ai_translation")) return false;
+  if (activeNonMainLocales(business).length > 0) return true;
+  return unsavedLocales(business, visibleLocales).length > 0;
+}
+
+/** İptal edilebilen bekleme: sayfadan çıkılınca yeniden deneme başlamasın. */
+function wait(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(new DOMException("Aborted", "AbortError"));
+    const timer = window.setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        window.clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true }
+    );
+  });
 }
 
 function statusMessage(status: number): string {
@@ -122,6 +148,7 @@ export function AiTranslateButton({
   onTranslationsChange,
   onDone,
   onError,
+  visibleLocales,
   label = "AI ile tamamla",
 }: {
   business: Business;
@@ -135,6 +162,8 @@ export function AiTranslateButton({
   onDone?: (result: TranslateResult) => void;
   /** İstek başarısız olunca ya da yapılacak iş yoksa çağrılır; mesaj kullanıcıya gösterilir. */
   onError?: (message: string) => void;
+  /** Formda sekme olarak görünen diller; kaydedilmemiş dil varsa kullanıcı uyarılır. */
+  visibleLocales?: Locale[];
   label?: string;
 }) {
   const { toast } = useToast();
@@ -151,8 +180,13 @@ export function AiTranslateButton({
   // Sayfadan çıkılırsa istek iptal edilir; kapanmış bir forma yazılmaz.
   useEffect(() => () => controller.current?.abort(), []);
 
-  if (!canAiTranslate(business)) return null;
+  if (!canAiTranslate(business, visibleLocales)) return null;
   const targets = activeNonMainLocales(business);
+  const pending = unsavedLocales(business, visibleLocales);
+  const pendingNote =
+    pending.length > 0
+      ? ` ${listText(pending.map((locale) => localeNamesTr[locale]))} henüz kaydedilmedi; önce ayarları kaydedin, sonra o dil de doldurulur.`
+      : "";
 
   function fail(message: string) {
     toast(message, "error");
@@ -174,10 +208,14 @@ export function AiTranslateButton({
 
     // "Tamamla": yalnızca boş kalan çeviriler istenir. Dolu bir çeviri (elle
     // yazılmış ya da daha önce onaylanmış) yeniden üretilip ezilmez.
+    if (targets.length === 0) {
+      fail(`Çeviri yalnızca kayıtlı menü dillerine yapılır.${pendingNote}`);
+      return;
+    }
     const missing = missingTranslations(filled, latest.current, targets);
     const locales = targets.filter((locale) => missing[locale]);
     if (locales.length === 0) {
-      fail("Bütün diller zaten dolu. Bir çeviriyi yeniden üretmek için o alanı boşaltıp tekrar deneyin.");
+      fail(`Bütün diller zaten dolu. Bir çeviriyi yeniden üretmek için o alanı boşaltıp tekrar deneyin.${pendingNote}`);
       return;
     }
     const wanted = new Set(locales.flatMap((locale) => missing[locale] ?? []));
@@ -197,7 +235,7 @@ export function AiTranslateButton({
     try {
       let outcome = await requestTranslation(payload, abort.signal);
       if (!outcome.ok && outcome.transient) {
-        await new Promise((resolve) => window.setTimeout(resolve, RETRY_DELAY_MS));
+        await wait(RETRY_DELAY_MS, abort.signal);
         outcome = await requestTranslation(payload, abort.signal);
       }
       if (!outcome.ok) {
@@ -223,6 +261,7 @@ export function AiTranslateButton({
       if (notDone.length > 0) {
         summary += ` ${listText(notDone.map((locale) => localeNamesTr[locale]))} üretilemedi; tekrar deneyebilirsiniz.`;
       }
+      summary += pendingNote;
       toast(`${summary} Kontrol edip kaydedin.`);
       onDone?.({ summary, locales: doneLocales });
     } catch {

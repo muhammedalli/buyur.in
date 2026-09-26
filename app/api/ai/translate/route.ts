@@ -18,8 +18,9 @@ import {
   normalizeTranslationResult,
   missingLocales,
   buildTranslationPrompt,
+  entrySourceFields,
 } from "@/lib/ai/translate";
-import { activeLocales, localeLabels, mainLocale } from "@/lib/i18n";
+import { activeLocales, localeLabels, mainLocale, type TranslatableField } from "@/lib/i18n";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Çevrilecek metin yok. Önce ana dildeki alanları doldurun." }, { status: 400 });
   }
 
+  // Şema örneği gönderilen alanlardan kurulur (bkz. buildTranslationPrompt).
+  const sentFields = [...new Set(entries.flatMap((entry) => Object.keys(entry.fields) as TranslatableField[]))];
+
   const openai = openaiClient();
   if (isGuardFailure(openai)) return openai.response;
 
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest) {
       {
         model: MENU_MODEL,
         input: [
-          { role: "system", content: buildTranslationPrompt(targetLocales, localeLabels) },
+          { role: "system", content: buildTranslationPrompt(targetLocales, localeLabels, sentFields) },
           {
             role: "user",
             content: JSON.stringify({
@@ -94,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     const allowedIds = new Set(entries.map((entry) => entry.id));
-    const normalized = normalizeTranslationResult(raw, targetLocales, allowedIds);
+    const normalized = normalizeTranslationResult(raw, targetLocales, allowedIds, entrySourceFields(entries));
 
     if (normalized.size === 0) {
       return NextResponse.json(
