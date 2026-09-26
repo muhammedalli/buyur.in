@@ -24,7 +24,7 @@ export interface ShowcaseEntry {
 /** Ana sitedeki örnek işletme: hero'daki "Canlı örneği incele" / "Örnek menüyü
  *  incele" ve canlı menü bölümü bu menüye gider. Gerçek bir müşteri değildir;
  *  adı "Demo"dur ve her yerde "Demo menü" diye etiketlenir. */
-export const DEMO_SLUG = "aslan";
+export const DEMO_SLUG = "demo";
 
 export const SHOWCASE: ShowcaseEntry[] = [
   {
