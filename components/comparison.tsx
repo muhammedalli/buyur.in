@@ -1,4 +1,5 @@
 import { formatTL, planPricing } from "@/lib/pricing";
+import { sectionId } from "@/lib/landing-sections";
 import { CheckCircleIcon } from "@/components/icons";
 import { siteTranslator } from "@/lib/ui-messages/site";
 import type { Translator, UiLocale } from "@/lib/ui-i18n";
@@ -32,7 +33,7 @@ function buildRows(t: Translator) {
 export function Comparison({ locale = "tr" }: { locale?: UiLocale }) {
   const t = siteTranslator(locale);
   return (
-    <section id="karsilastir" className="border-t border-line">
+    <section id={sectionId("compare", locale)} className="border-t border-line">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Karşılaştırın")}</p>

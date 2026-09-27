@@ -19,6 +19,8 @@ import { StatTile } from "@/components/panel/charts/stat-tile";
 import { formatCompact, formatDateRange, formatDuration, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 interface SeriesPoint {
   date: string;
@@ -65,39 +67,40 @@ interface OverviewData {
   locked?: string[];
 }
 
-const DEVICE_LABELS: Record<string, string> = { mobile: "Mobil", tablet: "Tablet", desktop: "Masaüstü" };
+const DEVICE_LABELS: Record<string, string> = { mobile: msg("Mobil"), tablet: msg("Tablet"), desktop: msg("Masaüstü") };
 
 const SOURCE_LABELS: Record<string, string> = {
-  qr: "QR kod",
+  qr: msg("QR kod"),
   instagram: "Instagram",
   google: "Google",
   facebook: "Facebook",
   whatsapp: "WhatsApp",
   tiktok: "TikTok",
   youtube: "YouTube",
-  campaign: "Kampanya linki",
-  direct: "Doğrudan",
-  other: "Diğer",
+  campaign: msg("Kampanya linki"),
+  direct: msg("Doğrudan"),
+  other: msg("Diğer"),
 };
 
 export default function AnalyticsOverviewPage() {
+  const { t } = useUiLocale();
   const { data, meta, loading, refreshing, error, reload } = useAnalyticsQuery<OverviewData>("overview");
 
   const advanced = meta?.plan.advanced ?? false;
   const compareLabel = meta?.comparison
     ? meta.comparison.mode === "previous_year"
-      ? "geçen yılın aynı dönemine göre"
-      : "önceki döneme göre"
-    : "karşılaştırma kapalı";
+      ? t("geçen yılın aynı dönemine göre")
+      : t("önceki döneme göre")
+    : t("karşılaştırma kapalı");
 
   return (
     <div>
       <PageHeader
-        title="Analiz"
+        title={t("Analiz")}
         description={
           meta
-            ? `${formatDateRange(meta.range.from, meta.range.to)}${meta.approximate ? " · tekil ziyaretçi yaklaşık" : ""}`
-            : "Menünüzün performansı"
+            ? `${formatDateRange(meta.range.from, meta.range.to)}${meta.approximate ? ` · ${t("tekil ziyaretçi yaklaşık")}` : ""}`
+            : t("Menünüzün performansı")
         }
       />
 
@@ -109,89 +112,89 @@ export default function AnalyticsOverviewPage() {
       {data && (
         <Refreshable refreshing={refreshing}>
           {(data.totals.page_views ?? 0) === 0 && (data.totals.sessions ?? 0) === 0 ? (
-            <NoDataYet description="Menünüz yayınlandıktan ve ilk QR taramaları geldikten sonra müşteri davranışları burada görünmeye başlayacak." />
+            <NoDataYet description={t("Menünüz yayınlandıktan ve ilk QR taramaları geldikten sonra müşteri davranışları burada görünmeye başlayacak.")} />
           ) : (
             <div className="space-y-4">
               {/* Trend'li iki kart kendi ikili satırında — dar 4'lü sütunda sparkline
                   sıkışıyordu, burada her birine iki katı genişlik var. */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <StatTile
-                  label="Menü görüntülenme"
+                  label={t("Menü görüntülenme")}
                   value={formatCompact(data.totals.page_views ?? 0)}
                   change={advanced ? (data.changes?.page_views ?? null) : undefined}
                   comparisonLabel={compareLabel}
-                  hint="Menünün açıldığı toplam sayfa sayısı — aynı ziyaretçi birden çok sayfa açtıysa her biri sayılır."
+                  hint={t("Menünün açıldığı toplam sayfa sayısı — aynı ziyaretçi birden çok sayfa açtıysa her biri sayılır.")}
                   trend={data.series.page_views?.slice(-12).map((point) => point.value)}
                 />
                 <StatTile
-                  label="Sepete ekleme"
+                  label={t("Sepete ekleme")}
                   value={formatCompact(data.totals.cart_adds ?? 0)}
                   change={advanced ? (data.changes?.cart_adds ?? null) : undefined}
                   comparisonLabel={compareLabel}
-                  hint="Müşterilerin menüden sepete eklediği ürün sayısı — ilgi düzeyinin en güçlü sinyali."
+                  hint={t("Müşterilerin menüden sepete eklediği ürün sayısı — ilgi düzeyinin en güçlü sinyali.")}
                   trend={data.series.cart_adds?.slice(-12).map((point) => point.value)}
                 />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <StatTile
-                  label="Tekil ziyaretçi"
+                  label={t("Tekil ziyaretçi")}
                   value={formatCompact(data.totals.visitors ?? 0)}
                   change={advanced ? (data.changes?.visitors ?? null) : undefined}
                   comparisonLabel={compareLabel}
-                  hint="Dönem boyunca menüyü açan farklı cihaz sayısı. Aynı kişi birden çok kez geldiyse bir kez sayılır."
+                  hint={t("Dönem boyunca menüyü açan farklı cihaz sayısı. Aynı kişi birden çok kez geldiyse bir kez sayılır.")}
                 />
                 <StatTile
-                  label="QR tarama"
+                  label={t("QR tarama")}
                   value={formatCompact(data.totals.qr_scans ?? 0)}
                   change={advanced ? (data.changes?.qr_scans ?? null) : undefined}
                   comparisonLabel={compareLabel}
-                  hint="Menüye QR kod üzerinden başlayan ziyaretler. Linke tıklayarak gelenler bu sayıya girmez."
+                  hint={t("Menüye QR kod üzerinden başlayan ziyaretler. Linke tıklayarak gelenler bu sayıya girmez.")}
                 />
               </div>
 
               {advanced && (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatTile
-                    label="Oturum"
+                    label={t("Oturum")}
                     value={formatCompact(data.totals.sessions ?? 0)}
                     change={data.changes?.sessions ?? null}
                     comparisonLabel={compareLabel}
-                    hint="Bir ziyaretçinin menüde geçirdiği kesintisiz zaman dilimi. 30 dakika hareketsizlikten sonra yeni oturum başlar."
+                    hint={t("Bir ziyaretçinin menüde geçirdiği kesintisiz zaman dilimi. 30 dakika hareketsizlikten sonra yeni oturum başlar.")}
                   />
                   <StatTile
-                    label="Ortalama süre"
+                    label={t("Ortalama süre")}
                     value={formatDuration(data.totals.avg_session_duration ?? 0)}
                     change={data.changes?.avg_session_duration ?? null}
                     comparisonLabel={compareLabel}
-                    hint="Ziyaretçilerin menüde kaldığı ortalama süre."
+                    hint={t("Ziyaretçilerin menüde kaldığı ortalama süre.")}
                   />
                   <StatTile
-                    label="Sepet dönüşümü"
+                    label={t("Sepet dönüşümü")}
                     value={formatPercent(data.totals.cart_conversion ?? 0)}
                     change={data.changes?.cart_conversion ?? null}
                     comparisonLabel={compareLabel}
-                    hint="Sepete ekleme yapan oturumların oranı: sepete ekleme / oturum."
+                    hint={t("Sepete ekleme yapan oturumların oranı: sepete ekleme / oturum.")}
                   />
                   <StatTile
-                    label="Dönen ziyaretçi"
+                    label={t("Dönen ziyaretçi")}
                     value={formatPercent(data.totals.returning_rate ?? 0)}
                     change={data.changes?.returning_rate ?? null}
                     comparisonLabel={compareLabel}
-                    hint="Daha önce menünüzü açmış ziyaretçilerin oturumlardaki payı."
+                    hint={t("Daha önce menünüzü açmış ziyaretçilerin oturumlardaki payı.")}
                   />
                 </div>
               )}
 
               <ChartFrame
-                title="Zaman içinde menü performansı"
+                title={t("Zaman içinde menü performansı")}
                 hint={meta ? formatDateRange(meta.range.from, meta.range.to) : undefined}
                 legend={
                   advanced
                     ? lineLegend([
-                        { key: "page_views", label: "Menü görüntülenme", points: [] },
-                        { key: "sessions", label: "Oturum", points: [] },
-                        { key: "cart_adds", label: "Sepete ekleme", points: [] },
+                        { key: "page_views", label: t("Menü görüntülenme"), points: [] },
+                        { key: "sessions", label: t("Oturum"), points: [] },
+                        { key: "cart_adds", label: t("Sepete ekleme"), points: [] },
                       ] as LineSeries[])
                     : undefined
                 }
@@ -200,11 +203,11 @@ export default function AnalyticsOverviewPage() {
                   series={
                     advanced
                       ? [
-                          { key: "page_views", label: "Menü görüntülenme", points: data.series.page_views ?? [] },
-                          { key: "sessions", label: "Oturum", points: data.series.sessions ?? [] },
-                          { key: "cart_adds", label: "Sepete ekleme", points: data.series.cart_adds ?? [] },
+                          { key: "page_views", label: t("Menü görüntülenme"), points: data.series.page_views ?? [] },
+                          { key: "sessions", label: t("Oturum"), points: data.series.sessions ?? [] },
+                          { key: "cart_adds", label: t("Sepete ekleme"), points: data.series.cart_adds ?? [] },
                         ]
-                      : [{ key: "page_views", label: "Menü görüntülenme", points: data.series.page_views ?? [] }]
+                      : [{ key: "page_views", label: t("Menü görüntülenme"), points: data.series.page_views ?? [] }]
                   }
                 />
               </ChartFrame>
@@ -215,18 +218,18 @@ export default function AnalyticsOverviewPage() {
 
                   <div className="grid gap-4 lg:grid-cols-2">
                     <ChartFrame
-                      title="Müşteri yolculuğu"
-                      hint="Her adıma ulaşan oturum sayısı ve bir önceki adımdan geçiş oranı"
+                      title={t("Müşteri yolculuğu")}
+                      hint={t("Her adıma ulaşan oturum sayısı ve bir önceki adımdan geçiş oranı")}
                     >
                       <FunnelChart steps={data.funnel ?? []} />
                     </ChartFrame>
 
-                    <ChartFrame title="Trafik kaynağı" hint="Ziyaretçiler menüye nereden geldi">
+                    <ChartFrame title={t("Trafik kaynağı")} hint={t("Ziyaretçiler menüye nereden geldi")}>
                       <DonutChart
-                        centerLabel="oturum"
+                        centerLabel={t("oturum")}
                         items={(data.sources ?? []).map((entry) => ({
                           key: entry.key,
-                          label: SOURCE_LABELS[entry.key] ?? entry.label,
+                          label: t(SOURCE_LABELS[entry.key] ?? entry.label),
                           value: entry.metrics.sessions ?? 0,
                         }))}
                       />
@@ -234,7 +237,7 @@ export default function AnalyticsOverviewPage() {
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <ChartFrame title="En çok görüntülenen ürünler" hint="Listede görülme sayısı ve sepete dönüşüm">
+                    <ChartFrame title={t("En çok görüntülenen ürünler")} hint={t("Listede görülme sayısı ve sepete dönüşüm")}>
                       <BarList
                         items={(data.topProducts ?? []).map((entry) => ({
                           key: entry.key,
@@ -242,14 +245,14 @@ export default function AnalyticsOverviewPage() {
                           value: entry.metrics.views ?? 0,
                           note:
                             (entry.metrics.views ?? 0) > 0
-                              ? `${formatPercent((entry.metrics.cart_adds ?? 0) / (entry.metrics.views ?? 1), 0)} sepet`
+                              ? t("{percent} sepet", { percent: formatPercent((entry.metrics.cart_adds ?? 0) / (entry.metrics.views ?? 1), 0) })
                               : undefined,
                         }))}
-                        emptyLabel="Ürünleriniz görüntülenmeye başlayınca burada sıralanacak."
+                        emptyLabel={t("Ürünleriniz görüntülenmeye başlayınca burada sıralanacak.")}
                       />
                     </ChartFrame>
 
-                    <ChartFrame title="En çok görüntülenen kategoriler">
+                    <ChartFrame title={t("En çok görüntülenen kategoriler")}>
                       <BarList
                         color={CATEGORICAL[1]}
                         items={(data.topCategories ?? []).map((entry) => ({
@@ -257,29 +260,29 @@ export default function AnalyticsOverviewPage() {
                           label: entry.label,
                           value: entry.metrics.views ?? 0,
                         }))}
-                        emptyLabel="Kategori görüntülenmeleri burada listelenecek."
+                        emptyLabel={t("Kategori görüntülenmeleri burada listelenecek.")}
                       />
                     </ChartFrame>
                   </div>
 
-                  <ChartFrame title="Cihaz dağılımı" hint="Menü hangi cihazlardan açılıyor">
+                  <ChartFrame title={t("Cihaz dağılımı")} hint={t("Menü hangi cihazlardan açılıyor")}>
                     <BarList
                       color={CATEGORICAL[3]}
                       valueFormatter={formatNumber}
                       items={(data.devices ?? []).map((entry) => ({
                         key: entry.key,
-                        label: DEVICE_LABELS[entry.key] ?? entry.label,
+                        label: t(DEVICE_LABELS[entry.key] ?? entry.label),
                         value: entry.metrics.sessions ?? 0,
                       }))}
-                      emptyLabel="Cihaz kırılımı için henüz ziyaret yok."
+                      emptyLabel={t("Cihaz kırılımı için henüz ziyaret yok.")}
                     />
                   </ChartFrame>
                 </>
               ) : (
                 <FeatureLocked
                   feature="advanced_analytics"
-                  subject="Gelişmiş analizler"
-                  description="Dönem karşılaştırması, müşteri yolculuğu hunisi, trafik kaynakları, ürün ve kategori performansı, saat/gün analizi ve drill-down."
+                  subject={t("Gelişmiş analizler")}
+                  description={t("Dönem karşılaştırması, müşteri yolculuğu hunisi, trafik kaynakları, ürün ve kategori performansı, saat/gün analizi ve drill-down.")}
                 />
               )}
             </div>

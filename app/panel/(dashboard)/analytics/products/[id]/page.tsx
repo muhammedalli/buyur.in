@@ -19,6 +19,7 @@ import { formatCompact, formatDateRange, formatNumber, formatPercent } from "@/c
 import { ArrowLeftIcon } from "@/components/icons";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 interface SeriesPoint {
   date: string;
@@ -49,6 +50,7 @@ interface ProductDetailData {
 }
 
 export default function ProductPerformancePage() {
+  const { t } = useUiLocale();
   const { id } = useParams<{ id: string }>();
   const { data, meta, loading, refreshing, error, reload } = useAnalyticsQuery<ProductDetailData>(`products/${id}`);
 
@@ -56,13 +58,13 @@ export default function ProductPerformancePage() {
     <div>
       <Link
         href="/panel/analytics/products"
-        className="mb-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
+        className="mb-3 inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-paprika"
       >
-        <ArrowLeftIcon size={14} /> Ürün analitiği
+        <ArrowLeftIcon size={14} />{" "}{t("Ürün analitiği")}
       </Link>
 
       <PageHeader
-        title={data?.product.name ?? "Ürün performansı"}
+        title={data?.product.name ?? t("Ürün performansı")}
         description={meta ? formatDateRange(meta.range.from, meta.range.to) : undefined}
       />
 
@@ -72,8 +74,8 @@ export default function ProductPerformancePage() {
       {error?.isPlanLocked && (
         <FeatureLocked
           feature="advanced_analytics"
-          subject="Ürün performansı"
-          description="Tek ürün bazında zaman serisi, dönüşüm ve kategori kıyası."
+          subject={t("Ürün performansı")}
+          description={t("Tek ürün bazında zaman serisi, dönüşüm ve kategori kıyası.")}
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}
@@ -81,56 +83,56 @@ export default function ProductPerformancePage() {
       {data && (
         <Refreshable refreshing={refreshing}>
           {data.totals.views === 0 && data.totals.detail_views === 0 ? (
-            <NoDataYet description="Bu ürün seçilen dönemde hiç görüntülenmemiş. Menüdeki konumunu ve görselini gözden geçirmek isteyebilirsiniz." />
+            <NoDataYet description={t("Bu ürün seçilen dönemde hiç görüntülenmemiş. Menüdeki konumunu ve görselini gözden geçirmek isteyebilirsiniz.")} />
           ) : (
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatTile
-                  label="Görüntülenme"
+                  label={t("Görüntülenme")}
                   value={formatCompact(data.totals.views)}
                   change={data.changes?.views ?? undefined}
-                  hint="Ürünün menü listesinde görüldüğü oturum sayısı (oturum başına bir kez sayılır)."
+                  hint={t("Ürünün menü listesinde görüldüğü oturum sayısı (oturum başına bir kez sayılır).")}
                   trend={data.series.views?.slice(-12).map((point) => point.value)}
                 />
                 <StatTile
-                  label="Detay açılışı"
+                  label={t("Detay açılışı")}
                   value={formatCompact(data.totals.detail_views)}
-                  hint="Ürün detay sayfasının açılma sayısı — listedeki ilgiden bir adım öteye geçenler."
+                  hint={t("Ürün detay sayfasının açılma sayısı — listedeki ilgiden bir adım öteye geçenler.")}
                 />
                 <StatTile
-                  label="Sepete ekleme"
+                  label={t("Sepete ekleme")}
                   value={formatCompact(data.totals.cart_adds)}
                   change={data.changes?.cart_adds ?? undefined}
                   trend={data.series.cart_adds?.slice(-12).map((point) => point.value)}
                 />
                 <StatTile
-                  label="Dönüşüm"
+                  label={t("Dönüşüm")}
                   value={formatPercent(data.totals.conversion)}
                   change={data.changes?.conversion ?? undefined}
-                  hint="Sepete ekleme / görüntülenme. Ürünün ilgiyi satışa çevirme gücü."
+                  hint={t("Sepete ekleme / görüntülenme. Ürünün ilgiyi satışa çevirme gücü.")}
                 />
               </div>
 
               <ChartFrame
-                title="Zaman içinde ürün performansı"
+                title={t("Zaman içinde ürün performansı")}
                 legend={lineLegend([
-                  { key: "views", label: "Görüntülenme", points: [] },
-                  { key: "detail_views", label: "Detay açılışı", points: [] },
-                  { key: "cart_adds", label: "Sepete ekleme", points: [] },
+                  { key: "views", label: t("Görüntülenme"), points: [] },
+                  { key: "detail_views", label: t("Detay açılışı"), points: [] },
+                  { key: "cart_adds", label: t("Sepete ekleme"), points: [] },
                 ])}
               >
                 <LineChart
                   series={[
-                    { key: "views", label: "Görüntülenme", points: data.series.views ?? [] },
-                    { key: "detail_views", label: "Detay açılışı", points: data.series.detail_views ?? [] },
-                    { key: "cart_adds", label: "Sepete ekleme", points: data.series.cart_adds ?? [] },
+                    { key: "views", label: t("Görüntülenme"), points: data.series.views ?? [] },
+                    { key: "detail_views", label: t("Detay açılışı"), points: data.series.detail_views ?? [] },
+                    { key: "cart_adds", label: t("Sepete ekleme"), points: data.series.cart_adds ?? [] },
                   ]}
                 />
               </ChartFrame>
 
               <ChartFrame
-                title="Kıyaslama"
-                hint={`Kategorisindeki ${formatNumber(data.benchmarks.category_products)} ürün ve menü ortalamasıyla`}
+                title={t("Kıyaslama")}
+                hint={t("Kategorisindeki {count} ürün ve menü ortalamasıyla", { count: formatNumber(data.benchmarks.category_products) })}
               >
                 <BarList
                   color={CATEGORICAL[1]}
@@ -138,12 +140,12 @@ export default function ProductPerformancePage() {
                     { key: "product", label: data.product.name, value: data.totals.views },
                     {
                       key: "category",
-                      label: "Kategori ortalaması",
+                      label: t("Kategori ortalaması"),
                       value: Math.round(data.benchmarks.category_avg_views),
                     },
                     {
                       key: "business",
-                      label: "Menü ortalaması",
+                      label: t("Menü ortalaması"),
                       value: Math.round(data.benchmarks.business_avg_views),
                     },
                   ]}
@@ -151,13 +153,13 @@ export default function ProductPerformancePage() {
                 <div className="mt-3 flex flex-wrap gap-4 text-sm">
                   {data.benchmarks.vs_category !== null && (
                     <p>
-                      Kategori ortalamasına göre{" "}
+                      {t("Kategori ortalamasına göre")}{" "}
                       <span className="font-semibold">{formatPercent(data.benchmarks.vs_category, 1)}</span>
                     </p>
                   )}
                   {data.benchmarks.vs_business !== null && (
                     <p className="text-ink-soft">
-                      Menü ortalamasına göre{" "}
+                      {t("Menü ortalamasına göre")}{" "}
                       <span className="font-semibold text-ink">{formatPercent(data.benchmarks.vs_business, 1)}</span>
                     </p>
                   )}

@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChartSkeleton } from "@/components/panel/charts/frame";
 import type { AnalyticsError } from "@/lib/analytics/panel-client";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 // Analiz sayfalarının ortak durumları: yükleniyor, hata, plan kilidi, veri yok.
 // Hiçbirinde uydurma sayı göstermiyoruz — veri yoksa ne yapılması gerektiğini
@@ -25,16 +27,17 @@ export function AnalyticsSkeleton() {
 }
 
 export function AnalyticsErrorState({ error, onRetry }: { error: AnalyticsError; onRetry: () => void }) {
+  const { t } = useUiLocale();
   if (error.isUnauthenticated) {
     return (
       <div className="rounded-md border border-line bg-paper p-8 text-center">
-        <p className="font-display text-lg font-bold">Oturumun sona ermiş</p>
-        <p className="mt-1 text-sm text-ink-soft">Analizleri görmek için tekrar giriş yapman gerekiyor.</p>
+        <p className="font-display text-lg font-bold">{t("Oturumun sona ermiş")}</p>
+        <p className="mt-1 text-sm text-ink-soft">{t("Analizleri görmek için tekrar giriş yapman gerekiyor.")}</p>
         <Link
           href="/panel/login"
-          className="mt-4 inline-block rounded-md bg-ink px-5 py-2.5 font-mono text-[13px] uppercase tracking-wider text-paper transition-colors hover:bg-paprika"
+          className="mt-4 inline-block rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper transition-colors hover:bg-paprika"
         >
-          Giriş yap
+          {t("Giriş yap")}
         </Link>
       </div>
     );
@@ -42,24 +45,25 @@ export function AnalyticsErrorState({ error, onRetry }: { error: AnalyticsError;
 
   return (
     <div className="rounded-md border border-line bg-paper p-8 text-center">
-      <p className="font-display text-lg font-bold">Analiz verileri şu anda yüklenemiyor</p>
-      <p className="mt-1 text-sm text-ink-soft">Lütfen birkaç dakika sonra tekrar deneyin.</p>
+      <p className="font-display text-lg font-bold">{t("Analiz verileri şu anda yüklenemiyor")}</p>
+      <p className="mt-1 text-sm text-ink-soft">{t("Lütfen birkaç dakika sonra tekrar deneyin.")}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 rounded-md border border-line px-5 py-2.5 font-mono text-[13px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika"
+        className="mt-4 rounded-md border border-line px-5 py-2.5 text-sm font-medium transition-colors hover:border-paprika hover:text-paprika"
       >
-        Tekrar dene
+        {t("Tekrar dene")}
       </button>
     </div>
   );
 }
 
-export function NoDataYet({ title = "Henüz yeterli veri yok", description, action }: { title?: string; description: string; action?: ReactNode }) {
+export function NoDataYet({ title = msg("Henüz yeterli veri yok"), description, action }: { title?: string; description: string; action?: ReactNode }) {
+  const { t } = useUiLocale();
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-line px-6 py-16 text-center">
-      <p className="font-display text-lg font-bold">{title}</p>
-      <p className="max-w-md text-sm text-ink-soft">{description}</p>
+      <p className="font-display text-lg font-bold">{t(title)}</p>
+      <p className="max-w-md text-sm text-ink-soft">{t(description)}</p>
       {action}
     </div>
   );

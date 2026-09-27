@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { sectionId } from "@/lib/landing-sections";
 import Link from "next/link";
 import {
   CheckCircleIcon,
@@ -259,7 +260,7 @@ export function PanelShowcase({ locale = "tr" }: { locale?: UiLocale }) {
   const [tab, setTab] = useState<TabKey>("menu");
 
   return (
-    <section id="panel" className="mx-auto max-w-6xl px-5 py-24">
+    <section id={sectionId("panel", locale)} className="mx-auto max-w-6xl px-5 py-24">
       <div className="grid gap-12 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
         <div className="order-2 lg:order-1">
           <div role="tablist" aria-label={t("Panel ekranları")} className="mb-4 flex gap-2 overflow-x-auto pb-1">

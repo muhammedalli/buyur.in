@@ -6,7 +6,7 @@ import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { DEFAULT_UI_LOCALE, isUiLocale, UI_LOCALES, uiLocaleCodes, uiLocaleLabels, type UiLocale } from "@/lib/ui-i18n";
 import { useUiLocale } from "@/components/ui-locale-provider";
 import { useOptionalBusiness } from "@/components/panel/business-context";
-import { Dropdown } from "@/components/panel/ui";
+import { buttonClass, Dropdown } from "@/components/panel/ui";
 import { GlobeIcon } from "@/components/icons";
 import type { Business } from "@/lib/types";
 
@@ -38,7 +38,7 @@ export function PanelLanguageSwitcher({ className = "" }: { className?: string }
     <div className={className}>
       <Dropdown
         label={t("Panel dili")}
-        triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-2 font-mono text-[12px] uppercase tracking-wider text-ink transition-colors hover:border-paprika hover:text-paprika"
+        triggerClassName={buttonClass("outline", "gap-1.5", "sm")}
         trigger={
           <span className="inline-flex items-center gap-1.5">
             <GlobeIcon size={14} />

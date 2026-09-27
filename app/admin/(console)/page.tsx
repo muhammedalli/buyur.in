@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuditLogList } from "@/components/admin/audit-log-list";
+import { CheckCircleIcon, PackageIcon, ShoppingBagIcon, TrendingUpIcon } from "@/components/icons";
 import { ButtonLink } from "@/components/admin/button-link";
 import { PlanBadge } from "@/components/admin/badges";
 import { Card, PageHeader, SectionHeader, StatGroup, Table } from "@/components/panel/ui";
@@ -98,6 +99,7 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
               value: count(overview.total),
               hint: `Bu hafta ${count(overview.newThisWeek)} yeni kayıt`,
               href: "/admin/businesses",
+              icon: <ShoppingBagIcon size={16} />,
             },
             {
               label: "Yayında",
@@ -107,16 +109,19 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
                   ? `${count(overview.byStatus.setup)} kurulum bekliyor · ${count(overview.byStatus.suspended)} askıda`
                   : `${count(overview.byStatus.setup)} kurulum bekliyor`,
               href: "/admin/businesses?durum=live",
+              icon: <CheckCircleIcon size={16} />,
             },
             {
               label: "Menülerdeki ürün",
               value: contentCounts ? count(contentCounts[0]) : "—",
               hint: contentCounts ? `${count(contentCounts[1])} kategori` : "Sayılamadı",
+              icon: <PackageIcon size={16} />,
             },
             {
               label: `Son ${activity?.days ?? 30} gün ziyaret`,
               value: activity ? count(activity.sessions) : "—",
               hint: activity ? `${count(activity.qrScans)} QR tarama` : "Analitik özeti okunamadı",
+              icon: <TrendingUpIcon size={16} />,
             },
           ]}
         />

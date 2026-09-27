@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { sectionId } from "@/lib/landing-sections";
 import { ArrowRightIcon, LayoutIcon, MenuIcon, MonitorIcon } from "@/components/icons";
 import { siteTranslator } from "@/lib/ui-messages/site";
 import type { UiLocale } from "@/lib/ui-i18n";
@@ -114,7 +115,7 @@ export function Platform({ locale = "tr" }: { locale?: UiLocale }) {
   const flow = [t("Vitrin"), t("Menü"), t("İşletme bilgileri"), t("Sosyal medya"), t("Rezervasyon & iletişim")];
 
   return (
-    <section id="platform" className="border-b border-line">
+    <section id={sectionId("platform", locale)} className="border-b border-line">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Tek platform")}</p>

@@ -114,7 +114,7 @@ export function AdminAccounts({ rows, selfId }: { rows: AdminAccountRow[]; selfI
                 <td className="max-w-[16rem]">
                   <p className="truncate font-semibold text-ink">
                     {row.name || row.email}
-                    {self && <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-ink-soft">sen</span>}
+                    {self && <span className="ml-2 text-xs font-medium text-ink-soft">sen</span>}
                   </p>
                   <p className="truncate text-[13px] text-ink-soft">{row.email}</p>
                 </td>
@@ -155,11 +155,11 @@ export function AdminAccounts({ rows, selfId }: { rows: AdminAccountRow[]; selfI
             </p>
             <dl className="space-y-2 text-sm">
               <div>
-                <dt className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">E-posta</dt>
+                <dt className="text-xs font-medium text-ink-soft">E-posta</dt>
                 <dd className="break-all text-ink">{dialog.email}</dd>
               </div>
               <div>
-                <dt className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Geçici şifre</dt>
+                <dt className="text-xs font-medium text-ink-soft">Geçici şifre</dt>
                 <dd className="select-all break-all font-mono text-base text-ink">{dialog.password}</dd>
               </div>
             </dl>

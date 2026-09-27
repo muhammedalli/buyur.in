@@ -381,7 +381,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
 
       <Card className="space-y-6">
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Hazırlanma süresi & kalori")}</p>
+          <p className="mb-3 text-xs font-medium text-ink-soft">{t("Hazırlanma süresi & kalori")}</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label htmlFor="p-prep-min">{t("Min (dk)")}</Label>
@@ -398,7 +398,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           </div>
         </div>
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Rozetler")}</p>
+          <p className="mb-3 text-xs font-medium text-ink-soft">{t("Rozetler")}</p>
           <div className="flex flex-wrap gap-2">
             {ALL_BADGES.map((badge) => (
               <button
@@ -417,7 +417,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           </div>
         </div>
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Alerjenler")}</p>
+          <p className="mb-3 text-xs font-medium text-ink-soft">{t("Alerjenler")}</p>
           <div className="flex flex-wrap gap-2">
             {ALL_ALLERGENS.map((allergen) => (
               <button
@@ -438,7 +438,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
       </Card>
 
       <Card className="space-y-4">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Kampanya")}</p>
+        <p className="text-xs font-medium text-ink-soft">{t("Kampanya")}</p>
         <div className="sm:max-w-[12rem]">
           <Label htmlFor="p-discount">{t("İndirim (%)")}</Label>
           <Input

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/logo";
-import { GlobeIcon } from "@/components/icons";
+import { CheckIcon, ChevronDownIcon, GlobeIcon } from "@/components/icons";
+import { sectionId, type LandingSection } from "@/lib/landing-sections";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { siteClientTranslator } from "@/lib/ui-messages/site-client";
 import {
@@ -16,14 +17,14 @@ import {
   type UiLocale,
 } from "@/lib/ui-i18n";
 
-// Bölüm çapaları: `id` sayfadaki bölümün kimliği (kaydırırken hangisinde
+// Bölüm çapaları: kimlik dile göre (lib/landing-sections.ts); sayfadaki bölümün kimliği (kaydırırken hangisinde
 // olunduğu buradan izlenir). Dil kökü önek olarak eklenir (/#… ya da /en#…).
-const LINKS = [
-  { id: "platform", label: msg("Platform") },
-  { id: "ozellikler", label: msg("Özellikler") },
-  { id: "canli-menu", label: msg("Canlı demo") },
-  { id: "fiyat", label: msg("Fiyatlar") },
-] as const;
+const LINKS: { section: LandingSection; label: string }[] = [
+  { section: "platform", label: msg("Platform") },
+  { section: "features", label: msg("Özellikler") },
+  { section: "liveMenu", label: msg("Canlı demo") },
+  { section: "pricing", label: msg("Fiyatlar") },
+];
 
 // Hamburger — açıkken çizgiler çarpıya dönüşür (tek SVG, animasyonlu).
 function MenuToggleIcon({ open }: { open: boolean }) {
@@ -56,43 +57,96 @@ function rememberLocale(locale: UiLocale) {
   document.cookie = `${UI_LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; samesite=lax`;
 }
 
-/** TR | EN seçici. Dil başına ayrı adres (/, /en): arama motorları iki dili de
- *  ayrı sayfa olarak dizinler; seçim çerezde hatırlanır. */
-export function SiteLanguageSelect({ locale, compact = false }: { locale: UiLocale; compact?: boolean }) {
+/** Dil seçici (açılır menü). Dil başına ayrı adres (/, /en): arama motorları iki
+ *  dili de ayrı sayfa olarak dizinler; seçim çerezde hatırlanır. `hrefs` aynı
+ *  sayfanın diğer dildeki adresini verir (yardım merkezi gibi alt sayfalar için);
+ *  verilmeyen dil için dilin ana sayfası. */
+export function SiteLanguageSelect({
+  locale,
+  hrefs,
+}: {
+  locale: UiLocale;
+  hrefs?: Partial<Record<UiLocale, string>>;
+}) {
   const t = siteClientTranslator(locale);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div
-      role="group"
-      aria-label={t("Dil seçimi")}
-      className={`inline-flex items-center rounded-md border border-line bg-paper/70 p-0.5 font-mono text-[12px] uppercase tracking-wider ${
-        compact ? "" : "backdrop-blur"
-      }`}
-    >
-      <GlobeIcon size={14} className="mx-1.5 text-ink-soft" />
-      {UI_LOCALES.map((option) => {
-        const active = option === locale;
-        return (
-          <a
-            key={option}
-            href={siteLocalePath(option)}
-            hrefLang={option}
-            lang={option}
-            aria-current={active ? "true" : undefined}
-            title={uiLocaleLabels[option]}
-            onClick={() => rememberLocale(option)}
-            className={`rounded px-2 py-1 transition-colors duration-200 ${
-              active ? "bg-ink text-paper" : "text-ink-soft hover:bg-crema hover:text-ink"
-            }`}
-          >
-            {uiLocaleCodes[option]}
-          </a>
-        );
-      })}
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-label={t("Dil seçimi")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-paper/70 px-3 text-sm font-medium text-ink transition-colors hover:bg-crema"
+      >
+        <GlobeIcon size={15} className="text-ink-soft" />
+        {uiLocaleCodes[locale]}
+        <ChevronDownIcon size={14} className={`text-ink-soft transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label={t("Dil seçimi")}
+          className="absolute end-0 top-full z-50 mt-2 min-w-[10rem] rounded-md border border-line bg-paper p-1 text-ink shadow-lg"
+        >
+          {UI_LOCALES.map((option) => {
+            const active = option === locale;
+            return (
+              <a
+                key={option}
+                role="menuitemradio"
+                aria-checked={active}
+                href={hrefs?.[option] ?? siteLocalePath(option)}
+                hrefLang={option}
+                lang={option}
+                onClick={() => {
+                  rememberLocale(option);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 whitespace-nowrap rounded-sm px-3 py-2 text-sm transition-colors hover:bg-crema/70 ${
+                  active ? "font-semibold" : ""
+                }`}
+              >
+                <span className="w-6 shrink-0 font-mono text-xs text-ink-soft">{uiLocaleCodes[option]}</span>
+                <span className="flex-1">{uiLocaleLabels[option]}</span>
+                {active && <CheckIcon size={15} className="shrink-0 text-paprika" />}
+              </a>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-export function Navbar({ locale = "tr" }: { locale?: UiLocale }) {
+/** `languageHrefs`: bu sayfanın diğer dillerdeki adresi (yardım merkezi gibi);
+ *  verilmezse dil seçici dilin ana sayfasına gider. */
+export function Navbar({
+  locale = "tr",
+  languageHrefs,
+}: {
+  locale?: UiLocale;
+  languageHrefs?: Partial<Record<UiLocale, string>>;
+}) {
   const t = siteClientTranslator(locale);
   const home = siteLocalePath(locale);
   const [open, setOpen] = useState(false);
@@ -100,8 +154,11 @@ export function Navbar({ locale = "tr" }: { locale?: UiLocale }) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const links = [
-    ...LINKS.map((link) => ({ href: `${home}#${link.id}`, id: link.id as string, label: t(link.label) })),
-    { href: "/docs", id: "", label: t("Yardım") },
+    ...LINKS.map((link) => {
+      const id = sectionId(link.section, locale);
+      return { href: `${home}#${id}`, id, label: t(link.label) };
+    }),
+    { href: siteLocalePath(locale, "/docs"), id: "", label: t("Yardım") },
   ];
 
   // Sayfa kaydırıldığında başlık daralır ve gölge kazanır.
@@ -116,7 +173,7 @@ export function Navbar({ locale = "tr" }: { locale?: UiLocale }) {
 
   // Bulunulan bölümün bağlantısı vurgulanır (landing dışında bölüm yoksa hiçbiri).
   useEffect(() => {
-    const sections = LINKS.map((link) => document.getElementById(link.id)).filter(
+    const sections = LINKS.map((link) => document.getElementById(sectionId(link.section, locale))).filter(
       (element): element is HTMLElement => element !== null
     );
     if (sections.length === 0 || typeof IntersectionObserver === "undefined") return;
@@ -131,7 +188,7 @@ export function Navbar({ locale = "tr" }: { locale?: UiLocale }) {
     );
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, []);
+  }, [locale]);
 
   // Çekmece açıkken arka plan kaymasın; Esc ile kapansın.
   useBodyScrollLock(open);
@@ -176,7 +233,7 @@ export function Navbar({ locale = "tr" }: { locale?: UiLocale }) {
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <SiteLanguageSelect locale={locale} />
+          <SiteLanguageSelect locale={locale} hrefs={languageHrefs} />
           <Link
             href="/panel/login"
             className="rounded-md px-4 py-2.5 font-mono text-[13px] uppercase tracking-wider text-ink-soft transition-colors hover:bg-crema hover:text-ink"
@@ -196,7 +253,7 @@ export function Navbar({ locale = "tr" }: { locale?: UiLocale }) {
 
         {/* Mobil: dil seçici her zaman görünür, menü çekmecede */}
         <div className="flex items-center gap-2 lg:hidden">
-          <SiteLanguageSelect locale={locale} compact />
+          <SiteLanguageSelect locale={locale} hrefs={languageHrefs} />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}

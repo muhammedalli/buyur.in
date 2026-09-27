@@ -41,6 +41,12 @@ export const I18N_DOMAIN_FILES = {
     "lib/unique-name.ts",
     "lib/upload.ts",
     "lib/ai/guard.ts",
+    // Analiz modüllerinin sabit etiketleri (rapor tanımları, tablo sütunları,
+    // skor bileşenleri, fırsat rozetleri); sayı içeren içgörü cümleleri Türkçe kalır.
+    "lib/analytics/reports.ts",
+    "lib/analytics/score.ts",
+    "lib/analytics/opportunities.ts",
+    "lib/analytics/funnel.ts",
     // Panelin çağırdığı API uçlarının hata metinleri (istemci t(hata) ile gösterir).
     "app/api/auth",
     "app/api/upload",

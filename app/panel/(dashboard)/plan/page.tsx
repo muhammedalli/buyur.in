@@ -41,7 +41,7 @@ const START_LABELS: Record<Plan, string> = {
 function Cell({ value }: { value: boolean | string }) {
   const { t } = useUiLocale();
   if (typeof value === "string") {
-    return <span className="font-mono text-[12px] uppercase tracking-wider">{value}</span>;
+    return <span className="text-[13px] font-medium">{value}</span>;
   }
   return value ? (
     <span className="inline-flex text-herb" aria-label={t("var")}>
@@ -93,7 +93,7 @@ function UpgradeCard({
               className={`rounded-md border px-3 py-2.5 text-left transition-colors ${active ? "border-paprika bg-paprika/5" : "border-line hover:border-ink/30"
                 }`}
             >
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+              <span className="block text-xs font-medium text-ink-soft">
                 {option === "yearly" ? t("Yıllık") : t("Aylık")}
               </span>
               <span className="block font-display text-base font-bold">
@@ -167,7 +167,7 @@ export default function PlanPage() {
         <PlanUsageCard business={business} />
 
         <div className="rounded-md border border-line bg-paper p-5">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Planınızda neler var")}</p>
+          <p className="text-xs font-medium text-ink-soft">{t("Planınızda neler var")}</p>
           <ul className="mt-3 space-y-2 text-sm">
             {featureMatrix(t, tag).filter((row) => row.values[current] !== false).map((row) => (
               <li key={row.label} className="flex items-start gap-2">
@@ -217,7 +217,7 @@ export default function PlanPage() {
             <span className="inline-flex rounded-md bg-paprika/15 p-3 text-paprika">
               <SparkIcon size={22} />
             </span>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-paper/60">{t("En üst seviye")}</p>
+            <p className="text-xs font-medium text-paper/60">{t("En üst seviye")}</p>
             <p className="font-display text-xl font-bold sm:text-2xl">{t("Elite plandasınız")}</p>
             <p className="max-w-md text-sm leading-relaxed text-paper/70">
               {t(
@@ -245,14 +245,14 @@ export default function PlanPage() {
         <table className="w-full text-[13px] sm:text-sm">
           <thead>
             <tr className="border-b border-line bg-crema/50 text-left">
-              <th className="hidden px-5 py-3 font-mono text-[10px] uppercase tracking-wider text-ink-soft sm:table-cell">{t("Özellik")}</th>
+              <th className="hidden px-5 py-3 text-xs font-medium text-ink-soft sm:table-cell">{t("Özellik")}</th>
               {PLAN_ORDER.map((plan) => (
                 <th key={plan} className="px-1.5 py-3 text-center sm:px-5">
                   <span className={`font-display text-[13px] font-bold sm:text-base ${plan === current ? "text-paprika" : ""}`}>
                     {PLAN_LABELS[plan]}
                   </span>
                   {plan === current && (
-                    <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-wider text-paprika">
+                    <span className="mt-0.5 block text-xs font-medium text-paprika">
                       {t("Mevcut plan")}
                     </span>
                   )}

@@ -89,7 +89,7 @@ export function ImageUploader({
         {/* Tıklanınca dosya seçtiren katman */}
         {!uploading && (
           <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
-            <span className="font-mono text-[11px] uppercase tracking-wider">{value ? t("Değiştir") : t("Görsel yükle")}</span>
+            <span className="text-xs font-medium">{value ? t("Değiştir") : t("Görsel yükle")}</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif,image/avif"

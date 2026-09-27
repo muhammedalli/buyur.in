@@ -146,7 +146,7 @@ export function SystemSettings({ rows, plans }: { rows: SettingRow[]; plans: Pri
 
             {editing.key === "yearly_discount_percent" && plans.length > 0 && !valueProblem && (
               <div className="rounded-md border border-line bg-crema/40 px-4 py-3 text-sm">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Yıllık ödemede aylık karşılık</p>
+                <p className="text-xs font-medium text-ink-soft">Yıllık ödemede aylık karşılık</p>
                 <ul className="mt-2 space-y-1">
                   {plans.map((plan) => (
                     <li key={plan.name} className="flex flex-wrap justify-between gap-x-4">

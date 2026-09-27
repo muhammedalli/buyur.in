@@ -167,7 +167,7 @@ export default function ProductsPage() {
           if (items.length === 0) return null;
           return (
             <div key={cat.id}>
-              <h2 className="mb-3 font-mono text-[13px] uppercase tracking-wider text-ink-soft">{cat.name}</h2>
+              <h2 className="mb-3 text-sm font-medium text-ink-soft">{cat.name}</h2>
               <div className="space-y-3">
                 {items.map((product) => (
                   <Card key={product.id} className="flex flex-wrap items-center gap-x-4 gap-y-3">

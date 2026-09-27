@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { CHART_INK_SOFT } from "@/components/panel/charts/palette";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Her grafiğin ortak kabuğu: başlık, açıklama, lejant, boş/yükleniyor durumu ve
 // "tabloyu göster" katmanı. Tablo görünümü isteğe bağlı bir süs değil: tooltip'e
@@ -34,19 +35,21 @@ export function ChartLegend({ items }: { items: LegendItem[] }) {
 }
 
 export function ChartSkeleton({ height = 220 }: { height?: number }) {
+  const { t } = useUiLocale();
   return (
-    <div className="animate-pulse rounded-md bg-crema/70" style={{ height }} role="status" aria-label="Grafik yükleniyor" />
+    <div className="animate-pulse rounded-md bg-crema/70" style={{ height }} role="status" aria-label={t("Grafik yükleniyor")} />
   );
 }
 
 export function ChartEmpty({ height = 220, label }: { height?: number; label: string }) {
+  const { t } = useUiLocale();
   return (
     <div
       className="flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line px-6 text-center"
       style={{ minHeight: height }}
     >
-      <p className="text-sm font-semibold">Henüz yeterli veri yok</p>
-      <p className="max-w-xs text-xs text-ink-soft">{label}</p>
+      <p className="text-sm font-semibold">{t("Henüz yeterli veri yok")}</p>
+      <p className="max-w-xs text-xs text-ink-soft">{t(label)}</p>
     </div>
   );
 }
@@ -59,6 +62,7 @@ export interface ChartTableColumn {
 
 /** Grafik değerlerinin metin karşılığı — hover'a erişemeyen okuyucu için. */
 export function ChartTable({ columns, rows }: { columns: ChartTableColumn[]; rows: Record<string, string>[] }) {
+  const { t } = useUiLocale();
   const [open, setOpen] = useState(false);
   if (rows.length === 0) return null;
 
@@ -67,19 +71,19 @@ export function ChartTable({ columns, rows }: { columns: ChartTableColumn[]; row
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
+        className="text-xs font-medium text-ink-soft transition-colors hover:text-paprika"
         aria-expanded={open}
       >
-        {open ? "Tabloyu gizle" : "Tabloyu göster"}
+        {open ? t("Tabloyu gizle") : t("Tabloyu göster")}
       </button>
       {open && (
         <div className="mt-2 max-h-64 overflow-auto rounded-md border border-line">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-crema/80 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+            <thead className="sticky top-0 bg-crema/80 text-left text-xs font-medium text-ink-soft">
               <tr>
                 {columns.map((column) => (
                   <th key={column.key} className={`px-3 py-2 ${column.align === "right" ? "text-right" : ""}`}>
-                    {column.label}
+                    {t(column.label)}
                   </th>
                 ))}
               </tr>

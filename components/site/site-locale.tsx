@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { CheckIcon, ChevronDownIcon, GlobeIcon } from "@/components/icons";
 import {
   activeLocales,
   getStoredLocale,
@@ -98,42 +99,75 @@ export function SiteLocaleProvider({ business, children }: { business: LangConfi
   );
 }
 
+/** Dil seçici: dil kodunu gösteren buton + açılır liste. Dışarı tıklama ve
+ *  Esc kapatır. Radix kullanılmaz: vitrin ve menü paketine panel kiti inmez. */
 export function SiteLanguageSwitcher({ dark = false }: { dark?: boolean }) {
   const { locale, setLocale, locales, t } = useSiteLocale();
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   if (locales.length <= 1) return null;
 
   return (
-    <div className="relative z-30 shrink-0">
-      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+    <div ref={rootRef} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-label={t("chooseLanguage")}
-        className={`relative z-50 flex h-10 w-10 items-center justify-center rounded-full border font-mono text-[12px] font-bold uppercase tracking-wider shadow-sm transition-colors ${
-          dark ? "border-paper/40 bg-black/20 text-paper backdrop-blur" : "border-line bg-paper text-ink"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={`inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-sm font-medium shadow-sm transition-colors ${
+          dark ? "border-paper/40 bg-black/25 text-paper backdrop-blur hover:bg-black/35" : "border-line bg-paper text-ink hover:bg-crema/70"
         }`}
       >
+        <GlobeIcon size={15} />
         {localeCodes[locale]}
+        <ChevronDownIcon size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute end-0 top-12 z-50 min-w-[10rem] overflow-hidden rounded-xl border border-line bg-paper text-ink shadow-lg">
-          {locales.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => {
-                setLocale(option);
-                setOpen(false);
-              }}
-              className="flex w-full items-center gap-3 whitespace-nowrap px-4 py-2.5 text-sm hover:bg-crema/60"
-              style={option === locale ? { color: "var(--brand)", fontWeight: 600 } : undefined}
-            >
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">{localeCodes[option]}</span>
-              <span>{localeLabels[option]}</span>
-            </button>
-          ))}
+        <div
+          role="menu"
+          aria-label={t("chooseLanguage")}
+          className="absolute end-0 top-full z-50 mt-2 min-w-[11rem] rounded-md border border-line bg-paper p-1 text-ink shadow-lg"
+        >
+          {locales.map((option) => {
+            const active = option === locale;
+            return (
+              <button
+                key={option}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active}
+                onClick={() => {
+                  setLocale(option);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2.5 whitespace-nowrap rounded-sm px-3 py-2 text-start text-sm transition-colors hover:bg-crema/70 ${
+                  active ? "font-semibold" : ""
+                }`}
+              >
+                <span className="w-6 shrink-0 font-mono text-xs text-ink-soft">{localeCodes[option]}</span>
+                <span className="flex-1">{localeLabels[option]}</span>
+                {active && <CheckIcon size={15} className="shrink-0 text-[var(--brand-text)]" />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

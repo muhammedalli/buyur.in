@@ -95,7 +95,7 @@ export function BusinessWelcome({ business }: { business: Business }) {
             </span>
           )}
 
-          <p className="rise rise-2 mt-5 font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--brand-text)]">
+          <p className="rise rise-2 mt-5 text-xs font-medium text-[var(--brand-text)]">
             {t("welcomeTitle")}
           </p>
           <h1 className="rise rise-2 mt-1.5 font-display text-[2.1rem] font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
@@ -108,7 +108,7 @@ export function BusinessWelcome({ business }: { business: Business }) {
           <a
             ref={ctaRef}
             href={menuHref}
-            className="rise rise-4 group mt-7 flex w-full items-center justify-center gap-3 rounded-2xl py-4 font-display text-lg font-extrabold uppercase tracking-wide shadow-[0_18px_36px_-16px_rgba(0,0,0,0.45)] transition-transform duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
+            className="rise rise-4 group mt-7 flex w-full items-center justify-center gap-3 rounded-2xl py-4 font-display text-lg font-extrabold shadow-[0_18px_36px_-16px_rgba(0,0,0,0.45)] transition-transform duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
             style={{ background: "var(--brand)", color: "var(--brand-on)" }}
           >
             {t("seeMenu")}
@@ -134,7 +134,7 @@ export function BusinessWelcome({ business }: { business: Business }) {
       )}
 
       <section data-reveal className="mx-auto mt-10 max-w-xl px-5">
-        <h2 className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-ink-soft">{t("visitUs")}</h2>
+        <h2 className="mb-3 text-xs font-medium text-ink-soft">{t("visitUs")}</h2>
         <div className="rounded-3xl border border-line/70 bg-paper p-5 shadow-[0_10px_30px_-22px_rgba(35,24,18,0.45)] sm:p-6">
           <BusinessInfoContent business={business} header={false} />
         </div>
@@ -164,7 +164,7 @@ export function BusinessWelcome({ business }: { business: Business }) {
         <a
           href={menuHref}
           tabIndex={ctaHidden ? 0 : -1}
-          className="flex w-full items-center justify-center gap-2.5 rounded-2xl py-3.5 font-display text-base font-extrabold uppercase tracking-wide shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)]"
+          className="flex w-full items-center justify-center gap-2.5 rounded-2xl py-3.5 font-display text-base font-extrabold shadow-[0_12px_30px_-10px_rgba(0,0,0,0.5)]"
           style={{ background: "var(--brand)", color: "var(--brand-on)" }}
         >
           {t("seeMenu")}

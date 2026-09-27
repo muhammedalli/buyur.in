@@ -3,6 +3,8 @@
 import { ORDINAL } from "@/components/panel/charts/palette";
 import { formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { ChartEmpty, ChartTable } from "@/components/panel/charts/frame";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 // Müşteri yolculuğu hunisi. Adımlar sıralı (ordinal) olduğu için tek renkli,
 // koyulaşan rampa kullanılıyor: renk sıranın kendisini anlatıyor.
@@ -18,11 +20,12 @@ export interface FunnelStep {
 
 export function FunnelChart({
   steps,
-  emptyLabel = "Huniyi çizmek için önce menünüzün ziyaret edilmesi gerekiyor.",
+  emptyLabel = msg("Huniyi çizmek için önce menünüzün ziyaret edilmesi gerekiyor."),
 }: {
   steps: FunnelStep[];
   emptyLabel?: string;
 }) {
+  const { t } = useUiLocale();
   const first = steps[0]?.sessions ?? 0;
   if (first <= 0) return <ChartEmpty height={220} label={emptyLabel} />;
 
@@ -35,10 +38,10 @@ export function FunnelChart({
           return (
             <li key={step.key}>
               <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="truncate">{step.label}</span>
+                <span className="truncate">{t(step.label)}</span>
                 <span className="flex shrink-0 items-baseline gap-2">
                   {step.conversion !== null && (
-                    <span className="text-xs text-ink-soft">{formatPercent(step.conversion, 0)} geçiş</span>
+                    <span className="text-xs text-ink-soft">{t("{percent} geçiş", { percent: formatPercent(step.conversion, 0) })}</span>
                   )}
                   <span className="font-mono text-xs font-semibold tabular-nums">{formatNumber(step.sessions)}</span>
                 </span>
@@ -55,8 +58,8 @@ export function FunnelChart({
                 </div>
               </div>
               {step.dropoff !== null && step.dropoff > 0 && (
-                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                  Bu adımda kayıp: {formatPercent(step.dropoff, 0)}
+                <p className="mt-1 text-xs font-medium text-ink-soft">
+                  {t("Bu adımda kayıp: {percent}", { percent: formatPercent(step.dropoff, 0) })}
                 </p>
               )}
             </li>
@@ -66,12 +69,12 @@ export function FunnelChart({
 
       <ChartTable
         columns={[
-          { key: "label", label: "Adım" },
-          { key: "sessions", label: "Oturum", align: "right" },
-          { key: "conversion", label: "Geçiş", align: "right" },
+          { key: "label", label: msg("Adım") },
+          { key: "sessions", label: msg("Oturum"), align: "right" },
+          { key: "conversion", label: msg("Geçiş"), align: "right" },
         ]}
         rows={steps.map((step) => ({
-          label: step.label,
+          label: t(step.label),
           sessions: formatNumber(step.sessions),
           conversion: step.conversion === null ? "—" : formatPercent(step.conversion, 1),
         }))}

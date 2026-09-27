@@ -6,6 +6,8 @@
 // (CLAUDE.md §12). `items` işletme sahibinin okuyacağı dildedir: ne değişti ve
 // ona ne kazandırdı. Kod ayrıntısı `internal`'a yazılır, sayfada görünmez.
 
+import type { UiLocale } from "@/lib/ui-locales";
+
 export type ReleaseItemKind = "yeni" | "iyileştirme" | "düzeltme" | "güvenlik";
 
 export interface ReleaseItem {
@@ -21,6 +23,9 @@ export interface ReleaseNote {
   /** Tek cümlelik başlık. */
   title: string;
   items: ReleaseItem[];
+  /** İngilizce karşılık (/en/docs/release-notes): `items` ile aynı sırada, aynı
+   *  sayıda. Her yeni sürüm notu bununla birlikte yazılır (test kilitler). */
+  en: { title: string; items: string[] };
   /** Geliştirici notu: etkilenen dosyalar, göçler, yayın adımları. Sayfada gösterilmez. */
   internal?: string[];
 }
@@ -32,7 +37,61 @@ export const RELEASE_KIND_LABELS: Record<ReleaseItemKind, string> = {
   güvenlik: "Güvenlik",
 };
 
+export const RELEASE_KIND_LABELS_EN: Record<ReleaseItemKind, string> = {
+  yeni: "New",
+  iyileştirme: "Improvement",
+  düzeltme: "Fix",
+  güvenlik: "Security",
+};
+
+/** Sayfada gösterilecek hâli: başlık ve maddeler istenen dilde. */
+export function localizedReleaseNote(note: ReleaseNote, locale: UiLocale): { title: string; items: { kind: ReleaseItemKind; label: string; text: string }[] } {
+  const labels = locale === "en" ? RELEASE_KIND_LABELS_EN : RELEASE_KIND_LABELS;
+  return {
+    title: locale === "en" ? note.en.title : note.title,
+    items: note.items.map((item, index) => ({
+      kind: item.kind,
+      label: labels[item.kind],
+      text: locale === "en" ? (note.en.items[index] ?? item.text) : item.text,
+    })),
+  };
+}
+
 export const RELEASE_NOTES: ReleaseNote[] = [
+  {
+    version: "0.10.0",
+    date: "2026-09-27",
+    title: "Panele yeni görünüm: tam boy yan menü ve sade kartlar",
+    items: [
+      { kind: "yeni", text: "Panelin sol menüsü artık ekranın tam boyunda. Menü butonuyla ikonlara daraltıp çalışma alanını genişletebilirsiniz; tercihiniz bu cihazda hatırlanır." },
+      { kind: "iyileştirme", text: "Menüyü görme, kılavuzu başlatma ve çıkış, yan menünün altındaki işletme adınıza tıklayınca açılan menüde. Üst çubukta hangi sayfada olduğunuz yazıyor." },
+      { kind: "iyileştirme", text: "Sayılar ikonlu kartlarda, sekmeler tek bir çerçevede; butonlar ve alanlar daha okunur. Renkleriniz ve yazı tipleri aynı kaldı." },
+      { kind: "iyileştirme", text: "Yönetim paneli de aynı yan menüye geçti: hesap ve çıkış işlemleri menünün altında." },
+      { kind: "iyileştirme", text: "Panel ve web sitenizdeki büyük harfli, daktilo yazılı etiketler sadeleşti: butonlar, etiketler ve rozetler artık normal yazıyla, daha kolay okunuyor." },
+      { kind: "yeni", text: "Panel İngilizce olarak da tam kullanılabiliyor: analizler, raporlar, değerlendirmeler, yapay zekâ ile menü aktarımı ve plan ekranları dahil. Tarih, yüzde ve süreler de seçtiğiniz dile göre yazılıyor." },
+      { kind: "iyileştirme", text: "Web sitenizin açılışında görselin üstünde duran dil ve menü butonları kalktı; ziyaretçi aşağı kaydırınca işletme adınız, dil seçici ve \"Menü\" düğmesiyle yapışkan bir üst çubuk beliriyor. Dil seçici artık açılır menü." },
+    ],
+    en: {
+      title: "A new look for the dashboard: full-height sidebar and cleaner cards",
+      items: [
+        "The dashboard's left menu now runs the full height of the screen. Collapse it to icons with the menu button to widen your workspace; your choice is remembered on this device.",
+        "Viewing your menu, starting the guide and signing out are in the menu that opens when you click your business name at the bottom of the sidebar. The top bar shows which page you are on.",
+        "Numbers sit in cards with icons, tabs in a single frame; buttons and fields are easier to read. Your colors and fonts stay the same.",
+        "The admin panel moved to the same sidebar: account and sign-out actions are at the bottom of the menu.",
+        "The all-caps, typewriter-style labels in your dashboard and website were simplified: buttons, labels and badges now use regular text and are easier to read.",
+        "The dashboard is fully usable in English, including analytics, reports, reviews, AI menu import and plan screens. Dates, percentages and durations follow your chosen language too.",
+        "The language and menu buttons over the cover image on your website are gone; when a visitor scrolls down, a sticky top bar with your business name, a language selector and a \"Menu\" button appears. The language selector is now a dropdown.",
+      ],
+    },
+    internal: [
+      "components/ui/sidebar.tsx: shadcn Sidebar'ın sade hâli (SidebarProvider, Sidebar, SidebarHeader/Content/Footer/Group/Item, SidebarBrand, SidebarAccount, SidebarTrigger, SidebarInset). lg+ tam boy yapışkan sütun (w-64 / daraltılmış w-14, localStorage: buyur-panel-sidebar, buyur-admin-sidebar), lg altı Sheet; sayfa değişince yaprak kapanır. Kit (components/panel/ui.tsx) dışa verir.",
+      "Kabuklar: app/panel/(dashboard)/layout.tsx + components/panel/panel-nav.tsx (PanelSidebar, PanelBreadcrumb), components/admin/admin-shell.tsx. Başlık yüksekliği --app-header-h = 64px (SidebarProvider'da); eski --panel-header-h / --admin-header-h kalktı.",
+      "Büyük harf temizliği: panel/yönetim/site ekranlarındaki `font-mono … uppercase tracking-*` sınıfları TS-AST ile gövde yazısına çevrildi (giriş/kayıt ekranları ve müşteri menüsü hariç).",
+      "Panel İngilizce: lib/ui-messages/en/panel.ts dolduruldu (≈1.100 metin); analiz/rapor/değerlendirme/AI aktarım/plan kullanım ekranları t() ile sarıldı. lib/analytics/{reports,score,opportunities}.ts sabit etiketleri msg() ile işaretlendi ve i18n-domains panel kapsamına eklendi. Sunucuda sayıyla üretilen içgörü/rapor özet cümleleri Türkçe kalır (API'ye dil parametresi gerekir). chart-utils biçimleri setChartLocale ile arayüz diline bağlandı (WEEKDAY_LABELS → weekdayLabel/weekdayLabels).",
+      "Site: SiteHeader açılışta gizli, hero'nun %35'i geçilince iner (inert); SiteLanguageSwitcher açılır menü (Radix'siz, Esc/dışarı tıklama kapatır).",
+      "Kit: Button/Label/Tabs/NavTabs/Switch/Table başlığı font-mono büyük harf yerine gövde yazısı; Tabs bölümlü kontrol (bg-crema p-1); alanlar focus ring-3; Card/Table shadow-xs; PageHeader alt çizgisiz; StatGroup ayrı kartlardan ızgara + isteğe bağlı `icon`. Input/Textarea/Select/Card/Table sınıfları artık cn ile birleşiyor.",
+    ],
+  },
   {
     version: "0.9.0",
     date: "2026-09-27",
@@ -47,6 +106,19 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       { kind: "düzeltme", text: "Kaydet çubuğundaki \"Vazgeç\" butonu telefonda gizleniyor; önceden sığmayıp çubuğu taşırıyordu." },
       { kind: "yeni", text: "Yönetim panelinde Ödemeler: borç kayıtları, alınan ve verilen ödemeler, işletme bazında kalan borç ve filtrelenebilir ödeme geçmişi." },
     ],
+    en: {
+      title: "Menus in eight languages, a phone-friendly dashboard and payments in admin",
+      items: [
+        "Your menu can now be offered in eight languages: Türkçe, English, Deutsch, العربية, Français, Español, Italiano and Русский. You can enable up to four languages including your main one.",
+        "Menu languages are picked from a dropdown: choose the main language and enable extra ones with \"Add language\". Translations of a language you switch off are not deleted.",
+        "No more limit on venue features: select as many as you like, such as Wi-Fi, parking or terrace. They appear with icons on your menu and website.",
+        "The dashboard was reworked for phones: a side menu opened with the menu button instead of a sideways-scrolling strip. Settings sections are in a list on the left on desktop and in a dropdown on phones.",
+        "No dashboard screen scrolls sideways on a phone anymore; tabs, tables and buttons fit the screen.",
+        "Some arrows and alignments in the Arabic menu are now shown right to left.",
+        "The \"Cancel\" button in the save bar is hidden on phones; it used to overflow the bar.",
+        "Payments in the admin panel: debt records, received and paid payments, remaining debt per business and a filterable payment history.",
+      ],
+    },
     internal: [
       "Menü dilleri: lib/i18n.ts (SUPPORTED_LOCALES = tr en de ar fr es it ru, MAX_MENU_LOCALES = 4, activeLocales en fazla 4 döner), lib/labels.ts, lib/ai/translate.ts dil adı eşlemeleri. Yayınlanmamış Kürtçe (ku) kaldırıldı.",
       "Mekân özellikleri: highlights.maxSelect = seçenek sayısı; components/highlight-list.tsx (menü + site).",
@@ -72,6 +144,18 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       { kind: "düzeltme", text: "Ayarlarda yeni eklenip henüz kaydedilmemiş dil için \"önce kaydedin\" uyarısı gösteriliyor; buton sessizce o dili atlamıyor." },
       { kind: "iyileştirme", text: "Sayfadan çıkıldığında bekleyen çeviri denemesi tamamen iptal ediliyor." },
     ],
+    en: {
+      title: "Help center and more reliable AI translation",
+      items: [
+        "The help center is live: every feature, from setup to QR codes and from multiple languages to reports, is explained step by step.",
+        "Release notes page: follow what changed with each update here.",
+        "\"Complete with AI\" now fills the right field for campaign title and message, product options and campaign label; before, a translation could be generated and still stay empty.",
+        "AI no longer invents a description for a product that has none in the main language.",
+        "Translations are no longer lost when the AI returns languages by name (like \"English\") instead of code.",
+        "A \"save first\" warning is shown for a language just added in Settings but not saved yet; the button no longer skips that language silently.",
+        "A pending translation attempt is fully cancelled when you leave the page.",
+      ],
+    },
     internal: [
       "lib/ai/translate.ts: buildTranslationPrompt şema örneğini gönderilen alanlardan kurar; normalizeTranslationResult sourceFields (entrySourceFields) ile yalnızca gönderilen alanları kabul eder; extractItems id-sözlüğü, kök dil anahtarı, dizi çeviri ve farklı kök anahtar biçimlerini okur; normalizeLocaleKey dil adlarını tanır; unsavedLocales eklendi.",
       "components/panel/ai/translate-button.tsx: visibleLocales, iptal edilebilir yeniden deneme beklemesi.",
@@ -84,6 +168,12 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     date: "2026-09-26",
     title: "Demo menü yeni adresinde",
     items: [{ kind: "düzeltme", text: "Tanıtım sayfasındaki \"Canlı demo\" bağlantıları yeni demo menü adresine yönlendiriliyor." }],
+    en: {
+      title: "Demo menu at its new address",
+      items: [
+        "The \"Live demo\" links on the landing page now point to the new demo menu address.",
+      ],
+    },
     internal: ["lib/showcase.ts DEMO_SLUG = \"demo\"."],
   },
   {
@@ -96,6 +186,15 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       { kind: "yeni", text: "İşletme açıklaması da yapay zekâ ile çevrilebiliyor." },
       { kind: "güvenlik", text: "Önemli her işlem merkezi denetim kaydına yazılıyor." },
     ],
+    en: {
+      title: "Lost translations in multiple languages and a central audit log",
+      items: [
+        "Fixed the form reloading and wiping AI translations when you returned to the tab.",
+        "\"Complete with AI\" fills only empty translations; it never touches one you wrote yourself.",
+        "The business description can be translated with AI too.",
+        "Every important action is written to a central audit log.",
+      ],
+    },
     internal: ["docs/audit-log.md; pocketbase/pb_hooks canlı PocketBase'e henüz kurulmadı."],
   },
   {
@@ -105,6 +204,12 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     items: [
       { kind: "yeni", text: "İki adımlı yönetici girişi, işletme listesi, askıya alma ve plan/fiyat düzenleme." },
     ],
+    en: {
+      title: "Admin panel",
+      items: [
+        "Two-step admin sign-in, business list, suspension and plan/price editing.",
+      ],
+    },
     internal: ["admin.buyur.in; lib/admin-roles.ts, lib/admin-audit.ts."],
   },
   {
@@ -114,6 +219,12 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     items: [
       { kind: "iyileştirme", text: "Giriş hesabı ile işletme kaydı birleştirildi; kayıt e-posta kodu ile doğrulanıyor." },
     ],
+    en: {
+      title: "One account, one business",
+      items: [
+        "The sign-in account and the business record were merged; sign-up is verified with an email code.",
+      ],
+    },
     internal: ["buyur_businesses auth koleksiyonu; scripts/business-schema.mjs."],
   },
 ];

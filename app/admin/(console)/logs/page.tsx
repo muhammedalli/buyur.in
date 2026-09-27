@@ -120,7 +120,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
         />
       ) : (
         <>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <p className="mb-3 text-xs font-medium text-ink-soft">
             {result.totalItems.toLocaleString("tr-TR")} kayıt
           </p>
           <Card>
@@ -136,7 +136,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
       {result.totalPages > 1 && (
         <nav aria-label="Sayfalar" className="mt-6 flex items-center justify-between gap-3">
           {result.page > 1 ? <ButtonLink href={auditLogHref(parsed, { page: result.page - 1 })}>Önceki</ButtonLink> : <span />}
-          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <span className="text-xs font-medium text-ink-soft">
             {result.page} / {result.totalPages}
           </span>
           {result.page < result.totalPages ? (

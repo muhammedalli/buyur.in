@@ -5,8 +5,14 @@
 // kaydıdır ve admin panelinden değişir (CLAUDE.md §4). Metin "planınıza göre"
 // der, rakam için Plan ekranına yönlendirir.
 //
+// İngilizcesi lib/docs-en.ts'te (/en/docs); Türkçe rehber değişince o da
+// aynı değişiklikte güncellenir.
+//
 // Bir özellik davranışı değişince ilgili rehber aynı değişiklikte güncellenir
 // ve `updated` ilerletilir; sürüm notuna da yazılır (lib/release-notes.ts).
+
+import { DOC_GUIDES_EN } from "@/lib/docs-en";
+import { siteLocalePath, uiLocaleTags, type UiLocale } from "@/lib/ui-i18n";
 
 export interface DocSection {
   heading: string;
@@ -280,6 +286,7 @@ export const DOC_GUIDES: DocGuide[] = [
         paragraphs: [
           "Web sitesi ekranından menü bilgilerinizle hazırlanan tanıtım sitesini açabilirsiniz (adresiniz.buyur.in/site). Menüyü güncelledikçe site de güncellenir. Bu özellik planınıza bağlıdır.",
           "Ayarlar → Mekân özellikleri'nde seçtiğiniz özellikler sitenin \"Hakkımızda\" bölümünde ikonlarıyla listelenir.",
+          "Site ilk açıldığında kapak görseli sade görünür; ziyaretçi aşağı kaydırınca üstte işletme adınız, dil seçici ve \"Menü\" düğmesi olan bir çubuk belirir. Dil seçici, menünüzde açık olan dilleri listeler.",
         ],
       },
       {
@@ -310,6 +317,13 @@ export const DOC_GUIDES: DocGuide[] = [
         ],
       },
       {
+        heading: "Panel dili",
+        paragraphs: [
+          "Panel Türkçe ve İngilizce kullanılabilir. Üst çubuktaki dil düğmesinden ya da Ayarlar → Panel'den değiştirin; tercihiniz hesabınızda saklanır. Menünüzün misafirlere sunulan dilleri bundan ayrıdır (Ayarlar → Menü dilleri).",
+          "Analizlerdeki otomatik içgörü cümleleri ve rapor özetleri şimdilik Türkçe üretilir.",
+        ],
+      },
+      {
         heading: "Yardım",
         paragraphs: ["Cevabını bulamadığınız her soru için merhaba@buyur.in adresine ya da WhatsApp destek hattına yazın."],
       },
@@ -317,14 +331,62 @@ export const DOC_GUIDES: DocGuide[] = [
   },
 ];
 
-export function docPath(slug: string): string {
-  return `/docs/${slug}`;
+/** Rehber grubunun görünen adı. */
+export const DOC_GROUP_LABELS: Record<DocGroup, Record<UiLocale, string>> = {
+  Başlarken: { tr: "Başlarken", en: "Getting started" },
+  Menü: { tr: "Menü", en: "Menu" },
+  "Yapay zekâ": { tr: "Yapay zekâ", en: "AI" },
+  Büyüme: { tr: "Büyüme", en: "Growth" },
+  Hesap: { tr: "Hesap", en: "Account" },
+};
+
+const RELEASE_NOTES_SLUGS: Record<UiLocale, string> = { tr: RELEASE_NOTES_SLUG, en: "release-notes" };
+
+/** Yardım merkezinin kökü: /docs, /en/docs. */
+export function docsHome(locale: UiLocale = "tr"): string {
+  return siteLocalePath(locale, "/docs");
 }
 
-export function docGuide(slug: string): DocGuide | undefined {
-  return DOC_GUIDES.find((guide) => guide.slug === slug);
+/** Rehberin ya da sürüm notlarının adresi. `slug` her zaman TÜRKÇE kimliktir;
+ *  İngilizce adres kendi slug'ını kullanır (/en/docs/quick-start). */
+export function docPath(slug: string, locale: UiLocale = "tr"): string {
+  return `${docsHome(locale)}/${localizedDocSlug(slug, locale)}`;
 }
 
-export function formatDocDate(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+export function localizedDocSlug(slug: string, locale: UiLocale): string {
+  if (slug === RELEASE_NOTES_SLUG) return RELEASE_NOTES_SLUGS[locale];
+  return locale === "tr" ? slug : (DOC_GUIDES_EN[slug]?.slug ?? slug);
+}
+
+/** Rehberin istenen dildeki hâli. `slug` Türkçe kimliktir; dönen kaydın
+ *  `slug`'ı da Türkçe kalır (adres docPath ile kurulur). */
+export function localizeGuide(guide: DocGuide, locale: UiLocale): DocGuide {
+  if (locale === "tr") return guide;
+  const translation = DOC_GUIDES_EN[guide.slug];
+  if (!translation) return guide;
+  return { ...guide, title: translation.title, summary: translation.summary, sections: translation.sections };
+}
+
+export function docGuides(locale: UiLocale = "tr"): DocGuide[] {
+  return DOC_GUIDES.map((guide) => localizeGuide(guide, locale));
+}
+
+/** Adres parçasından (dilin kendi slug'ı) Türkçe kimliği bulur. */
+export function docSlugFromPath(pathSlug: string, locale: UiLocale): string | undefined {
+  if (pathSlug === RELEASE_NOTES_SLUGS[locale]) return RELEASE_NOTES_SLUG;
+  return DOC_GUIDES.find((guide) => localizedDocSlug(guide.slug, locale) === pathSlug)?.slug;
+}
+
+export function docGuide(slug: string, locale: UiLocale = "tr"): DocGuide | undefined {
+  const guide = DOC_GUIDES.find((item) => item.slug === slug);
+  return guide ? localizeGuide(guide, locale) : undefined;
+}
+
+export function formatDocDate(iso: string, locale: UiLocale = "tr"): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(uiLocaleTags[locale], {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }

@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic";
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{label}</dt>
+      <dt className="text-xs font-medium text-ink-soft">{label}</dt>
       <dd className="mt-1 break-words text-sm text-ink">{children}</dd>
     </div>
   );
@@ -66,7 +66,7 @@ export default async function AdminBusinessPage({ params }: { params: Promise<{ 
     <>
       <Link
         href="/admin/businesses"
-        className="mb-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
+        className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-ink-soft transition-colors hover:text-paprika"
       >
         <ChevronLeftIcon size={14} />
         İşletmeler

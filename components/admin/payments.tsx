@@ -61,7 +61,7 @@ const STATUS_TONE: Record<PaymentStatus, string> = {
   cancelled: "border-line bg-crema text-ink-soft line-through",
 };
 
-const BADGE = "inline-flex items-center whitespace-nowrap rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider";
+const BADGE = "inline-flex items-center whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium";
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
   return <span className={cn(BADGE, STATUS_TONE[status])}>{PAYMENT_STATUS_LABELS[status]}</span>;

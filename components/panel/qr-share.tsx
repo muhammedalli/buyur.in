@@ -66,7 +66,7 @@ export function QrShare({ business }: { business: Business }) {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+        <p className="flex items-center gap-2 text-xs font-medium text-ink-soft">
           <QrCodeIcon size={14} /> {t("QR & paylaş")}
         </p>
         <a

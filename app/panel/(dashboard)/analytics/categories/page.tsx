@@ -15,6 +15,7 @@ import { BarList } from "@/components/panel/charts/bar-chart";
 import { formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 interface CategoryRow {
   key: string;
@@ -27,6 +28,7 @@ interface CategoryRow {
 }
 
 export default function CategoryAnalyticsPage() {
+  const { t } = useUiLocale();
   const router = useRouter();
   const { setFilters } = useAnalyticsFilters();
   const { data, loading, refreshing, error, reload } = useAnalyticsQuery<{ items: CategoryRow[] }>("categories");
@@ -41,7 +43,7 @@ export default function CategoryAnalyticsPage() {
 
   return (
     <div>
-      <PageHeader title="Kategori analitiği" description="Hangi kategori ilgi çekiyor, hangisi sepete dönüyor" />
+      <PageHeader title={t("Kategori analitiği")} description={t("Hangi kategori ilgi çekiyor, hangisi sepete dönüyor")} />
 
       <AnalyticsFilterBar />
 
@@ -49,8 +51,8 @@ export default function CategoryAnalyticsPage() {
       {error?.isPlanLocked && (
         <FeatureLocked
           feature="advanced_analytics"
-          subject="Kategori analitiği"
-          description="Kategori bazında görüntülenme, dönüşüm ve karşılaştırma."
+          subject={t("Kategori analitiği")}
+          description={t("Kategori bazında görüntülenme, dönüşüm ve karşılaştırma.")}
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}
@@ -58,18 +60,18 @@ export default function CategoryAnalyticsPage() {
       {data && (
         <Refreshable refreshing={refreshing}>
           {items.length === 0 ? (
-            <NoDataYet description="Bu dönemde kategori görüntülenmesi kaydedilmemiş." />
+            <NoDataYet description={t("Bu dönemde kategori görüntülenmesi kaydedilmemiş.")} />
           ) : (
             <div className="space-y-4">
               <div className="grid gap-4 lg:grid-cols-2">
-                <ChartFrame title="Kategori görüntülenmeleri" hint="Kategoriye tıklayarak ürünlerine inebilirsiniz">
+                <ChartFrame title={t("Kategori görüntülenmeleri")} hint={t("Kategoriye tıklayarak ürünlerine inebilirsiniz")}>
                   <BarList
                     items={items.map((item) => ({ key: item.key, label: item.label, value: item.views }))}
                     onSelect={(item) => drillDown(item.key)}
                   />
                 </ChartFrame>
 
-                <ChartFrame title="Sepete dönüşüm" hint="Sepete ekleme / ürün görüntülenme">
+                <ChartFrame title={t("Sepete dönüşüm")} hint={t("Sepete ekleme / ürün görüntülenme")}>
                   <BarList
                     color={CATEGORICAL[3]}
                     valueFormatter={(value) => formatPercent(value / 100, 1)}
@@ -80,7 +82,7 @@ export default function CategoryAnalyticsPage() {
                         key: item.key,
                         label: item.label,
                         value: Math.round(item.conversion * 1000) / 10,
-                        note: `${formatNumber(item.cart_adds)} sepet`,
+                        note: t("{count} sepet", { count: formatNumber(item.cart_adds) }),
                       }))}
                   />
                 </ChartFrame>
@@ -89,13 +91,13 @@ export default function CategoryAnalyticsPage() {
               <div className="overflow-x-auto rounded-md border border-line bg-paper">
                 <table className="w-full min-w-[720px] text-sm">
                   <thead>
-                    <tr className="border-b border-line bg-crema/50 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                      <th className="px-4 py-3">Kategori</th>
-                      <th className="px-4 py-3 text-right">Görüntülenme</th>
-                      <th className="px-4 py-3 text-right">Ürün görüntülenme</th>
-                      <th className="px-4 py-3 text-right">Sepete ekleme</th>
-                      <th className="px-4 py-3 text-right">Dönüşüm</th>
-                      <th className="px-4 py-3 text-right">Oturum</th>
+                    <tr className="border-b border-line bg-crema/50 text-left text-xs font-medium text-ink-soft">
+                      <th className="px-4 py-3">{t("Kategori")}</th>
+                      <th className="px-4 py-3 text-right">{t("Görüntülenme")}</th>
+                      <th className="px-4 py-3 text-right">{t("Ürün görüntülenme")}</th>
+                      <th className="px-4 py-3 text-right">{t("Sepete ekleme")}</th>
+                      <th className="px-4 py-3 text-right">{t("Dönüşüm")}</th>
+                      <th className="px-4 py-3 text-right">{t("Oturum")}</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -12,6 +12,8 @@ import {
   useChartWidth,
 } from "@/components/panel/charts/chart-utils";
 import { ChartEmpty, ChartTable, type LegendItem } from "@/components/panel/charts/frame";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 // Zaman serisi çizgi grafiği. Tek eksen (asla çift y ekseni), 2px çizgi,
 // yüzey renginde halkalı uç noktası, imleç X'i yakalayan crosshair ve tek
@@ -30,7 +32,7 @@ const PADDING = { top: 12, right: 16, bottom: 26, left: 44 };
 export function LineChart({
   series,
   height = 240,
-  emptyLabel = "Menünüz ziyaret edilmeye başlayınca bu grafik dolacak.",
+  emptyLabel = msg("Menünüz ziyaret edilmeye başlayınca bu grafik dolacak."),
   valueFormatter = formatNumber,
 }: {
   series: LineSeries[];
@@ -38,6 +40,7 @@ export function LineChart({
   emptyLabel?: string;
   valueFormatter?: (value: number) => string;
 }) {
+  const { t } = useUiLocale();
   const { ref, width } = useChartWidth<HTMLDivElement>();
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -88,7 +91,7 @@ export function LineChart({
         width={width}
         height={height}
         role="img"
-        aria-label="Zaman serisi grafiği"
+        aria-label={t("Zaman serisi grafiği")}
         onPointerMove={handleMove}
         onPointerLeave={() => setHoverIndex(null)}
         className="touch-pan-y"
@@ -179,7 +182,7 @@ export function LineChart({
           className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-md border border-line bg-paper px-3 py-2 shadow-[0_12px_30px_-16px_rgba(35,24,18,0.6)]"
           style={{ left: tooltipLeft }}
         >
-          <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+          <p className="text-xs font-medium text-ink-soft">
             {formatDayLong(dates[hoverIndex]!)}
           </p>
           <div className="mt-1 space-y-0.5">
@@ -196,7 +199,7 @@ export function LineChart({
 
       <ChartTable
         columns={[
-          { key: "date", label: "Tarih" },
+          { key: "date", label: msg("Tarih") },
           ...resolved.map((item) => ({ key: item.key, label: item.label, align: "right" as const })),
         ]}
         rows={dates.map((date, index) => ({

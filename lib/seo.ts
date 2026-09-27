@@ -104,11 +104,14 @@ export function siteJsonLd() {
 }
 
 /** Blog yazısı ve yasal metinlerde kırıntı navigasyonu. */
-export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
+export function breadcrumbJsonLd(
+  trail: { name: string; path: string }[],
+  home: { name: string; path: string } = { name: "Ana sayfa", path: "/" }
+) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [{ name: "Ana sayfa", path: "/" }, ...trail].map((item, index) => ({
+    itemListElement: [home, ...trail].map((item, index) => ({
       "@type": "ListItem",
       position: index + 1,
       name: item.name,

@@ -34,7 +34,7 @@ export function SuspensionBanner() {
         href={contact}
         target="_blank"
         rel="noreferrer"
-        className="shrink-0 rounded-md bg-ink px-5 py-2.5 text-center font-mono text-[12px] uppercase tracking-wider text-paper transition-colors hover:bg-paprika"
+        className="shrink-0 rounded-md bg-ink px-5 py-2.5 text-center text-[13px] font-medium text-paper transition-colors hover:bg-paprika"
       >
         Bize yazın
       </a>

@@ -370,12 +370,12 @@ function GuideLayer({
         key={session.index}
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <p className="text-xs font-medium text-ink-soft">
             {t("Adım {n} / {total}", { n: session.index + 1, total })}
           </p>
           <div className="flex items-center gap-2">
             <span
-              className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 done ? "bg-herb/10 text-herb" : "bg-paprika/10 text-paprika"
               }`}
             >
@@ -453,7 +453,7 @@ function GuideIntro({
     <div>
       <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
         <div className="min-w-0">
-          <p className="flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-paprika">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-paprika">
             <CompassIcon size={14} /> {t("Kılavuz")}
           </p>
           <h2 id="guide-title" className="mt-1.5 font-display text-xl font-extrabold leading-tight">
@@ -505,7 +505,7 @@ function GuideIntro({
       </ol>
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-crema/40 px-5 py-4 sm:px-6">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+        <p className="text-xs font-medium text-ink-soft">
           {t("{done}/{total} tamamlandı", { done: doneCount, total: GUIDE_STEPS.length })}
         </p>
         {/* Dar ekranda butonlar alt alta, tam genişlik: uzun etiket pencereden taşmasın. */}
@@ -567,7 +567,7 @@ export function GuideButton({ variant = "icon", className = "" }: { variant?: "i
         type="button"
         onClick={start}
         aria-label={t("Kılavuzu başlat")}
-        className={`inline-flex items-center gap-2 rounded-md border border-line px-3 py-2 font-mono text-[12px] uppercase tracking-wider text-ink transition-colors hover:border-paprika hover:text-paprika ${className}`}
+        className={buttonClass("outline", className, "sm")}
       >
         <CompassIcon size={15} strokeWidth={2} />
         <span className="hidden xl:inline">{t("Kılavuz")}</span>

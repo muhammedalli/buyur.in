@@ -87,7 +87,7 @@ function QrCard({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate font-display text-base font-bold">{code.name}</p>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            <p className="text-xs font-medium text-ink-soft">
               {t(PLACEMENT_LABELS[code.placement] ?? code.placement)}
             </p>
           </div>
@@ -108,7 +108,7 @@ function QrCard({
             href={dataUrl || undefined}
             download={`buyur-qr-${code.code}.png`}
             onClick={onDownloaded}
-            className="rounded-md border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika"
+            className="rounded-md border border-line px-3 py-1.5 text-xs font-medium transition-colors hover:border-paprika hover:text-paprika"
           >
             {t("PNG indir")}
           </a>
@@ -118,7 +118,7 @@ function QrCard({
               await navigator.clipboard.writeText(url);
               toast(t("QR linki kopyalandı"));
             }}
-            className="rounded-md border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika"
+            className="rounded-md border border-line px-3 py-1.5 text-xs font-medium transition-colors hover:border-paprika hover:text-paprika"
           >
             {t("Linki kopyala")}
           </button>

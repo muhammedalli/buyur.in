@@ -5,16 +5,18 @@ import { useBusiness } from "@/components/panel/business-context";
 import { ClockIcon, LockIcon } from "@/components/icons";
 import { planUsageMessage } from "@/components/panel/plan-usage";
 import { freemiumUsage } from "@/lib/entitlements";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 /** Freemium kullanımını hatırlatan üst bant. Eşikler ve mesajlar tek kaynaktan
  *  (lib/entitlements.ts + plan-usage.tsx) gelir. Ücretli planlarda hiç görünmez —
  *  Premium/Elite'te süre ya da görüntülenme limiti yoktur. */
 export function TrialBanner() {
   const { business } = useBusiness();
+  const { t, tag } = useUiLocale();
   if (!business) return null;
 
   const usage = freemiumUsage(business);
-  const message = planUsageMessage(usage, business.plan);
+  const message = planUsageMessage(usage, business.plan, t);
   if (!message) return null;
 
   return (
@@ -35,8 +37,13 @@ export function TrialBanner() {
               <>
                 {" "}
                 <span className="whitespace-nowrap">
-                  ({usage.daysLeft} gün · {usage.menuViews.toLocaleString("tr-TR")}/
-                  {usage.menuViewLimit.toLocaleString("tr-TR")} görüntülenme)
+                  (
+                  {t("{days} gün · {views}/{limit} görüntülenme", {
+                    days: usage.daysLeft,
+                    views: usage.menuViews.toLocaleString(tag),
+                    limit: usage.menuViewLimit.toLocaleString(tag),
+                  })}
+                  )
                 </span>
               </>
             )}
@@ -45,13 +52,13 @@ export function TrialBanner() {
       </div>
       <Link
         href="/panel/plan"
-        className={`shrink-0 rounded-md px-5 py-2.5 text-center font-mono text-[12px] uppercase tracking-wider transition-colors ${
+        className={`shrink-0 rounded-md px-5 py-2.5 text-center text-[13px] font-medium transition-colors ${
           usage.exhausted
             ? "bg-ink text-paper hover:bg-paprika"
             : "border border-line text-ink hover:border-paprika hover:text-paprika"
         }`}
       >
-        Planımı yükselt
+        {t("Planımı yükselt")}
       </Link>
     </div>
   );

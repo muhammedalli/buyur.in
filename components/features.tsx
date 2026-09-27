@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { sectionId } from "@/lib/landing-sections";
 import type { ReactNode } from "react";
 import { whatsappLink } from "@/lib/site";
 import { CheckCircleIcon, QrCodeIcon, WhatsappIcon } from "@/components/icons";
@@ -183,7 +184,7 @@ export function ProblemSolution({ locale = "tr" }: { locale?: UiLocale }) {
   ];
 
   return (
-    <section id="neden" className="border-b border-line bg-crema/40">
+    <section id={sectionId("why", locale)} className="border-b border-line bg-crema/40">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Neden buyur")}</p>
@@ -330,7 +331,7 @@ export function HowItWorks({ locale = "tr" }: { locale?: UiLocale }) {
   ];
 
   return (
-    <section id="nasil" className="border-y border-line bg-ink text-paper">
+    <section id={sectionId("how", locale)} className="border-y border-line bg-ink text-paper">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal>
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Nasıl çalışır")}</p>

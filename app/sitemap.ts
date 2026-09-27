@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 import { createServerPB } from "@/lib/pocketbase";
 import { ROOT_DOMAIN, menuHost } from "@/lib/site";
 import { LEGAL_DOCS, legalPath } from "@/lib/legal";
-import { DOC_GUIDES, RELEASE_NOTES_SLUG, docPath } from "@/lib/docs";
+import { DOC_GUIDES, RELEASE_NOTES_SLUG, docPath, docsHome } from "@/lib/docs";
+import { UI_LOCALES, type UiLocale } from "@/lib/ui-locales";
 import { latestRelease } from "@/lib/release-notes";
 import { isSuspended } from "@/lib/business-suspension";
 
@@ -55,22 +56,31 @@ function legalUrls(): MetadataRoute.Sitemap {
   ];
 }
 
-/** Yardım merkezi ve sürüm notları. */
+/** Yardım merkezi ve sürüm notları, her arayüz dilinde (dil eşleriyle). */
 function docUrls(): MetadataRoute.Sitemap {
+  const entry = (pathFor: (locale: UiLocale) => string) =>
+    UI_LOCALES.map((locale) => ({
+      url: `https://${ROOT_DOMAIN}${pathFor(locale)}`,
+      alternates: {
+        languages: Object.fromEntries(UI_LOCALES.map((option) => [option, `https://${ROOT_DOMAIN}${pathFor(option)}`])),
+      },
+    }));
   return [
-    { url: `https://${ROOT_DOMAIN}/docs`, changeFrequency: "weekly", priority: 0.5 },
-    ...DOC_GUIDES.map((guide) => ({
-      url: `https://${ROOT_DOMAIN}${docPath(guide.slug)}`,
-      lastModified: new Date(guide.updated),
-      changeFrequency: "monthly" as const,
-      priority: 0.5,
-    })),
-    {
-      url: `https://${ROOT_DOMAIN}${docPath(RELEASE_NOTES_SLUG)}`,
+    ...entry(docsHome).map((item) => ({ ...item, changeFrequency: "weekly" as const, priority: 0.5 })),
+    ...DOC_GUIDES.flatMap((guide) =>
+      entry((locale) => docPath(guide.slug, locale)).map((item) => ({
+        ...item,
+        lastModified: new Date(guide.updated),
+        changeFrequency: "monthly" as const,
+        priority: 0.5,
+      }))
+    ),
+    ...entry((locale) => docPath(RELEASE_NOTES_SLUG, locale)).map((item) => ({
+      ...item,
       lastModified: new Date(latestRelease().date),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.4,
-    },
+    })),
   ];
 }
 

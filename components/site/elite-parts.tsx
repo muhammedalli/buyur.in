@@ -72,7 +72,7 @@ export function Typewriter({ business, groups }: { business: Business; groups: M
   if (phrases.length === 0) return null;
 
   return (
-    <p className="font-mono text-sm uppercase tracking-[0.25em] text-[var(--brand-on)]" aria-live="off">
+    <p className="text-sm font-medium text-[var(--brand-on)]" aria-live="off">
       {reduced ? phrases[0] : text}
       {!reduced && <span className="ms-0.5 animate-pulse">|</span>}
     </p>
@@ -103,7 +103,7 @@ export function MenuSlider({ groups, slug }: { groups: MenuHighlightGroup[]; slu
               setActive(index);
               trackRef.current?.scrollTo({ left: 0, behavior: "smooth" });
             }}
-            className={`rounded-full px-4 py-2 font-mono text-[12px] uppercase tracking-wider transition-colors ${
+            className={`rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${
               index === active
                 ? "bg-[var(--brand)] text-[var(--brand-on)]"
                 : "border border-line text-ink-soft hover:border-[var(--brand)] hover:text-ink"
@@ -170,7 +170,7 @@ export function MenuSlider({ groups, slug }: { groups: MenuHighlightGroup[]; slu
       <div className="mt-6 flex justify-center">
         <a
           href={menuHref}
-          className="group inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-wider text-[var(--brand-text)] transition-opacity hover:opacity-75"
+          className="group inline-flex items-center gap-2 text-[13px] font-medium text-[var(--brand-text)] transition-opacity hover:opacity-75"
         >
           {t("openDigitalMenu")}
           <ArrowRightIcon size={14} className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />

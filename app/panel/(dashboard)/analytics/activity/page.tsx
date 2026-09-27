@@ -14,8 +14,10 @@ import { ColumnChart } from "@/components/panel/charts/bar-chart";
 import { Heatmap } from "@/components/panel/charts/heatmap";
 import { StatTile } from "@/components/panel/charts/stat-tile";
 import { CATEGORICAL } from "@/components/panel/charts/palette";
-import { WEEKDAY_LABELS, formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
+import { formatNumber, formatPercent, weekdayLabels } from "@/components/panel/charts/chart-utils";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 interface ActivityData {
   hourly: number[];
@@ -30,9 +32,10 @@ interface SearchData {
   items: { key: string; label: string; searches: number; no_results: number; avg_results: number }[];
 }
 
-const FULL_WEEKDAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
+const FULL_WEEKDAYS = [msg("Pazartesi"), msg("Salı"), msg("Çarşamba"), msg("Perşembe"), msg("Cuma"), msg("Cumartesi"), msg("Pazar")];
 
 export default function ActivityPage() {
+  const { t } = useUiLocale();
   const activity = useAnalyticsQuery<ActivityData>("activity");
   const search = useAnalyticsQuery<SearchData>("search");
 
@@ -42,15 +45,15 @@ export default function ActivityPage() {
 
   return (
     <div>
-      <PageHeader title="Müşteri aktivitesi" description="Menü hangi gün ve saatlerde canlanıyor" />
+      <PageHeader title={t("Müşteri aktivitesi")} description={t("Menü hangi gün ve saatlerde canlanıyor")} />
       <AnalyticsFilterBar />
 
       {activity.loading && !data && <AnalyticsSkeleton />}
       {planLocked && (
         <FeatureLocked
           feature="advanced_analytics"
-          subject="Aktivite analizi"
-          description="Gün ve saat kırılımı, yoğunluk haritası ve arama analizi."
+          subject={t("Aktivite analizi")}
+          description={t("Gün ve saat kırılımı, yoğunluk haritası ve arama analizi.")}
         />
       )}
       {activity.error && !planLocked && !data && (
@@ -60,61 +63,62 @@ export default function ActivityPage() {
       {data && (
         <Refreshable refreshing={activity.refreshing}>
           {totalViews === 0 ? (
-            <NoDataYet description="Saat ve gün kırılımı için önce menünüzün ziyaret edilmesi gerekiyor." />
+            <NoDataYet description={t("Saat ve gün kırılımı için önce menünüzün ziyaret edilmesi gerekiyor.")} />
           ) : (
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatTile
-                  label="En yoğun saat"
+                  label={t("En yoğun saat")}
                   value={`${String(data.peak.hour).padStart(2, "0")}:00`}
-                  hint="Menünün en çok açıldığı saat dilimi (işletmenizin saat dilimine göre)."
+                  hint={t("Menünün en çok açıldığı saat dilimi (işletmenizin saat dilimine göre).")}
                 />
-                <StatTile label="En yoğun gün" value={FULL_WEEKDAYS[data.peak.weekday] ?? "—"} />
+                <StatTile label={t("En yoğun gün")} value={t(FULL_WEEKDAYS[data.peak.weekday] ?? "—")} />
                 <StatTile
-                  label="En sakin saat"
+                  label={t("En sakin saat")}
                   value={`${String(data.hourly.indexOf(Math.min(...data.hourly.filter((value) => value >= 0)))).padStart(2, "0")}:00`}
-                  hint="Kampanya ve duyuru için en uygun boşluk burası olabilir."
+                  hint={t("Kampanya ve duyuru için en uygun boşluk burası olabilir.")}
                 />
-                <StatTile label="Toplam görüntülenme" value={formatNumber(totalViews)} />
+                <StatTile label={t("Toplam görüntülenme")} value={formatNumber(totalViews)} />
               </div>
 
-              <ChartFrame title="Gün ve saat yoğunluğu" hint="Koyu hücre = daha çok menü açılışı">
+              <ChartFrame title={t("Gün ve saat yoğunluğu")} hint={t("Koyu hücre = daha çok menü açılışı")}>
                 <Heatmap matrix={data.matrix} />
               </ChartFrame>
 
               <div className="grid gap-4 lg:grid-cols-2">
-                <ChartFrame title="Saatlik dağılım">
+                <ChartFrame title={t("Saatlik dağılım")}>
                   <ColumnChart
                     values={data.hourly}
                     labels={Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"))}
                   />
                 </ChartFrame>
 
-                <ChartFrame title="Gün dağılımı">
-                  <ColumnChart color={CATEGORICAL[1]} values={data.weekdayTotals} labels={WEEKDAY_LABELS} />
+                <ChartFrame title={t("Gün dağılımı")}>
+                  <ColumnChart color={CATEGORICAL[1]} values={data.weekdayTotals} labels={weekdayLabels()} />
                 </ChartFrame>
               </div>
 
               {search.data && search.data.totals.searches > 0 && (
                 <ChartFrame
-                  title="Menü içi arama"
-                  hint="Sonuçsuz aramalar eksik ürün talebini gösterir"
+                  title={t("Menü içi arama")}
+                  hint={t("Sonuçsuz aramalar eksik ürün talebini gösterir")}
                   actions={
-                    <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-                      {formatNumber(search.data.totals.searches)} arama ·{" "}
-                      {formatPercent(search.data.totals.no_results / Math.max(1, search.data.totals.searches), 0)}{" "}
-                      sonuçsuz
+                    <span className="text-xs font-medium text-ink-soft">
+                      {t("{count} arama · {percent} sonuçsuz", {
+                        count: formatNumber(search.data.totals.searches),
+                        percent: formatPercent(search.data.totals.no_results / Math.max(1, search.data.totals.searches), 0),
+                      })}
                     </span>
                   }
                 >
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[420px] text-sm">
                       <thead>
-                        <tr className="border-b border-line text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                          <th className="py-2">Aranan</th>
-                          <th className="py-2 text-right">Arama</th>
-                          <th className="py-2 text-right">Ort. sonuç</th>
-                          <th className="py-2 text-right">Sonuçsuz</th>
+                        <tr className="border-b border-line text-left text-xs font-medium text-ink-soft">
+                          <th className="py-2">{t("Aranan")}</th>
+                          <th className="py-2 text-right">{t("Arama")}</th>
+                          <th className="py-2 text-right">{t("Ort. sonuç")}</th>
+                          <th className="py-2 text-right">{t("Sonuçsuz")}</th>
                         </tr>
                       </thead>
                       <tbody>

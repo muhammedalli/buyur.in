@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DEFAULT_UI_LOCALE, uiLocaleTags, type UiLocale } from "@/lib/ui-locales";
 
 // Grafiklerin paylaştığı ölçüm/biçimlendirme yardımcıları.
 
@@ -26,59 +27,84 @@ export function useChartWidth<T extends HTMLElement>(fallback = 640) {
   return { ref, width };
 }
 
-const compactFormatter = new Intl.NumberFormat("tr-TR", { notation: "compact", maximumFractionDigits: 1 });
-const plainFormatter = new Intl.NumberFormat("tr-TR");
+// Biçimler panelin arayüz diline uyar. Panel tek bir dil sağlayıcısı altında
+// çalışır; kabuk dili her boyamada setChartLocale ile bildirir (bkz.
+// app/panel/(dashboard)/layout.tsx). Yönetim paneli bildirmez, Türkçe kalır.
+function buildFormats(locale: UiLocale) {
+  const tag = uiLocaleTags[locale];
+  // Pazartesi ile başlayan hafta: 2024-01-01 bir pazartesidir.
+  const weekday = new Intl.DateTimeFormat(tag, { weekday: "short" });
+  return {
+    locale,
+    compact: new Intl.NumberFormat(tag, { notation: "compact", maximumFractionDigits: 1 }),
+    plain: new Intl.NumberFormat(tag),
+    day: new Intl.DateTimeFormat(tag, { day: "numeric", month: "short" }),
+    fullDay: new Intl.DateTimeFormat(tag, { day: "numeric", month: "long", year: "numeric" }),
+    shortDate: new Intl.DateTimeFormat(tag, { day: "2-digit", month: "2-digit", year: "2-digit" }),
+    weekdays: Array.from({ length: 7 }, (_, index) => weekday.format(new Date(2024, 0, 1 + index)).replace(/\.$/, "")),
+    units: locale === "tr" ? { s: "sn", m: "dk", h: "sa" } : { s: "s", m: "m", h: "h" },
+  };
+}
+
+let formats = buildFormats(DEFAULT_UI_LOCALE);
+
+export function setChartLocale(locale: UiLocale) {
+  if (formats.locale !== locale) formats = buildFormats(locale);
+}
 
 /** 1.284 · 12,8 B — stat kartları ve eksen etiketleri için. */
 export function formatCompact(value: number): string {
   if (!Number.isFinite(value)) return "—";
-  return Math.abs(value) >= 10_000 ? compactFormatter.format(value) : plainFormatter.format(Math.round(value));
+  return Math.abs(value) >= 10_000 ? formats.compact.format(value) : formats.plain.format(Math.round(value));
 }
 
 export function formatNumber(value: number): string {
-  return Number.isFinite(value) ? plainFormatter.format(Math.round(value)) : "—";
+  return Number.isFinite(value) ? formats.plain.format(Math.round(value)) : "—";
+}
+
+/** Türkçede yüzde işareti başta ve ondalık virgülle (%12,5), diğer dillerde sonda. */
+function percentText(ratio: number, digits: number): string {
+  const number = new Intl.NumberFormat(uiLocaleTags[formats.locale], { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(ratio * 100);
+  return formats.locale === "tr" ? `%${number}` : `${number}%`;
 }
 
 export function formatPercent(value: number | null | undefined, digits = 1): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
-  return `%${(value * 100).toFixed(digits).replace(".", ",")}`;
+  return percentText(value, digits);
 }
 
 /** Değişim oranı: işaretli ve yüzde. Önceki dönem 0 ise oran tanımsızdır. */
 export function formatChange(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
   const sign = value > 0 ? "↑" : value < 0 ? "↓" : "→";
-  return `${sign} %${Math.abs(value * 100).toFixed(1).replace(".", ",")}`;
+  return `${sign} ${percentText(Math.abs(value), 1)}`;
 }
 
-/** Saniyeyi "2dk 14sn" gibi okunur süreye çevirir. */
+/** Saniyeyi "2dk 14sn" (İngilizcede "2m 14s") gibi okunur süreye çevirir. */
 export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "0sn";
+  const { s, m, h } = formats.units;
+  if (!Number.isFinite(seconds) || seconds <= 0) return `0${s}`;
   const total = Math.round(seconds);
   const minutes = Math.floor(total / 60);
   const rest = total % 60;
-  if (minutes === 0) return `${rest}sn`;
-  if (minutes < 60) return rest === 0 ? `${minutes}dk` : `${minutes}dk ${rest}sn`;
+  if (minutes === 0) return `${rest}${s}`;
+  if (minutes < 60) return rest === 0 ? `${minutes}${m}` : `${minutes}${m} ${rest}${s}`;
   const hours = Math.floor(minutes / 60);
-  return `${hours}sa ${minutes % 60}dk`;
+  return `${hours}${h} ${minutes % 60}${m}`;
 }
 
-const dayFormatter = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short" });
-const fullDayFormatter = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric" });
-const shortDateFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "2-digit", year: "2-digit" });
-
 export function formatDayShort(day: string): string {
-  return dayFormatter.format(new Date(`${day}T00:00:00`));
+  return formats.day.format(new Date(`${day}T00:00:00`));
 }
 
 export function formatDayLong(day: string): string {
-  return fullDayFormatter.format(new Date(`${day}T00:00:00`));
+  return formats.fullDay.format(new Date(`${day}T00:00:00`));
 }
 
-/** ISO tarihi (2026-08-17) TR kısa biçime çevirir: 17.08.26. Filtre/aralık
+/** ISO tarihi (2026-08-17) kısa biçime çevirir: 17.08.26. Filtre/aralık
  *  etiketleri için — ham ISO'yu ekranda hiçbir yerde göstermiyoruz. */
 export function formatDateShort(day: string): string {
-  return shortDateFormatter.format(new Date(`${day}T00:00:00`));
+  return formats.shortDate.format(new Date(`${day}T00:00:00`));
 }
 
 /** İki ISO tarihi "17.07.26 → 16.08.26" biçiminde birleştirir. */
@@ -86,7 +112,15 @@ export function formatDateRange(from: string, to: string): string {
   return `${formatDateShort(from)} → ${formatDateShort(to)}`;
 }
 
-export const WEEKDAY_LABELS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+/** Kısa gün adı; 0 = pazartesi. */
+export function weekdayLabel(index: number): string {
+  return formats.weekdays[index] ?? String(index);
+}
+
+/** Pazartesiden başlayan kısa gün adları. */
+export function weekdayLabels(): string[] {
+  return formats.weekdays;
+}
 
 /** Ekseni yuvarlak sayılara böler (0 / 500 / 1.000 gibi). */
 export function niceTicks(max: number, count = 4): number[] {

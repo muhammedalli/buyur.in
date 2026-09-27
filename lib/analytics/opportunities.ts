@@ -1,3 +1,5 @@
+import { msg } from "@/lib/ui-i18n";
+
 // Ürün fırsat analizi: hangi üründe ne yapılmalı sorusuna veriyle cevap.
 // Eşikler sabit sayı değil, işletmenin kendi medyanı — 40 ürünlük bir kafeyle
 // 400 ürünlük bir otel aynı ölçüye vurulamaz. Medyan kullanıyoruz çünkü tek bir
@@ -17,8 +19,9 @@ export interface Opportunity {
   kind: OpportunityKind;
   /** Kısa rozet metni. */
   label: string;
-  /** Ne olduğunu anlatan cümle. */
+  /** Ne olduğunu anlatan cümle (msg ile işaretli; ekranda t(message, messageVars)). */
   message: string;
+  messageVars?: Record<string, number>;
   /** Ne yapılabileceğine dair somut öneri (yoksa null). */
   recommendation: string | null;
 }
@@ -55,8 +58,9 @@ export function classifyProduct(product: ProductStat, benchmarks: OpportunityBen
   if (product.views < MIN_VIEWS_FOR_CLASSIFICATION) {
     return {
       kind: "insufficient",
-      label: "Veri az",
-      message: `Bu içgörüyü oluşturmak için daha fazla veriye ihtiyacımız var (en az ${MIN_VIEWS_FOR_CLASSIFICATION} görüntülenme).`,
+      label: msg("Veri az"),
+      message: msg("Bu içgörüyü oluşturmak için daha fazla veriye ihtiyacımız var (en az {count} görüntülenme)."),
+      messageVars: { count: MIN_VIEWS_FOR_CLASSIFICATION },
       recommendation: null,
     };
   }
@@ -68,35 +72,35 @@ export function classifyProduct(product: ProductStat, benchmarks: OpportunityBen
   if (highViews && highConversion) {
     return {
       kind: "star",
-      label: "Yıldız ürün",
-      message: "Hem çok görüntüleniyor hem de sepete girme oranı menü ortalamanızın üstünde.",
-      recommendation: "Menüde en üstte tutun; kampanya ve öneri alanlarında bu ürünü kullanın.",
+      label: msg("Yıldız ürün"),
+      message: msg("Hem çok görüntüleniyor hem de sepete girme oranı menü ortalamanızın üstünde."),
+      recommendation: msg("Menüde en üstte tutun; kampanya ve öneri alanlarında bu ürünü kullanın."),
     };
   }
 
   if (highViews && !highConversion) {
     return {
       kind: "leaky",
-      label: "Yüksek ilgi, düşük dönüşüm",
-      message: "Müşteriler bu ürüne bakıyor ama sepete eklemiyor.",
-      recommendation: "Fiyat, görsel, açıklama ve porsiyon bilgisini gözden geçirin — ilgi var, ikna eksik.",
+      label: msg("Yüksek ilgi, düşük dönüşüm"),
+      message: msg("Müşteriler bu ürüne bakıyor ama sepete eklemiyor."),
+      recommendation: msg("Fiyat, görsel, açıklama ve porsiyon bilgisini gözden geçirin — ilgi var, ikna eksik."),
     };
   }
 
   if (!highViews && highConversion) {
     return {
       kind: "hidden_gem",
-      label: "Gizli değer",
-      message: "Az görülüyor ama görenlerin sepete ekleme oranı yüksek.",
-      recommendation: "Ürünü kategorisinde yukarı taşıyın, \"popüler\" rozeti ekleyin veya kampanyaya dahil edin.",
+      label: msg("Gizli değer"),
+      message: msg("Az görülüyor ama görenlerin sepete ekleme oranı yüksek."),
+      recommendation: msg("Ürünü kategorisinde yukarı taşıyın, \"popüler\" rozeti ekleyin veya kampanyaya dahil edin."),
     };
   }
 
   return {
     kind: "underperformer",
-    label: "Zayıf performans",
-    message: "Hem görüntülenme hem dönüşüm menü ortalamanızın altında.",
-    recommendation: "Görsel ve açıklamayı yenileyin, konumunu değiştirin; iyileşmezse menüden çıkarmayı değerlendirin.",
+    label: msg("Zayıf performans"),
+    message: msg("Hem görüntülenme hem dönüşüm menü ortalamanızın altında."),
+    recommendation: msg("Görsel ve açıklamayı yenileyin, konumunu değiştirin; iyileşmezse menüden çıkarmayı değerlendirin."),
   };
 }
 

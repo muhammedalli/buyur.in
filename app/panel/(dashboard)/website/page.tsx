@@ -107,7 +107,7 @@ export default function WebsitePage() {
       <Card className="space-y-5" data-guide="website">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            <p className="flex items-center gap-2 text-xs font-medium text-ink-soft">
               <GlobeIcon size={14} /> {t("Vitrin adresiniz")}
             </p>
             <p className="mt-1 truncate font-display text-lg font-bold text-paprika">{storefrontUrl}</p>
@@ -172,7 +172,7 @@ export default function WebsitePage() {
         </Card>
 
         <Card>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <p className="text-xs font-medium text-ink-soft">
             {missingCount === 0 ? t("Bilgileriniz tam") : t("Vitrini güçlendirin ({count} eksik)", { count: missingCount })}
           </p>
           <ul className="mt-3 space-y-2 text-sm">
@@ -186,7 +186,7 @@ export default function WebsitePage() {
                 ) : (
                   <Link
                     href={item.key === "whatsapp" ? "/panel/settings?tab=sosyal" : item.key === "google_maps_url" || item.key === "address" || item.key === "working_hours" ? "/panel/settings?tab=iletisim" : "/panel/settings?tab=genel"}
-                    className="font-mono text-[11px] uppercase tracking-wider text-paprika transition-colors hover:text-paprika-deep"
+                    className="text-xs font-medium text-paprika transition-colors hover:text-paprika-deep"
                   >
                     {t("Ekle")}
                   </Link>

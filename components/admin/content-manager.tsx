@@ -194,7 +194,7 @@ export function ContentManager({
                     <p className="font-display text-base font-bold text-ink">
                       {category.name}
                       {!category.is_active && (
-                        <span className="ml-2 align-middle font-mono text-[10px] uppercase tracking-wider text-ink-soft">gizli</span>
+                        <span className="ml-2 align-middle text-xs font-medium text-ink-soft">gizli</span>
                       )}
                     </p>
                     <p className="font-mono text-[11px] text-ink-soft">{items.length} ürün</p>

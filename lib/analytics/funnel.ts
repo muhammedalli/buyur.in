@@ -1,3 +1,4 @@
+import { msg } from "@/lib/ui-i18n";
 import type { AnalyticsEventType } from "@/lib/analytics/events";
 
 // Müşteri yolculuğu hunisinin TEK kaynağı: adımların sırası, etiketi ve bir
@@ -19,10 +20,10 @@ import type { AnalyticsEventType } from "@/lib/analytics/events";
 export type FunnelStepKey = "menu_open" | "product_view" | "add_to_cart" | "cart_view";
 
 export const FUNNEL_STEPS: readonly { key: FunnelStepKey; label: string }[] = [
-  { key: "menu_open", label: "Menü açıldı" },
-  { key: "product_view", label: "Ürün görüntülendi" },
-  { key: "add_to_cart", label: "Sepete eklendi" },
-  { key: "cart_view", label: "Sepet görüntülendi" },
+  { key: "menu_open", label: msg("Menü açıldı") },
+  { key: "product_view", label: msg("Ürün görüntülendi") },
+  { key: "add_to_cart", label: msg("Sepete eklendi") },
+  { key: "cart_view", label: msg("Sepet görüntülendi") },
 ];
 
 /** Bir ürünü gördüğünü kanıtlayan event'ler: listede görmek, detayını açmak ya

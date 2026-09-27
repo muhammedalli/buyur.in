@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORICAL, CHART_INK_SOFT } from "@/components/panel/charts/palette";
 import { formatNumber } from "@/components/panel/charts/chart-utils";
 import { ChartEmpty, ChartTable } from "@/components/panel/charts/frame";
+import { msg } from "@/lib/ui-i18n";
 
 // Sıralama (ranking) çubukları. Nominal kategoriler tek renk taşır — çubuk boyu
 // zaten değeri gösteriyor, rengi de aynı şeyi kodlamak kimlik kanalını harcar.
@@ -21,7 +22,7 @@ export interface BarDatum {
 export function BarList({
   items,
   valueFormatter = formatNumber,
-  emptyLabel = "Bu dönemde kayıt oluşmamış.",
+  emptyLabel = msg("Bu dönemde kayıt oluşmamış."),
   max: maxOverride,
   color = CATEGORICAL[0],
   onSelect,
@@ -95,8 +96,8 @@ export function BarList({
 
       <ChartTable
         columns={[
-          { key: "label", label: "Kayıt" },
-          { key: "value", label: "Değer", align: "right" },
+          { key: "label", label: msg("Kayıt") },
+          { key: "value", label: msg("Değer"), align: "right" },
         ]}
         rows={items.map((item) => ({ label: item.label, value: valueFormatter(item.value) }))}
       />
@@ -111,7 +112,7 @@ export function ColumnChart({
   height = 160,
   color = CATEGORICAL[0],
   valueFormatter = formatNumber,
-  emptyLabel = "Bu dönemde kayıt oluşmamış.",
+  emptyLabel = msg("Bu dönemde kayıt oluşmamış."),
 }: {
   values: number[];
   labels: string[];

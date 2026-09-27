@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { sectionId } from "@/lib/landing-sections";
 import { EyeIcon, QrCodeIcon, ClockIcon, ShoppingBagIcon } from "@/components/icons";
 import { siteClientTranslator } from "@/lib/ui-messages/site-client";
 import { msg, uiLocaleTags, type Translator, type UiLocale } from "@/lib/ui-i18n";
@@ -619,7 +620,7 @@ export function Analytics({ locale = "tr" }: { locale?: UiLocale }) {
   const copy: Copy = { t, num: (value) => numberFormat.format(value) };
   const months = MONTHS.map((month) => t(month));
   return (
-    <section id="analiz" className="border-y border-line bg-crema/40" style={vizTokens}>
+    <section id={sectionId("analytics", locale)} className="border-y border-line bg-crema/40" style={vizTokens}>
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="mx-auto max-w-2xl text-center">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">

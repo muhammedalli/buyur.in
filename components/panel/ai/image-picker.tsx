@@ -7,6 +7,7 @@ import { ImageIcon, SearchIcon, TrashIcon } from "@/components/icons";
 import { searchImageCandidates } from "@/lib/ai/find-image";
 import { IMAGE_PROVIDERS, PROVIDER_LABELS, toStoredImage } from "@/lib/ai/image-source";
 import type { ImageCandidate, ProductImageSource } from "@/lib/ai/image-source";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Ürün görseli seçici: açık lisanslı kaynaklardan arar, kullanıcı değiştirebilir,
 // yeniden aratabilir veya kendi görselini yükleyebilir.
@@ -36,6 +37,7 @@ export function ImagePicker({
   onChange: (url: string, source: ProductImageSource | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useUiLocale();
   const [query, setQuery] = useState(productName);
   const [images, setImages] = useState<ImageCandidate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,13 +101,13 @@ export function ImagePicker({
       open
       onClose={onClose}
       size="lg"
-      title={productName.trim() === "" ? "Görsel seç" : `Görsel seç · ${productName}`}
-      description="Yalnızca ticari kullanıma açık, lisansı belirtilmiş görseller listelenir."
+      title={productName.trim() === "" ? t("Görsel seç") : `${t("Görsel seç")} · ${productName}`}
+      description={t("Yalnızca ticari kullanıma açık, lisansı belirtilmiş görseller listelenir.")}
       footer={
         <>
-          <label className="mr-auto inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika">
+          <label className="mr-auto inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-paper px-4 py-2 text-[13px] font-medium transition-colors hover:border-paprika hover:text-paprika">
             <ImageIcon size={15} />
-            {uploading ? "Yükleniyor…" : "Kendi görselim"}
+            {uploading ? t("Yükleniyor…") : t("Kendi görselim")}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -126,11 +128,11 @@ export function ImagePicker({
                 onClose();
               }}
             >
-              <TrashIcon size={15} /> Görseli kaldır
+              <TrashIcon size={15} />{" "}{t("Görseli kaldır")}
             </Button>
           )}
           <Button type="button" variant="ghost" onClick={onClose}>
-            Kapat
+            {t("Kapat")}
           </Button>
         </>
       }
@@ -145,31 +147,30 @@ export function ImagePicker({
               search(query);
             }
           }}
-          placeholder="Görsel ara"
+          placeholder={t("Görsel ara")}
           className="min-w-0 flex-1 rounded-md border border-line bg-paper px-4 py-2.5 text-sm outline-none focus:border-paprika"
         />
         <Button type="button" variant="outline" onClick={() => search(query)} disabled={loading}>
-          <SearchIcon size={15} /> Ara
+          <SearchIcon size={15} />{" "}{t("Ara")}
         </Button>
       </div>
 
       {loading && (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-ink-soft">
           <Spinner className="h-6 w-6 text-paprika" />
-          Görseller aranıyor…
+          {t("Görseller aranıyor…")}
         </div>
       )}
 
       {!loading && !configured && (
         <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
-          Otomatik görsel arama yapılandırılmamış. Kendi görselinizi yükleyebilirsiniz.
+          {t("Otomatik görsel arama yapılandırılmamış. Kendi görselinizi yükleyebilirsiniz.")}
         </p>
       )}
 
       {!loading && configured && searched && images.length === 0 && (
         <p className="rounded-md border border-dashed border-line px-4 py-8 text-center text-sm text-ink-soft">
-          Bu ürün için ticari kullanıma açık görsel bulunamadı. Aramayı değiştirin veya kendi görselinizi
-          yükleyin.
+          {t("Bu ürün için ticari kullanıma açık görsel bulunamadı. Aramayı değiştirin veya kendi görselinizi yükleyin.")}
         </p>
       )}
 
@@ -180,11 +181,11 @@ export function ImagePicker({
               key={p}
               type="button"
               onClick={() => setSource(p)}
-              className={`rounded-md border px-3 py-1 font-mono text-[11px] uppercase tracking-wider transition-colors ${
+              className={`rounded-md border px-3 py-1 text-xs font-medium transition-colors ${
                 source === p ? "border-paprika bg-paprika text-paper" : "border-line text-ink-soft hover:border-paprika"
               }`}
             >
-              {p === "all" ? `Tümü · ${images.length}` : `${PROVIDER_LABELS[p]} · ${images.filter((i) => i.provider === p).length}`}
+              {p === "all" ? `${t("Tümü")} · ${images.length}` : `${PROVIDER_LABELS[p]} · ${images.filter((i) => i.provider === p).length}`}
             </button>
           ))}
         </div>
@@ -216,16 +217,16 @@ export function ImagePicker({
                   />
                   {image.license.attributionRequired && (
                     <span className="absolute left-1.5 top-1.5 rounded bg-ink/75 px-1.5 py-0.5 text-[9px] font-semibold text-paper">
-                      Lisans gerekli
+                      {t("Lisans gerekli")}
                     </span>
                   )}
                   {selected && (
-                    <span className="absolute right-1.5 top-1.5 rounded-md bg-paprika px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-paper">
-                      Seçili
+                    <span className="absolute right-1.5 top-1.5 rounded-md bg-paprika px-2 py-0.5 text-[11px] font-semibold text-paper">
+                      {t("Seçili")}
                     </span>
                   )}
-                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-ink/70 py-1.5 font-mono text-[11px] uppercase tracking-wider text-paper opacity-0 transition-opacity group-hover:opacity-100">
-                    Bu görseli seç
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center bg-ink/70 py-1.5 text-xs font-medium text-paper opacity-0 transition-opacity group-hover:opacity-100">
+                    {t("Bu görseli seç")}
                   </span>
                 </div>
                 <div className="truncate px-2 py-1.5 text-[10px] leading-tight text-ink-soft">
@@ -240,13 +241,12 @@ export function ImagePicker({
 
       {failed && (
         <p className="mt-4 text-sm text-paprika-deep">
-          Görsel eklenemedi. Başka bir görsel seçin veya kendi görselinizi yükleyin.
+          {t("Görsel eklenemedi. Başka bir görsel seçin veya kendi görselinizi yükleyin.")}
         </p>
       )}
 
       <p className="mt-5 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-soft">
-        <strong className="font-semibold">Lisans gerekli</strong> işaretli görsellerde fotoğrafçı ve lisans
-        bilgisi menünüzde otomatik gösterilir; sizin yapmanız gereken bir şey yok.
+        <strong className="font-semibold">{t("Lisans gerekli")}</strong>{" "}{t("işaretli görsellerde fotoğrafçı ve lisans bilgisi menünüzde otomatik gösterilir; sizin yapmanız gereken bir şey yok.")}
       </p>
     </Modal>
   );
@@ -255,9 +255,10 @@ export function ImagePicker({
 /** Otomatik bulunan görselin kaynak/lisans künyesi. Lisans zorunlu tuttuğunda
  *  (CC BY ailesi) fotoğrafçı adı ve kaynak bağlantısı gösterilir. */
 export function ImageSourceNote({ source }: { source: ProductImageSource }) {
+  const { t } = useUiLocale();
   return (
     <p className="text-[11px] leading-relaxed text-ink-soft">
-      Kaynak:{" "}
+      {t("Kaynak:")}{" "}
       {source.source_url ? (
         <a href={source.source_url} target="_blank" rel="noreferrer noopener" className="underline">
           {PROVIDER_LABELS[source.provider] ?? source.provider}
@@ -276,7 +277,7 @@ export function ImageSourceNote({ source }: { source: ProductImageSource }) {
       {source.attribution_required && (
         <>
           <br />
-          Bu lisans künye ister — fotoğrafçı ve lisans bilgisi menünüzde otomatik gösterilir.
+          {t("Bu lisans künye ister — fotoğrafçı ve lisans bilgisi menünüzde otomatik gösterilir.")}
         </>
       )}
     </p>

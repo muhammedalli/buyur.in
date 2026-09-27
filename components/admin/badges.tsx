@@ -4,7 +4,7 @@ import { PLAN_LABELS, normalizePlan } from "@/lib/entitlements";
 // Yönetim ekranlarında işletme durumu ve planı için küçük etiketler. Renk
 // anlamı: herb = yayında, paprika = dikkat (askıda), nötr = diğerleri.
 
-const BADGE = "inline-flex items-center rounded-md border px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider";
+const BADGE = "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-medium";
 
 const STATUS_TONE: Record<BusinessStatus, string> = {
   live: "border-herb/30 bg-herb/10 text-herb",

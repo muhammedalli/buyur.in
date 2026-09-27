@@ -1,3 +1,4 @@
+import { msg } from "@/lib/ui-i18n";
 import type { AnalyticsContext } from "@/lib/analytics/access";
 import type { DateRange } from "@/lib/analytics/range";
 import { changeRatio } from "@/lib/analytics/range";
@@ -43,39 +44,39 @@ export interface ReportDefinition {
 export const REPORT_DEFINITIONS: ReportDefinition[] = [
   {
     type: "executive_summary",
-    title: "Yönetici özeti",
-    description: "Dönemin tek sayfalık iş özeti: ne değişti, ne öne çıktı, nereye bakılmalı.",
-    sections: ["Özet cümleler", "Menü performans skoru", "Temel metrikler", "İçgörüler"],
+    title: msg("Yönetici özeti"),
+    description: msg("Dönemin tek sayfalık iş özeti: ne değişti, ne öne çıktı, nereye bakılmalı."),
+    sections: [msg("Özet cümleler"), msg("Menü performans skoru"), msg("Temel metrikler"), msg("İçgörüler")],
   },
   {
     type: "menu_performance",
-    title: "Menü performans raporu",
-    description: "Ziyaret, oturum, QR ve etkileşim metriklerinin dönemsel dökümü.",
-    sections: ["Temel metrikler", "Günlük seri", "Sayfa kırılımı", "Cihazlar"],
+    title: msg("Menü performans raporu"),
+    description: msg("Ziyaret, oturum, QR ve etkileşim metriklerinin dönemsel dökümü."),
+    sections: [msg("Temel metrikler"), msg("Günlük seri"), msg("Sayfa kırılımı"), msg("Cihazlar")],
   },
   {
     type: "product_performance",
-    title: "Ürün performans raporu",
-    description: "Tüm ürünlerin görüntülenme, sepet ve dönüşüm sıralaması ile fırsat değerlendirmesi.",
-    sections: ["Ürün tablosu", "Fırsat dağılımı", "En iyi ve en zayıf ürünler"],
+    title: msg("Ürün performans raporu"),
+    description: msg("Tüm ürünlerin görüntülenme, sepet ve dönüşüm sıralaması ile fırsat değerlendirmesi."),
+    sections: [msg("Ürün tablosu"), msg("Fırsat dağılımı"), msg("En iyi ve en zayıf ürünler")],
   },
   {
     type: "category",
-    title: "Kategori raporu",
-    description: "Kategori karşılaştırması, dönüşüm ve ürün dağılımı.",
-    sections: ["Kategori tablosu", "Dönüşüm sıralaması"],
+    title: msg("Kategori raporu"),
+    description: msg("Kategori karşılaştırması, dönüşüm ve ürün dağılımı."),
+    sections: [msg("Kategori tablosu"), msg("Dönüşüm sıralaması")],
   },
   {
     type: "customer_behavior",
-    title: "Müşteri davranışı raporu",
-    description: "Huni, etkileşim, yeni/dönen ziyaretçi ve aktivite saatleri.",
-    sections: ["Dönüşüm hunisi", "Yeni ve dönen ziyaretçi", "Saat ve gün yoğunluğu"],
+    title: msg("Müşteri davranışı raporu"),
+    description: msg("Huni, etkileşim, yeni/dönen ziyaretçi ve aktivite saatleri."),
+    sections: [msg("Dönüşüm hunisi"), msg("Yeni ve dönen ziyaretçi"), msg("Saat ve gün yoğunluğu")],
   },
   {
     type: "acquisition",
-    title: "Trafik kaynağı raporu",
-    description: "Kaynak, QR ve kampanya performansı.",
-    sections: ["Kaynak tablosu", "QR karşılaştırması", "Kampanyalar"],
+    title: msg("Trafik kaynağı raporu"),
+    description: msg("Kaynak, QR ve kampanya performansı."),
+    sections: [msg("Kaynak tablosu"), msg("QR karşılaştırması"), msg("Kampanyalar")],
   },
 ];
 
@@ -122,16 +123,16 @@ function duration(seconds: number): string {
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  qr: "QR kod",
+  qr: msg("QR kod"),
   instagram: "Instagram",
   google: "Google",
   facebook: "Facebook",
   whatsapp: "WhatsApp",
   tiktok: "TikTok",
   youtube: "YouTube",
-  campaign: "Kampanya linki",
-  direct: "Doğrudan",
-  other: "Diğer",
+  campaign: msg("Kampanya linki"),
+  direct: msg("Doğrudan"),
+  other: msg("Diğer"),
 };
 
 const DEVICE_LABELS: Record<string, string> = { mobile: "Mobil", tablet: "Tablet", desktop: "Masaüstü" };
@@ -314,10 +315,10 @@ export async function buildReport(
 
     tables.push({
       key: "pages",
-      title: "Sayfa kırılımı",
+      title: msg("Sayfa kırılımı"),
       columns: [
-        { key: "page", label: "Sayfa" },
-        { key: "views", label: "Görüntülenme", align: "right" },
+        { key: "page", label: msg("Sayfa") },
+        { key: "views", label: msg("Görüntülenme"), align: "right" },
       ],
       rows: pages
         .slice()
@@ -327,11 +328,11 @@ export async function buildReport(
 
     tables.push({
       key: "devices",
-      title: "Cihazlar",
+      title: msg("Cihazlar"),
       columns: [
-        { key: "device", label: "Cihaz" },
-        { key: "sessions", label: "Oturum", align: "right" },
-        { key: "cart_adds", label: "Sepete ekleme", align: "right" },
+        { key: "device", label: msg("Cihaz") },
+        { key: "sessions", label: msg("Oturum"), align: "right" },
+        { key: "cart_adds", label: msg("Sepete ekleme"), align: "right" },
       ],
       rows: devices.map((entry) => ({
         device: DEVICE_LABELS[entry.key] ?? entry.label,
@@ -345,14 +346,14 @@ export async function buildReport(
     const sorted = productStats.slice().sort((a, b) => b.views - a.views);
     tables.push({
       key: "products",
-      title: "Ürün performansı",
+      title: msg("Ürün performansı"),
       columns: [
-        { key: "product", label: "Ürün" },
-        { key: "views", label: "Görüntülenme", align: "right" },
-        { key: "detail_views", label: "Detay", align: "right" },
-        { key: "cart_adds", label: "Sepete ekleme", align: "right" },
-        { key: "conversion", label: "Dönüşüm", align: "right" },
-        { key: "assessment", label: "Değerlendirme" },
+        { key: "product", label: msg("Ürün") },
+        { key: "views", label: msg("Görüntülenme"), align: "right" },
+        { key: "detail_views", label: msg("Detay"), align: "right" },
+        { key: "cart_adds", label: msg("Sepete ekleme"), align: "right" },
+        { key: "conversion", label: msg("Dönüşüm"), align: "right" },
+        { key: "assessment", label: msg("Değerlendirme") },
       ],
       rows: (type === "executive_summary" ? sorted.slice(0, 10) : sorted).map((product) => ({
         product: product.label,
@@ -368,13 +369,13 @@ export async function buildReport(
   if (wantsCategories) {
     tables.push({
       key: "categories",
-      title: "Kategori performansı",
+      title: msg("Kategori performansı"),
       columns: [
-        { key: "category", label: "Kategori" },
-        { key: "views", label: "Görüntülenme", align: "right" },
-        { key: "product_views", label: "Ürün görüntülenme", align: "right" },
-        { key: "cart_adds", label: "Sepete ekleme", align: "right" },
-        { key: "conversion", label: "Dönüşüm", align: "right" },
+        { key: "category", label: msg("Kategori") },
+        { key: "views", label: msg("Görüntülenme"), align: "right" },
+        { key: "product_views", label: msg("Ürün görüntülenme"), align: "right" },
+        { key: "cart_adds", label: msg("Sepete ekleme"), align: "right" },
+        { key: "conversion", label: msg("Dönüşüm"), align: "right" },
       ],
       rows: categories
         .slice()
@@ -395,11 +396,11 @@ export async function buildReport(
 
     tables.push({
       key: "funnel",
-      title: "Dönüşüm hunisi",
+      title: msg("Dönüşüm hunisi"),
       columns: [
-        { key: "step", label: "Adım" },
-        { key: "sessions", label: "Oturum", align: "right" },
-        { key: "conversion", label: "Geçiş", align: "right" },
+        { key: "step", label: msg("Adım") },
+        { key: "sessions", label: msg("Oturum"), align: "right" },
+        { key: "conversion", label: msg("Geçiş"), align: "right" },
       ],
       rows: steps.map((step) => ({
         step: step.label,
@@ -410,20 +411,20 @@ export async function buildReport(
 
     tables.push({
       key: "visitors",
-      title: "Yeni ve dönen ziyaretçi",
+      title: msg("Yeni ve dönen ziyaretçi"),
       columns: [
-        { key: "segment", label: "Segment" },
-        { key: "sessions", label: "Oturum", align: "right" },
-        { key: "share", label: "Pay", align: "right" },
+        { key: "segment", label: msg("Segment") },
+        { key: "sessions", label: msg("Oturum"), align: "right" },
+        { key: "share", label: msg("Pay"), align: "right" },
       ],
       rows: [
         {
-          segment: "Yeni ziyaretçi",
+          segment: msg("Yeni ziyaretçi"),
           sessions: totals.new_sessions,
           share: percent(ratio(totals.new_sessions, totals.sessions), 0),
         },
         {
-          segment: "Dönen ziyaretçi",
+          segment: msg("Dönen ziyaretçi"),
           sessions: totals.returning_sessions,
           share: percent(ratio(totals.returning_sessions, totals.sessions), 0),
         },
@@ -432,10 +433,10 @@ export async function buildReport(
 
     tables.push({
       key: "hours",
-      title: "Saatlik yoğunluk",
+      title: msg("Saatlik yoğunluk"),
       columns: [
-        { key: "hour", label: "Saat" },
-        { key: "views", label: "Görüntülenme", align: "right" },
+        { key: "hour", label: msg("Saat") },
+        { key: "views", label: msg("Görüntülenme"), align: "right" },
       ],
       rows: hourly
         .map((value, hour) => ({ hour: `${String(hour).padStart(2, "0")}:00`, views: value }))
@@ -446,12 +447,12 @@ export async function buildReport(
   if (wantsAcquisition) {
     tables.push({
       key: "sources",
-      title: "Trafik kaynakları",
+      title: msg("Trafik kaynakları"),
       columns: [
-        { key: "source", label: "Kaynak" },
-        { key: "sessions", label: "Oturum", align: "right" },
-        { key: "cart_adds", label: "Sepete ekleme", align: "right" },
-        { key: "conversion", label: "Dönüşüm", align: "right" },
+        { key: "source", label: msg("Kaynak") },
+        { key: "sessions", label: msg("Oturum"), align: "right" },
+        { key: "cart_adds", label: msg("Sepete ekleme"), align: "right" },
+        { key: "conversion", label: msg("Dönüşüm"), align: "right" },
       ],
       rows: sources
         .slice()
@@ -467,11 +468,11 @@ export async function buildReport(
     if (qrCodes.length > 0) {
       tables.push({
         key: "qr",
-        title: "QR performansı",
+        title: msg("QR performansı"),
         columns: [
-          { key: "qr", label: "QR kodu" },
-          { key: "scans", label: "Tarama", align: "right" },
-          { key: "sessions", label: "Oturum", align: "right" },
+          { key: "qr", label: msg("QR kodu") },
+          { key: "scans", label: msg("Tarama"), align: "right" },
+          { key: "sessions", label: msg("Oturum"), align: "right" },
         ],
         rows: qrCodes
           .slice()
@@ -487,12 +488,12 @@ export async function buildReport(
     if (campaigns.length > 0) {
       tables.push({
         key: "campaigns",
-        title: "Kampanyalar",
+        title: msg("Kampanyalar"),
         columns: [
-          { key: "campaign", label: "Kampanya" },
-          { key: "views", label: "Gösterim", align: "right" },
-          { key: "clicks", label: "Tıklama", align: "right" },
-          { key: "rate", label: "Tıklama oranı", align: "right" },
+          { key: "campaign", label: msg("Kampanya") },
+          { key: "views", label: msg("Gösterim"), align: "right" },
+          { key: "clicks", label: msg("Tıklama"), align: "right" },
+          { key: "rate", label: msg("Tıklama oranı"), align: "right" },
         ],
         rows: campaigns.map((entry) => ({
           campaign: campaignLabels.get(entry.key) ?? entry.label,

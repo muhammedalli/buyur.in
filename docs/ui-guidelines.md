@@ -4,7 +4,9 @@
 
 - Renkler yalnızca `app/globals.css → @theme` token'larından: `paper`, `crema`, `ink`, `ink-soft`,
   `paprika`, `paprika-deep`, `herb`, `line`. Ham renk kodu (`#fff`, `bg-[#…]`) yazılmaz.
-- Yazı: `font-display` (başlık), `font-body`, `font-mono` (etiket, küçük büyük harf).
+- Yazı: `font-display` (başlık), `font-body` (buton, etiket, sekme, tablo başlığı, rozet dahil),
+  `font-mono` yalnızca sayı ve kod (fiyat, adres, kimlik). Büyük harfli etiket (`uppercase tracking-wider`)
+  kullanılmaz; küçük etiket `text-xs font-medium text-ink-soft`'tur. İstisna: giriş/kayıt ekranları.
 - Köşe yarıçapı 6px (`rounded-md`). Hap biçimi yalnızca anahtar, durum noktası, avatar gibi
   gerçekten yuvarlak öğelerde. Giriş/kayıt ekranları kendi onaylı görselini izler.
 - Müşteri menüsü işletmenin rengini `var(--brand)` / `var(--brand-text)` ile alır; sabit token'la
@@ -20,10 +22,11 @@ alan, pencere elle yazılmaz.
 | Eylem | `Button` (`size="sm"`), bağlantı için `buttonClass()` / admin'de `ButtonLink` |
 | Alan | `Input`, `Textarea`, `Select` (yerel select: mobilde işletim sisteminin seçicisi), `Switch` |
 | Başlık | `PageHeader`, `SectionHeader` (eylem sağ üstte) |
-| Özet | `StatGroup` (tek çerçeve; çok değerde `columns`, para için `size="sm"`) |
+| Özet | `StatGroup` (ikonlu kart ızgarası, `icon`; çok değerde `columns`, para için `size="sm"`) |
 | Liste | `Table` |
 | Pencere | `Modal` (Dialog), onay için `useConfirm()` |
-| Yaprak | `Sheet*` (mobil gezinme, dar ekrandaki ikincil menüler) |
+| Yaprak | `Sheet*` (dar ekrandaki ikincil menüler) |
+| Uygulama kabuğu | `SidebarProvider` + `Sidebar*` + `SidebarInset` (yalnızca panel/yönetim kabuğu) |
 | İkincil eylemler | `Dropdown` / `DropdownMenu*` |
 | İkon butonu adı | `Tooltip` (bilgi taşıyan metin tooltip'e saklanmaz) |
 | Sekme | `Tabs` (durum), `NavTabs` (bağlantı) |
@@ -55,8 +58,12 @@ kaydırılamamalı ve görünür hiçbir öğenin sağ kenarı görünür alanı
 
 - İşletme paneli: `components/panel/panel-nav.tsx → PANEL_NAV_GROUPS` (Menü, Paylaşım,
   Performans, Hesap). Yönetim paneli: `components/admin/admin-shell.tsx → NAV_GROUPS`.
-- `lg` ve üstü: yapışkan sol yan menü. Daha dar: başlıkta menü butonu → `Sheet`. Dar ekranda
-  başlıkta yer kalmayan hesap işlemleri (kılavuz, dil, çıkış) yaprağın altındadır.
+- Kabuk shadcn Sidebar desenidir (`components/ui/sidebar.tsx`): `lg` ve üstü ekranın tam boyunda
+  yapışkan sol sütun (üstte marka, altta hesap menüsü), başlıktaki `SidebarTrigger` ikonlara
+  daraltır (tercih cihazda saklanır; daraltılmışken adı tooltip söyler). Daha dar ekranda aynı
+  ağaç `Sheet` olarak açılır, sayfa değişince kapanır.
+- Hesap işlemleri (menüyü gör, kılavuz, çıkış / şifre değiştir) sütunun altındaki hesap
+  menüsündedir; başlıkta konum (`Grup › Sayfa`) ve birkaç kısa eylem durur.
 - Yeni üst düzey sayfa = gruba bir satır; alt sayfalar `NavTabs` ile.
 
 ## Formlar

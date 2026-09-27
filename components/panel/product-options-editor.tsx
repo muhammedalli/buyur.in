@@ -114,7 +114,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
     <Card className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Seçenekler / Varyantlar")}</p>
+          <p className="text-xs font-medium text-ink-soft">{t("Seçenekler / Varyantlar")}</p>
           <p className="mt-1 text-xs text-ink-soft">{t("Boy, ekstra malzeme gibi fiyat farkı yaratan opsiyonlar.")}</p>
         </div>
         {editingId === null && (
@@ -134,7 +134,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
         {options.map((opt) => (
           <div key={opt.id} className="flex items-center justify-between rounded-md border border-line px-4 py-2.5 text-sm">
             <div>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+              <span className="text-xs font-medium text-ink-soft">
                 {tField(opt, "group_name", main, main)}
               </span>
               <p className="font-medium">

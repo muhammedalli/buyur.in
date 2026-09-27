@@ -31,7 +31,7 @@ export default async function AdminPlanEditPage({ params }: { params: Promise<{ 
     <>
       <Link
         href="/admin/plans"
-        className="mb-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
+        className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-ink-soft transition-colors hover:text-paprika"
       >
         <ChevronLeftIcon size={14} />
         Planlar

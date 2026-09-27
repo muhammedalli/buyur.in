@@ -3,6 +3,27 @@
 > Bu dosya `lib/release-notes.ts`'ten üretilir (`bun run changelog`). Elle düzenlemeyin.
 > Kullanıcıya görünen hâli: https://buyur.in/docs/surum-notlari
 
+## [0.10.0] — 2026-09-27
+
+**Panele yeni görünüm: tam boy yan menü ve sade kartlar**
+
+- **Yeni:** Panelin sol menüsü artık ekranın tam boyunda. Menü butonuyla ikonlara daraltıp çalışma alanını genişletebilirsiniz; tercihiniz bu cihazda hatırlanır.
+- **İyileştirme:** Menüyü görme, kılavuzu başlatma ve çıkış, yan menünün altındaki işletme adınıza tıklayınca açılan menüde. Üst çubukta hangi sayfada olduğunuz yazıyor.
+- **İyileştirme:** Sayılar ikonlu kartlarda, sekmeler tek bir çerçevede; butonlar ve alanlar daha okunur. Renkleriniz ve yazı tipleri aynı kaldı.
+- **İyileştirme:** Yönetim paneli de aynı yan menüye geçti: hesap ve çıkış işlemleri menünün altında.
+- **İyileştirme:** Panel ve web sitenizdeki büyük harfli, daktilo yazılı etiketler sadeleşti: butonlar, etiketler ve rozetler artık normal yazıyla, daha kolay okunuyor.
+- **Yeni:** Panel İngilizce olarak da tam kullanılabiliyor: analizler, raporlar, değerlendirmeler, yapay zekâ ile menü aktarımı ve plan ekranları dahil. Tarih, yüzde ve süreler de seçtiğiniz dile göre yazılıyor.
+- **İyileştirme:** Web sitenizin açılışında görselin üstünde duran dil ve menü butonları kalktı; ziyaretçi aşağı kaydırınca işletme adınız, dil seçici ve "Menü" düğmesiyle yapışkan bir üst çubuk beliriyor. Dil seçici artık açılır menü.
+
+Geliştirici notu:
+
+- components/ui/sidebar.tsx: shadcn Sidebar'ın sade hâli (SidebarProvider, Sidebar, SidebarHeader/Content/Footer/Group/Item, SidebarBrand, SidebarAccount, SidebarTrigger, SidebarInset). lg+ tam boy yapışkan sütun (w-64 / daraltılmış w-14, localStorage: buyur-panel-sidebar, buyur-admin-sidebar), lg altı Sheet; sayfa değişince yaprak kapanır. Kit (components/panel/ui.tsx) dışa verir.
+- Kabuklar: app/panel/(dashboard)/layout.tsx + components/panel/panel-nav.tsx (PanelSidebar, PanelBreadcrumb), components/admin/admin-shell.tsx. Başlık yüksekliği --app-header-h = 64px (SidebarProvider'da); eski --panel-header-h / --admin-header-h kalktı.
+- Büyük harf temizliği: panel/yönetim/site ekranlarındaki `font-mono … uppercase tracking-*` sınıfları TS-AST ile gövde yazısına çevrildi (giriş/kayıt ekranları ve müşteri menüsü hariç).
+- Panel İngilizce: lib/ui-messages/en/panel.ts dolduruldu (≈1.100 metin); analiz/rapor/değerlendirme/AI aktarım/plan kullanım ekranları t() ile sarıldı. lib/analytics/{reports,score,opportunities}.ts sabit etiketleri msg() ile işaretlendi ve i18n-domains panel kapsamına eklendi. Sunucuda sayıyla üretilen içgörü/rapor özet cümleleri Türkçe kalır (API'ye dil parametresi gerekir). chart-utils biçimleri setChartLocale ile arayüz diline bağlandı (WEEKDAY_LABELS → weekdayLabel/weekdayLabels).
+- Site: SiteHeader açılışta gizli, hero'nun %35'i geçilince iner (inert); SiteLanguageSwitcher açılır menü (Radix'siz, Esc/dışarı tıklama kapatır).
+- Kit: Button/Label/Tabs/NavTabs/Switch/Table başlığı font-mono büyük harf yerine gövde yazısı; Tabs bölümlü kontrol (bg-crema p-1); alanlar focus ring-3; Card/Table shadow-xs; PageHeader alt çizgisiz; StatGroup ayrı kartlardan ızgara + isteğe bağlı `icon`. Input/Textarea/Select/Card/Table sınıfları artık cn ile birleşiyor.
+
 ## [0.9.0] — 2026-09-27
 
 **Sekiz dilde menü, telefona uygun panel ve yönetimde ödemeler**

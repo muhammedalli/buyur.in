@@ -18,6 +18,8 @@ import { formatChange, formatNumber, formatPercent } from "@/components/panel/ch
 import type { Opportunity } from "@/lib/analytics/opportunities";
 import type { Category } from "@/lib/types";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 interface ProductRow {
   key: string;
@@ -40,25 +42,26 @@ interface ProductsData {
 }
 
 const SORTS: { value: string; label: string; compare: (a: ProductRow, b: ProductRow) => number }[] = [
-  { value: "views_desc", label: "En çok görüntülenen", compare: (a, b) => b.views - a.views },
-  { value: "views_asc", label: "En az görüntülenen", compare: (a, b) => a.views - b.views },
-  { value: "cart_desc", label: "En çok sepete eklenen", compare: (a, b) => b.cart_adds - a.cart_adds },
-  { value: "conversion_desc", label: "En yüksek dönüşüm", compare: (a, b) => b.conversion - a.conversion },
-  { value: "conversion_asc", label: "En düşük dönüşüm", compare: (a, b) => a.conversion - b.conversion },
+  { value: "views_desc", label: msg("En çok görüntülenen"), compare: (a, b) => b.views - a.views },
+  { value: "views_asc", label: msg("En az görüntülenen"), compare: (a, b) => a.views - b.views },
+  { value: "cart_desc", label: msg("En çok sepete eklenen"), compare: (a, b) => b.cart_adds - a.cart_adds },
+  { value: "conversion_desc", label: msg("En yüksek dönüşüm"), compare: (a, b) => b.conversion - a.conversion },
+  { value: "conversion_asc", label: msg("En düşük dönüşüm"), compare: (a, b) => a.conversion - b.conversion },
   {
     value: "growth_desc",
-    label: "En hızlı yükselen",
+    label: msg("En hızlı yükselen"),
     compare: (a, b) => (b.change ?? -Infinity) - (a.change ?? -Infinity),
   },
   {
     value: "growth_asc",
-    label: "Düşüşte olan",
+    label: msg("Düşüşte olan"),
     compare: (a, b) => (a.change ?? Infinity) - (b.change ?? Infinity),
   },
-  { value: "engagement_desc", label: "En yüksek detay oranı", compare: (a, b) => b.detail_rate - a.detail_rate },
+  { value: "engagement_desc", label: msg("En yüksek detay oranı"), compare: (a, b) => b.detail_rate - a.detail_rate },
 ];
 
 export default function ProductAnalyticsPage() {
+  const { t } = useUiLocale();
   const { business } = useBusiness();
   const { filters, setFilters } = useAnalyticsFilters();
   const { data, meta, loading, refreshing, error, reload } = useAnalyticsQuery<ProductsData>("products");
@@ -91,18 +94,18 @@ export default function ProductAnalyticsPage() {
   return (
     <div>
       <PageHeader
-        title="Ürün analitiği"
-        description="Hangi ürün ilgi görüyor, hangisi sepete girmiyor — ve ne yapmalı"
+        title={t("Ürün analitiği")}
+        description={t("Hangi ürün ilgi görüyor, hangisi sepete girmiyor — ve ne yapmalı")}
       />
 
       <AnalyticsFilterBar>
         <select
           value={filters.category ?? ""}
           onChange={(event) => setFilters({ category: event.target.value || undefined })}
-          aria-label="Kategori filtresi"
-          className="rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink outline-none transition-colors hover:border-paprika"
+          aria-label={t("Kategori filtresi")}
+          className="rounded-md border border-line bg-paper px-4 py-2 text-[13px] font-medium text-ink outline-none transition-colors hover:border-paprika"
         >
-          <option value="">Tüm kategoriler</option>
+          <option value="">{t("Tüm kategoriler")}</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -113,12 +116,12 @@ export default function ProductAnalyticsPage() {
         <select
           value={sort}
           onChange={(event) => setSort(event.target.value)}
-          aria-label="Sıralama"
-          className="rounded-md border border-line bg-paper px-4 py-2 font-mono text-[12px] uppercase tracking-wider text-ink outline-none transition-colors hover:border-paprika"
+          aria-label={t("Sıralama")}
+          className="rounded-md border border-line bg-paper px-4 py-2 text-[13px] font-medium text-ink outline-none transition-colors hover:border-paprika"
         >
           {SORTS.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {t(option.label)}
             </option>
           ))}
         </select>
@@ -128,8 +131,8 @@ export default function ProductAnalyticsPage() {
       {error?.isPlanLocked && (
         <FeatureLocked
           feature="advanced_analytics"
-          subject="Ürün analitiği"
-          description="Ürün bazında görüntülenme, sepete ekleme, dönüşüm ve fırsat analizi."
+          subject={t("Ürün analitiği")}
+          description={t("Ürün bazında görüntülenme, sepete ekleme, dönüşüm ve fırsat analizi.")}
         />
       )}
       {error && !error.isPlanLocked && !data && <AnalyticsErrorState error={error} onRetry={reload} />}
@@ -137,20 +140,20 @@ export default function ProductAnalyticsPage() {
       {data && (
         <Refreshable refreshing={refreshing}>
           {rows.length === 0 ? (
-            <NoDataYet description="Bu dönemde ürünleriniz görüntülenmemiş. Menü paylaşıldıkça ürün performansı burada listelenecek." />
+            <NoDataYet description={t("Bu dönemde ürünleriniz görüntülenmemiş. Menü paylaşıldıkça ürün performansı burada listelenecek.")} />
           ) : (
             <div className="overflow-x-auto rounded-md border border-line bg-paper">
               <table className="w-full min-w-[860px] text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-crema/50 text-left font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                    <th className="px-4 py-3">Ürün</th>
-                    <th className="px-4 py-3">Kategori</th>
-                    <th className="px-4 py-3 text-right">Görüntülenme</th>
-                    <th className="px-4 py-3 text-right">Detay</th>
-                    <th className="px-4 py-3 text-right">Sepet</th>
-                    <th className="px-4 py-3 text-right">Dönüşüm</th>
-                    {meta?.comparison && <th className="px-4 py-3 text-right">Trend</th>}
-                    <th className="px-4 py-3">Değerlendirme</th>
+                  <tr className="border-b border-line bg-crema/50 text-left text-xs font-medium text-ink-soft">
+                    <th className="px-4 py-3">{t("Ürün")}</th>
+                    <th className="px-4 py-3">{t("Kategori")}</th>
+                    <th className="px-4 py-3 text-right">{t("Görüntülenme")}</th>
+                    <th className="px-4 py-3 text-right">{t("Detay")}</th>
+                    <th className="px-4 py-3 text-right">{t("Sepet")}</th>
+                    <th className="px-4 py-3 text-right">{t("Dönüşüm")}</th>
+                    {meta?.comparison && <th className="px-4 py-3 text-right">{t("Trend")}</th>}
+                    <th className="px-4 py-3">{t("Değerlendirme")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -183,8 +186,8 @@ export default function ProductAnalyticsPage() {
           )}
 
           {data.trackedProducts > 0 && (
-            <p className="mt-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-              Bu dönemde {formatNumber(data.trackedProducts)} ürün en az bir kez görüntülendi
+            <p className="mt-3 text-xs font-medium text-ink-soft">
+              {t("Bu dönemde {count} ürün en az bir kez görüntülendi", { count: formatNumber(data.trackedProducts) })}
             </p>
           )}
         </Refreshable>

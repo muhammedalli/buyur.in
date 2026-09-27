@@ -3,6 +3,8 @@
 import { useState, type ReactNode } from "react";
 import { CATEGORICAL, CHART_SURFACE, STATUS } from "@/components/panel/charts/palette";
 import { formatChange, formatCompact, linePath, useChartWidth } from "@/components/panel/charts/chart-utils";
+import { msg } from "@/lib/ui-i18n";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Özet metrik kartı: etiket · değer · (opsiyonel) önceki döneme göre değişim ·
 // (opsiyonel) 12 noktalık trend. Büyük değer orantılı rakamlarla yazılır;
@@ -65,11 +67,12 @@ export function StatTile({
   change,
   upIsGood = true,
   hint,
-  comparisonLabel = "önceki döneme göre",
+  comparisonLabel = msg("önceki döneme göre"),
   trend,
   trendColor,
   action,
 }: StatTileProps) {
+  const { t } = useUiLocale();
   const [showHint, setShowHint] = useState(false);
 
   const direction = change === null || change === undefined || !Number.isFinite(change) ? 0 : Math.sign(change);
@@ -79,7 +82,7 @@ export function StatTile({
   return (
     <div className="relative rounded-md border border-line bg-paper p-4">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{label}</p>
+        <p className="text-xs font-medium text-ink-soft">{label}</p>
         {hint && (
           <button
             type="button"
@@ -88,7 +91,7 @@ export function StatTile({
             onFocus={() => setShowHint(true)}
             onBlur={() => setShowHint(false)}
             onClick={() => setShowHint((open) => !open)}
-            aria-label={`${label} nedir?`}
+            aria-label={t("{label} nedir?", { label })}
             className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-line font-mono text-[9px] text-ink-soft transition-colors hover:border-paprika hover:text-paprika"
           >
             ?
@@ -108,7 +111,7 @@ export function StatTile({
       {change !== undefined && (
         <p className="mt-1 text-xs" style={{ color: changeColor }}>
           {formatChange(change)}{" "}
-          <span className="text-ink-soft">{change === null ? "karşılaştırma yok" : comparisonLabel}</span>
+          <span className="text-ink-soft">{change === null ? t("karşılaştırma yok") : t(comparisonLabel)}</span>
         </p>
       )}
 

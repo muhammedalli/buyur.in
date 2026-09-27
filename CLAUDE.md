@@ -55,7 +55,7 @@ app/
   blog/, yasal/      → pazarlama & hukuki içerik
   docs/              → YARDIM MERKEZİ (/docs, rehberler + /docs/surum-notlari; içerik lib/docs.ts)
 components/
-  ui/                → shadcn/ui katmanı (Radix): dialog, sheet, dropdown-menu, tooltip
+  ui/                → shadcn/ui katmanı (Radix): dialog, sheet, dropdown-menu, tooltip, sidebar
   menu/              → müşteri menüsü bileşenleri (MenuProvider bağlamı)
   panel/             → panel UI kiti (ui.tsx), gezinme (panel-nav.tsx), formlar, grafikler
   admin/             → yönetim paneli istemci parçaları
@@ -189,10 +189,10 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 - İşletmenin kendi rengi `var(--brand)` üzerinden gelir; menü tarafında marka rengini sabit token'la ezmeyin
 - Panel bileşenleri **her zaman** `components/panel/ui.tsx` kitinden gelir: `Button` (`size="sm"` küçük hâli), `AiButton`, `AiActionButton`, `Card`, `PageHeader`, `SectionHeader`, `Input`, `Select`, `Switch`, `Tabs`, `NavTabs`, `SectionNav`, `EmptyState`, `UpgradeNotice`, `FormActions`, `StatGroup`, `Table`, `Dropdown`, `Modal`, `Sheet*`, `Tooltip`. Pencere/yaprak/açılır menü/tooltip shadcn/ui katmanındadır (`components/ui`, Radix); ekranlar onu kit üzerinden kullanır. Sınıflar `cn()` (`lib/utils.ts`, tailwind-merge) ile birleşir. Yeni buton/inputs elle yazılmaz.
 - **Yatay taşma yok (kesin kural):** hiçbir panel/yönetim ekranı 320–1440 px'te yatayda kaymaz ve içerik ekran dışında kalmaz. Sığmayan sekme açılır menüye döner (`Tabs`/`NavTabs` kendisi ölçer), çok bölümlü ekran `SectionNav` (lg+ yan liste, dar ekranda açılır menü), tablo dar ekranda ikincil sütunları gizleyip bilgiyi ana hücrenin altına indirir. Ayrıntı: [`docs/ui-guidelines.md`](./docs/ui-guidelines.md)
-- **Gezinme:** lg ve üstünde gruplu sol yan menü, daha dar ekranda başlıktaki menü butonunun açtığı `Sheet`. Yatay kayan menü şeridi yoktur. Liste: `components/panel/panel-nav.tsx` (panel), `components/admin/admin-shell.tsx` (yönetim).
+- **Gezinme (shadcn Sidebar deseni, `components/ui/sidebar.tsx`):** lg ve üstünde ekranın tam boyunda gruplu sol sütun (üstte marka, altta hesap menüsü; başlıktaki `SidebarTrigger` ikonlara daraltır), daha dar ekranda aynı ağaç `Sheet` olarak açılır. İçerik `SidebarInset` içindedir (yapışkan başlık, `--app-header-h` = 64px). Yatay kayan menü şeridi yoktur. Liste: `components/panel/panel-nav.tsx` (panel), `components/admin/admin-shell.tsx` (yönetim). Kabuk elle yazılmaz; yeni sayfa gruba bir satır ekler.
 - **Köşe yarıçapı standardı 6px** (`rounded-md`): buton, alan, kart, tablo, pencere, açılır menü. Hap (`rounded-full`) yalnızca anahtar, ilerleme çubuğu, durum noktası ve avatar gibi gerçekten yuvarlak öğelerde.
 - **Giriş/kayıt/şifre ekranları** onaylı görseli birebir izler ve kendi parçalarını kullanır (`components/panel/auth-form.tsx`: editoryal serif başlık `font-editorial`, ikonlu geniş alanlar, oklu ana buton; görsel kartı `auth_bg.png`). Bu ekranlar ürünün kapısıdır; yönetim ekranlarının 6px kuralı burada geçerli değildir. "Beni hatırla" `lib/auth-persistence.ts` ile çalışır (işaretsizse tarayıcı kapanınca oturum düşer).
-- Panel ve yönetim ekranları sade kalır: sayıları tek tek küçük kartlara bölmek yerine `StatGroup` (tek çerçevede özet şeridi), listeler için geniş `Table`. Ekranı doldurmak için grafik/metrik eklenmez; ikincil işlemler `Dropdown` altında toplanır.
+- Panel ve yönetim ekranları sade kalır: sayılar yalnızca `StatGroup` ile gösterilir (ikonlu kart ızgarası; metrik kartı elle yazılmaz), listeler için geniş `Table`. Panel, yönetim ve işletme sitesi metinleri gövde yazısıyla yazılır (buton, etiket, sekme, tablo başlığı, rozet): `uppercase` + `tracking-wider` etiket kalıbı kullanılmaz, `font-mono` yalnızca sayı/kod içindir. İstisna: giriş/kayıt ekranları ve müşteri menüsünün kendi dili. Ekranı doldurmak için grafik/metrik eklenmez; ikincil işlemler `Dropdown` altında toplanır.
 - Ham renk kodu (`#fff`, `bg-[#...]`) yazmayın; token kullanın.
 
 ---

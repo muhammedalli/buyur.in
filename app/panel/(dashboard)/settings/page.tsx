@@ -152,7 +152,7 @@ function ProfileImages({
         )}
         {!coverBusy && (
           <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
-            <span className="font-mono text-[11px] uppercase tracking-wider">
+            <span className="text-xs font-medium">
               {coverUrl ? t("Kapağı değiştir") : t("Kapak yükle")}
             </span>
             <input
@@ -183,7 +183,7 @@ function ProfileImages({
           )}
           {!logoBusy && (
             <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/50 hover:text-paper">
-              <span className="font-mono text-[9px] uppercase tracking-wider">{t("Değiştir")}</span>
+              <span className="text-[11px] font-medium">{t("Değiştir")}</span>
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
@@ -293,7 +293,7 @@ function PanelPreferences({ business, onSaved }: { business: Business; onSaved: 
     <div className="space-y-6">
       <Card className="space-y-4">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Panel dili")}</p>
+          <p className="text-xs font-medium text-ink-soft">{t("Panel dili")}</p>
           <p className="mt-1 text-xs text-ink-soft">
             {t("Panelin arayüz dili. Menünüzün dilleri “Menü dilleri” bölümünden ayrı yönetilir.")}
           </p>
@@ -669,7 +669,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
             {/* Genel bilgiler */}
             <Card className="space-y-4" data-guide="settings-info">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+              <p className="text-xs font-medium text-ink-soft">
                 {t("Kayıt tarihi: {date}", { date: registeredAt })}
               </p>
               <div>
@@ -744,7 +744,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         {tab === "diller" && (
           <Card className="space-y-6">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Menü dilleri")}</p>
+              <p className="text-xs font-medium text-ink-soft">{t("Menü dilleri")}</p>
               <p className="mt-1 text-xs text-ink-soft">
                 {t(
                   "Ana dil, metinleri girdiğiniz dildir ve her zaman açıktır. Misafirleriniz için ana dil dahil en fazla {max} dil açabilirsiniz.",
@@ -776,7 +776,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
             <div>
               <div className="mb-2 flex items-baseline justify-between gap-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Açık diller")}</p>
+                <p className="text-xs font-medium text-ink-soft">{t("Açık diller")}</p>
                 <p className="font-mono text-[11px] text-ink-soft">
                   {t("{count}/{max} dil", { count: languages.length + 1, max: MAX_MENU_LOCALES })}
                 </p>
@@ -786,14 +786,14 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                   const isMain = l === mainLang;
                   return (
                     <li key={l} className="flex items-center gap-3 px-3.5 py-2.5">
-                      <span className="w-7 shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+                      <span className="w-7 shrink-0 text-xs font-bold text-ink-soft">
                         {localeCodes[l]}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink" lang={l}>
                         {localeLabels[l]}
                       </span>
                       {isMain ? (
-                        <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-paprika">
+                        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-paprika">
                           <StarIcon filled size={13} /> {t("Ana dil")}
                         </span>
                       ) : (
@@ -850,7 +850,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             <div className="space-y-6">
               {/* Marka rengi */}
               <Card className="space-y-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Marka rengi")}</p>
+                <p className="text-xs font-medium text-ink-soft">{t("Marka rengi")}</p>
                 <div className="flex flex-wrap gap-2.5">
                   {Object.entries(themes).map(([key, { name: themeName, color }]) => {
                     const active = !brandIsCustom && theme === key;
@@ -902,7 +902,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                     <button
                       type="button"
                       onClick={() => setThemeColor("")}
-                      className="font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
+                      className="text-xs font-medium text-ink-soft transition-colors hover:text-paprika"
                     >
                       {t("Sıfırla")}
                     </button>
@@ -912,7 +912,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
               {/* Arka plan */}
               <Card className="space-y-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Menü arka planı")}</p>
+                <p className="text-xs font-medium text-ink-soft">{t("Menü arka planı")}</p>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {Object.entries(surfaces).map(([key, s]) => {
                     const active = menuBg === key;
@@ -939,7 +939,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
               {/* Yazı tipi */}
               <Card className="space-y-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Yazı tipi")}</p>
+                <p className="text-xs font-medium text-ink-soft">{t("Yazı tipi")}</p>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {Object.entries(fonts).map(([key, f]) => {
                     const active = font === key;
@@ -963,7 +963,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
             {/* Canlı önizleme */}
             <div className="lg:sticky lg:top-[calc(var(--app-header-h,69px)+5rem)] lg:self-start">
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Önizleme")}</p>
+              <p className="mb-2 text-xs font-medium text-ink-soft">{t("Önizleme")}</p>
               <div
                 className="overflow-hidden rounded-md border shadow-lg"
                 style={{
@@ -998,7 +998,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                   </div>
                   <button
                     type="button"
-                    className="mt-1 w-full rounded-md py-2.5 text-center font-mono text-[12px] uppercase tracking-wider"
+                    className="mt-1 w-full rounded-md py-2.5 text-center text-[13px] font-medium"
                     style={{ background: brandPreview, color: "#fff" }}
                   >
                     {t("+ Sepete ekle")}
@@ -1046,7 +1046,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             </Card>
 
             <div className="lg:sticky lg:top-[calc(var(--app-header-h,69px)+5rem)] lg:self-start">
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Önizleme")}</p>
+              <p className="mb-2 text-xs font-medium text-ink-soft">{t("Önizleme")}</p>
               <div
                 className="overflow-hidden rounded-md border border-line bg-paper shadow-lg"
                 style={brandStyle({ theme, theme_color: themeColor, menu_bg: menuBg, font }, { surface: true }) as CSSProperties}
@@ -1077,7 +1077,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           <Card className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Mekân özellikleri")}</p>
+                <p className="text-xs font-medium text-ink-soft">{t("Mekân özellikleri")}</p>
                 <p className="mt-1 text-xs text-ink-soft">
                   {t("İstediğiniz kadar seçin — menünüzde, vitrininizde ve web sitenizde ikonlarıyla görünür.")}
                 </p>
@@ -1111,7 +1111,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
         {tab === "iletisim" && (
           <Card className="space-y-4">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Adres & iletişim")}</p>
+            <p className="text-xs font-medium text-ink-soft">{t("Adres & iletişim")}</p>
             <div>
               <Label htmlFor="b-address">{t("Adres")}</Label>
               <Input id="b-address" value={address} onChange={(e) => setAddress(e.target.value)} />
@@ -1159,7 +1159,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
         {tab === "sosyal" && (
           <Card className="space-y-4">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Sosyal medya")}</p>
+            <p className="text-xs font-medium text-ink-soft">{t("Sosyal medya")}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="b-whatsapp">WhatsApp</Label>

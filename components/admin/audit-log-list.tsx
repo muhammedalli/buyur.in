@@ -50,7 +50,7 @@ const META_HIDDEN = new Set(["label", "user_agent", "cascaded"]);
 /** Kaydı hangi katmanın yazdığı: uygulama sunucusu mu, veritabanı hook'u mu. */
 const SOURCE_LABELS: Record<string, string> = { next: "Uygulama sunucusu", pocketbase: "Veritabanı (hook)" };
 
-const BADGE = "inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider";
+const BADGE = "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium";
 
 function ValueCell({ value }: { value: unknown }) {
   const text = showAuditValue(value);
@@ -122,7 +122,7 @@ export function AuditLogList({ logs, businessNames = {}, hideBusiness, filterHre
 
             {(changes.length > 0 || log.ip || agent || cascaded || extra.length > 0) && (
               <details className="group mt-2">
-                <summary className="cursor-pointer select-none font-mono text-[11px] uppercase tracking-wider text-ink-soft hover:text-paprika">
+                <summary className="cursor-pointer select-none text-xs font-medium text-ink-soft hover:text-paprika">
                   {changes.length > 0 ? `${isSnapshot ? "Kayıt" : "Değişiklik"} (${changes.length} alan)` : "Ayrıntı"}
                 </summary>
                 {changes.length > 0 && (
@@ -149,7 +149,7 @@ export function AuditLogList({ logs, businessNames = {}, hideBusiness, filterHre
                     </dl>
                     <div className="mt-2 hidden overflow-x-auto rounded-md border border-line sm:block">
                       <table className="w-full table-fixed text-left text-[12px]">
-                        <thead className="bg-crema/60 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+                        <thead className="bg-crema/60 text-xs font-medium text-ink-soft">
                           <tr>
                             <th className="w-1/3 px-3 py-2 font-medium">Alan</th>
                             {log.before && <th className="px-3 py-2 font-medium">Önce</th>}

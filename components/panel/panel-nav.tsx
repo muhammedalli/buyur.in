@@ -1,16 +1,30 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
-import Link from "next/link";
+import type { ComponentType } from "react";
 import { usePathname } from "next/navigation";
-import { Logo } from "@/components/logo";
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/panel/ui";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  InitialsAvatar,
+  Sidebar,
+  SidebarAccount,
+  SidebarBrand,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarItem,
+  useSidebar,
+} from "@/components/panel/ui";
 import { useGuide } from "@/components/panel/guide";
 import { useUiLocale } from "@/components/ui-locale-provider";
+import { menuPageUrl } from "@/lib/storefront";
+import { menuUrl } from "@/lib/site";
 import { msg } from "@/lib/ui-i18n";
-import { cn } from "@/lib/utils";
+import type { Business } from "@/lib/types";
 import {
   CompassIcon,
+  ExternalLinkIcon,
   FileTextIcon,
   FolderIcon,
   GlobeIcon,
@@ -18,7 +32,6 @@ import {
   LifeBuoyIcon,
   LogoutIcon,
   MegaphoneIcon,
-  MenuIcon,
   PackageIcon,
   QrCodeIcon,
   SettingsIcon,
@@ -26,12 +39,12 @@ import {
   SparklesIcon,
   StarIcon,
   TrendingUpIcon,
-  XIcon,
 } from "@/components/icons";
 
-// İşletme panelinin gezinmesi. Aynı gruplu liste iki yerde çizilir:
-// masaüstünde (lg+) sol yan menü, daha dar ekranda başlıktaki menü
-// butonunun açtığı yaprak (Sheet). Yatay kayan şerit kullanılmaz.
+// İşletme panelinin gezinmesi (components/ui/sidebar.tsx kabuğunda). Aynı
+// gruplu liste lg ve üstünde tam boy sol sütun (ikonlara daraltılabilir),
+// daha dar ekranda başlıktaki tetikleyicinin açtığı yaprak olarak çizilir.
+// Hesap işlemleri (kılavuz, yardım, çıkış) sütunun altındaki hesap menüsündedir.
 
 interface NavItem {
   href: string;
@@ -89,137 +102,102 @@ function isActive(pathname: string, item: NavItem) {
   return item.prefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
-const ROW = "flex w-full items-center gap-2.5 rounded-md px-3 py-2.5 text-sm transition-colors";
-const ROW_ACTIVE = "bg-paprika/10 font-semibold text-paprika";
-const ROW_IDLE = "text-ink-soft hover:bg-crema/70 hover:text-ink";
-
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
+/** Başlıkta gösterilen konum: "Menü › Ürünler". */
+export function PanelBreadcrumb() {
   const pathname = usePathname();
   const { t } = useUiLocale();
+  for (const group of PANEL_NAV_GROUPS) {
+    const item = group.items.find((entry) => isActive(pathname, entry));
+    if (!item) continue;
+    return (
+      <p className="flex min-w-0 items-center gap-1.5 truncate text-sm">
+        {group.label && <span className="hidden text-ink-soft sm:inline">{t(group.label)}</span>}
+        {group.label && <span className="hidden text-ink-soft/60 sm:inline">›</span>}
+        <span className="truncate font-semibold text-ink">{t(item.label)}</span>
+      </p>
+    );
+  }
+  return null;
+}
+
+export function PanelSidebar({ business, onLogout }: { business: Business; onLogout: () => void }) {
+  const pathname = usePathname();
+  const { t } = useUiLocale();
+  const { enabled: guideEnabled, active: guideActive, start: startGuide } = useGuide();
+  const { setMobileOpen } = useSidebar();
+  const name = business.name || t("İşletmen");
+  const host = menuUrl(business.slug).replace(/^https?:\/\//, "");
+
   return (
-    <div className="space-y-5">
-      {PANEL_NAV_GROUPS.map((group) => (
-        <div key={group.label ?? "root"}>
-          {group.label && (
-            <p className="mb-1 px-3 font-mono text-[10px] uppercase tracking-wider text-ink-soft/80">{t(group.label)}</p>
-          )}
-          <ul className="space-y-0.5">
+    <Sidebar label={t("Panel menüsü")} closeLabel={t("Kapat")}>
+      <SidebarHeader>
+        <SidebarBrand
+          href="/panel"
+          title="buyur"
+          subtitle={t("İşletme paneli")}
+          // eslint-disable-next-line @next/next/no-img-element
+          avatar={<img src="/icon-192.png" alt="" className="h-full w-full" />}
+        />
+      </SidebarHeader>
+      <SidebarContent>
+        {PANEL_NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label ?? "root"} label={group.label ? t(group.label) : null}>
             {group.items.map((item) => {
               const active = isActive(pathname, item);
               return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onNavigate}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(ROW, active ? ROW_ACTIVE : ROW_IDLE)}
-                  >
-                    <item.Icon size={17} strokeWidth={active ? 2.1 : 1.8} />
-                    {t(item.label)}
-                  </Link>
-                </li>
+                <SidebarItem
+                  key={item.href}
+                  href={item.href}
+                  active={active}
+                  label={t(item.label)}
+                  icon={<item.Icon size={17} strokeWidth={active ? 2.1 : 1.8} />}
+                />
               );
             })}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Masaüstü (lg+) sol yan menü. */
-export function PanelSidebar() {
-  const { t } = useUiLocale();
-  return (
-    <aside className="sticky top-[var(--panel-header-h)] hidden h-[calc(100dvh-var(--panel-header-h))] w-52 shrink-0 overflow-y-auto py-8 lg:block">
-      <nav aria-label={t("Panel menüsü")}>
-        <NavList />
-      </nav>
-      {/* Yeni sekmede açılır: yardım okurken açık formdaki değişiklik kaybolmasın. */}
-      <a
-        href="/docs"
-        target="_blank"
-        rel="noopener"
-        className="mt-6 block border-t border-line/60 px-3 pt-4 text-xs text-ink-soft transition-colors hover:text-paprika"
-      >
-        {t("Yardım merkezi")} ↗
-      </a>
-    </aside>
-  );
-}
-
-/** Mobil/tablet (lg altı): başlıktaki menü butonu ve açtığı yaprak. Başlıkta
- *  yer kalmayan hesap işlemleri (kılavuz, panel dili, çıkış) dar ekranda
- *  buradadır. */
-export function PanelMobileNav({
-  businessName,
-  onLogout,
-  languageSwitcher,
-}: {
-  businessName: string;
-  onLogout: () => void;
-  languageSwitcher: React.ReactNode;
-}) {
-  const { t } = useUiLocale();
-  const { enabled: guideEnabled, active: guideActive, start: startGuide } = useGuide();
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
-
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger
-        aria-label={t("Menüyü aç")}
-        className="-ml-1.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-ink transition-colors hover:bg-crema hover:text-paprika lg:hidden"
-      >
-        <MenuIcon size={22} />
-      </SheetTrigger>
-      <SheetContent side="start" aria-describedby={undefined}>
-        <div className="flex items-center justify-between gap-3 border-b border-line py-3 pl-5 pr-3">
-          <Logo className="h-7" />
-          <SheetClose
-            aria-label={t("Kapat")}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-crema hover:text-paprika"
-          >
-            <XIcon size={18} />
-          </SheetClose>
-        </div>
-        {/* Tek kaydırılan alan: kısa ekranda menünün sonu da hesap işlemleri de erişilebilir. */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <SheetTitle className="mb-4 truncate px-3 text-base">{businessName}</SheetTitle>
-          <SheetDescription className="sr-only">{t("Panel menüsü")}</SheetDescription>
-          <nav aria-label={t("Panel menüsü")}>
-            <NavList onNavigate={close} />
-          </nav>
-          <div className="mt-5 space-y-0.5 border-t border-line pt-4">
-            {guideEnabled && (
-              <button
-                type="button"
-                disabled={guideActive}
-                onClick={() => {
-                  close();
-                  startGuide();
-                }}
-                className={cn(ROW, ROW_IDLE, "disabled:opacity-50")}
-              >
-                <CompassIcon size={17} />
-                {t("Kılavuzu başlat")}
-              </button>
-            )}
-            <a href="/docs" target="_blank" rel="noopener" className={cn(ROW, ROW_IDLE)}>
-              <LifeBuoyIcon size={17} />
-              {t("Yardım merkezi")} ↗
+          </SidebarGroup>
+        ))}
+        <SidebarGroup className="mt-auto">
+          {/* Yeni sekmede açılır: yardım okurken açık formdaki değişiklik kaybolmasın. */}
+          <SidebarItem href="/docs" external label={t("Yardım merkezi")} icon={<LifeBuoyIcon size={17} />} />
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarAccount
+          menuLabel={t("Hesap menüsü")}
+          title={name}
+          subtitle={host}
+          avatar={
+            business.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={business.logo_url} alt="" className="h-full w-full bg-paper object-contain" />
+            ) : (
+              <InitialsAvatar name={name} />
+            )
+          }
+        >
+          <DropdownMenuItem asChild className="items-center gap-2.5">
+            <a href={menuPageUrl(business.slug)} target="_blank" rel="noreferrer">
+              <ExternalLinkIcon size={16} />
+              {t("Menüyü gör")}
             </a>
-            <div className="flex items-center justify-between gap-3 px-3 py-1.5 sm:hidden">
-              <span className="text-sm text-ink-soft">{t("Panel dili")}</span>
-              {languageSwitcher}
-            </div>
-            <button type="button" onClick={onLogout} className={cn(ROW, ROW_IDLE, "sm:hidden")}>
-              <LogoutIcon size={17} />
-              {t("Çıkış")}
-            </button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+          </DropdownMenuItem>
+          {guideEnabled && (
+            <DropdownMenuItem disabled={guideActive} onSelect={() => {
+                // Kılavuz sayfadaki öğeleri gösterir; yaprak açık kalırsa üstünü örter.
+                setMobileOpen(false);
+                startGuide();
+              }} className="items-center gap-2.5">
+              <CompassIcon size={16} />
+              {t("Kılavuzu başlat")}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={onLogout} className="items-center gap-2.5">
+            <LogoutIcon size={16} />
+            {t("Çıkış")}
+          </DropdownMenuItem>
+        </SidebarAccount>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

@@ -118,7 +118,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
       {result.totalPages > 1 && (
         <nav aria-label="Sayfalar" className="mt-6 flex items-center justify-between gap-3">
           {result.page > 1 ? <ButtonLink href={businessListHref(query, { page: result.page - 1 })}>Önceki</ButtonLink> : <span />}
-          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <span className="text-xs font-medium text-ink-soft">
             {result.page} / {result.totalPages}
           </span>
           {result.page < result.totalPages ? (

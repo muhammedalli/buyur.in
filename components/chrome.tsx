@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { whatsappLink } from "@/lib/site";
 import { LEGAL_DOCS, legalPath } from "@/lib/legal";
-import { RELEASE_NOTES_SLUG, docPath } from "@/lib/docs";
+import { RELEASE_NOTES_SLUG, docPath, docsHome } from "@/lib/docs";
+import { sectionId } from "@/lib/landing-sections";
 import { WhatsappIcon } from "@/components/icons";
 import { siteTranslator } from "@/lib/ui-messages/site";
 import { siteLocalePath, type Translator, type UiLocale } from "@/lib/ui-i18n";
@@ -11,8 +12,8 @@ import { siteLocalePath, type Translator, type UiLocale } from "@/lib/ui-i18n";
 export { Logo } from "@/components/logo";
 import { Logo } from "@/components/logo";
 
-/** Footer sütunları arayüz dilinde. Yardım merkezi ve yasal metinler yalnızca
- *  Türkçedir; İngilizce sayfada bağlantı adının yanında bu söylenir. */
+/** Footer sütunları arayüz dilinde. Yasal metinler yalnızca Türkçedir; İngilizce
+ *  sayfada bağlantı adının yanında bu söylenir. Yardım merkezi iki dillidir. */
 function footerNav(t: Translator, locale: UiLocale) {
   const home = siteLocalePath(locale);
   const trOnly = locale === "tr" ? "" : ` (${t("Türkçe")})`;
@@ -20,20 +21,20 @@ function footerNav(t: Translator, locale: UiLocale) {
     {
       title: t("Ürün"),
       links: [
-        { label: t("Platform"), href: `${home}#platform` },
-        { label: t("Özellikler"), href: `${home}#ozellikler` },
-        { label: t("Canlı demo"), href: `${home}#canli-menu` },
-        { label: t("Nasıl çalışır"), href: `${home}#nasil` },
-        { label: t("Fiyatlar"), href: `${home}#fiyat` },
+        { label: t("Platform"), href: `${home}#${sectionId("platform", locale)}` },
+        { label: t("Özellikler"), href: `${home}#${sectionId("features", locale)}` },
+        { label: t("Canlı demo"), href: `${home}#${sectionId("liveMenu", locale)}` },
+        { label: t("Nasıl çalışır"), href: `${home}#${sectionId("how", locale)}` },
+        { label: t("Fiyatlar"), href: `${home}#${sectionId("pricing", locale)}` },
       ],
     },
     {
       title: t("Yardım"),
       links: [
-        { label: `${t("Yardım merkezi")}${trOnly}`, href: "/docs" },
-        { label: t("Hızlı başlangıç"), href: docPath("hizli-baslangic") },
-        { label: t("Çoklu dil ve AI çeviri"), href: docPath("coklu-dil") },
-        { label: t("Sürüm notları"), href: docPath(RELEASE_NOTES_SLUG) },
+        { label: t("Yardım merkezi"), href: docsHome(locale) },
+        { label: t("Hızlı başlangıç"), href: docPath("hizli-baslangic", locale) },
+        { label: t("Çoklu dil ve AI çeviri"), href: docPath("coklu-dil", locale) },
+        { label: t("Sürüm notları"), href: docPath(RELEASE_NOTES_SLUG, locale) },
       ],
     },
     {

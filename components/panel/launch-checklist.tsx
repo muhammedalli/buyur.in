@@ -149,7 +149,7 @@ export function LaunchChecklist({
               /* yoksay */
             }
           }}
-          className="font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-ink"
+          className="text-xs font-medium text-ink-soft transition-colors hover:text-ink"
         >
           {t("Gizle")}
         </button>
@@ -161,7 +161,7 @@ export function LaunchChecklist({
     <section aria-labelledby="launch-title" className="mb-8 overflow-hidden rounded-md border border-line bg-paper">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-paprika">{t("Menünü yayına hazırla")}</p>
+          <p className="text-xs font-medium text-paprika">{t("Menünü yayına hazırla")}</p>
           <h2 id="launch-title" className="mt-1 font-display text-xl font-bold">
             {t("%{percent} tamamlandı", { percent })}
           </h2>
@@ -188,7 +188,7 @@ export function LaunchChecklist({
         {next && (
           <div className="flex flex-col justify-between gap-5 bg-crema/40 p-6">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Sıradaki adım")}</p>
+              <p className="text-xs font-medium text-ink-soft">{t("Sıradaki adım")}</p>
               <p className="mt-2 font-display text-2xl font-extrabold leading-tight">{next.title}</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">{next.hint}</p>
             </div>

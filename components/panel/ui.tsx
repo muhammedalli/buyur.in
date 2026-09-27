@@ -29,6 +29,21 @@ import {
 export { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 export { Tooltip } from "@/components/ui/tooltip";
 export {
+  InitialsAvatar,
+  Sidebar,
+  SidebarAccount,
+  SidebarBrand,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarInset,
+  SidebarItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
+export {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -54,28 +69,30 @@ export function Label(props: LabelHTMLAttributes<HTMLLabelElement>) {
   const { className = "", ...rest } = props;
   return (
     <label
-      className={`mb-1.5 block font-mono text-[11px] uppercase tracking-wider text-ink-soft ${className}`}
+      className={cn("mb-1.5 block text-sm font-medium text-ink", className)}
       {...rest}
     />
   );
 }
 
+// Odakta marka renginde yumuşak halka (shadcn `ring-3` deseni): kenarlık
+// rengi tek başına ince çizgide zor seçiliyordu.
 const FIELD_BASE =
-  "w-full rounded-md border border-line bg-paper px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-soft/50 focus:border-paprika disabled:cursor-not-allowed disabled:bg-crema/40 disabled:text-ink-soft";
+  "w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink shadow-xs outline-none transition-[color,box-shadow,border-color] placeholder:text-ink-soft/50 focus:border-paprika focus:ring-3 focus:ring-paprika/15 disabled:cursor-not-allowed disabled:bg-crema/40 disabled:text-ink-soft";
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   const { className = "", ...rest } = props;
-  return <input className={`${FIELD_BASE} ${className}`} {...rest} />;
+  return <input className={cn(FIELD_BASE, "min-h-10", className)} {...rest} />;
 }
 
 export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const { className = "", ...rest } = props;
-  return <textarea className={`${FIELD_BASE} ${className}`} {...rest} />;
+  return <textarea className={cn(FIELD_BASE, className)} {...rest} />;
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   const { className = "", ...rest } = props;
-  return <select className={`${FIELD_BASE} ${className}`} {...rest} />;
+  return <select className={cn(FIELD_BASE, "min-h-10", className)} {...rest} />;
 }
 
 type ButtonVariant = "primary" | "outline" | "ghost" | "danger";
@@ -88,20 +105,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const BUTTON_BASE =
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md font-mono uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-paprika/25 disabled:cursor-not-allowed disabled:opacity-50";
 
 // Boyut `size` ile seçilir. Sınıflar cn (tailwind-merge) ile birleştiği için
 // className'deki çakışan sınıf kazanır: ekranlar yalnızca yerleşim ayarı
 // (ör. `w-full sm:w-auto`, `hidden sm:inline-flex`) ekler.
 const BUTTON_SIZES: Record<ButtonSize, string> = {
-  md: "px-5 py-2.5 text-[13px]",
-  sm: "px-3 py-1.5 text-[11px]",
+  md: "min-h-10 px-4 py-2 text-sm",
+  sm: "min-h-8 px-3 py-1 text-[13px]",
 };
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-paper hover:bg-paprika",
-  outline: "border border-line bg-paper text-ink hover:border-paprika hover:text-paprika",
-  ghost: "text-ink-soft hover:text-paprika",
+  primary: "bg-ink text-paper shadow-xs hover:bg-paprika",
+  outline: "border border-line bg-paper text-ink shadow-xs hover:bg-crema",
+  ghost: "text-ink-soft hover:bg-crema hover:text-ink",
   danger: "border border-paprika/40 text-paprika hover:bg-paprika hover:text-paper",
 };
 
@@ -154,7 +171,7 @@ export function AiButton({
       `}</style>
       <button
         {...rest}
-        className={`group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-md bg-gradient-to-br from-paprika to-paprika-deep px-5 py-2.5 font-mono text-[13px] uppercase tracking-wider text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        className={`group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-md bg-gradient-to-br from-paprika to-paprika-deep min-h-10 px-4 py-2 text-sm text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       >
         <div className="absolute inset-0 w-full h-full pointer-events-none">
           <div className="absolute top-0 bottom-0 w-12 bg-white/20 blur-[2px]" style={{ animation: "ai-shimmer 2.5s infinite linear" }} />
@@ -165,7 +182,7 @@ export function AiButton({
           <SparklesIcon size={18} />
         </div>
 
-        <span className="relative z-10 font-bold drop-shadow-sm">{children ?? t("Yapay Zeka ile Tara")}</span>
+        <span className="relative z-10 font-semibold drop-shadow-sm">{children ?? t("Yapay Zeka ile Tara")}</span>
       </button>
 
       {/* Önizleme butonun sağ kenarına hizalanır: buton her ekranda sağdadır
@@ -201,7 +218,7 @@ export function AiActionButton({
       {...rest}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`group relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden rounded-md bg-gradient-to-br from-paprika to-paprika-deep px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-paper shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`group relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden rounded-md bg-gradient-to-br from-paprika to-paprika-deep min-h-8 px-3 py-1 text-[13px] text-paper shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <span className="absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
       {loading ? (
@@ -209,7 +226,7 @@ export function AiActionButton({
       ) : (
         <SparklesIcon size={14} className="relative z-10" />
       )}
-      <span className="relative z-10 font-bold">{children}</span>
+      <span className="relative z-10 font-semibold">{children}</span>
     </button>
   );
 }
@@ -225,7 +242,7 @@ export function Spinner({ className = "" }: { className?: string }) {
 
 export function Card({ children, className = "", ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`rounded-md border border-line bg-paper p-6 ${className}`} {...rest}>
+    <div className={cn("rounded-md border border-line bg-paper p-6 shadow-xs", className)} {...rest}>
       {children}
     </div>
   );
@@ -233,9 +250,9 @@ export function Card({ children, className = "", ...rest }: HTMLAttributes<HTMLD
 
 export function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
-    <div className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 max-w-2xl">
-        <h1 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">{title}</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
         {description && <p className="mt-1.5 text-sm text-ink-soft">{description}</p>}
       </div>
       {/* Eylemler her ekranda aynı yerde: sağ üst. */}
@@ -286,7 +303,7 @@ export function UpdatedAt({ at, label }: { at?: number | string | null; label?: 
   const ms = typeof at === "string" ? Date.parse(at.replace(" ", "T")) : (at ?? null);
   if (ms === null || !Number.isFinite(ms)) return null;
   return (
-    <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+    <span className="text-xs text-ink-soft">
       {label ?? t("Son güncelleme")} · {formatSavedTime(ms as number, tag)}
     </span>
   );
@@ -472,11 +489,13 @@ function useFitsInline() {
   return { containerRef, measureRef, fits };
 }
 
-const TAB_ROW = "flex gap-6 border-b border-line";
+// Bölümlü kontrol (shadcn Tabs): krema zemin üzerinde seçili sekme kâğıt
+// renginde yükselir.
+const TAB_ROW = "flex w-fit max-w-full gap-1 rounded-md bg-crema p-1";
 const TAB_ITEM =
-  "relative -mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[13px] font-semibold uppercase tracking-wide transition-colors";
-const TAB_ACTIVE = "border-paprika text-paprika";
-const TAB_IDLE = "border-transparent text-ink-soft hover:text-ink";
+  "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-paprika/25";
+const TAB_ACTIVE = "bg-paper text-ink shadow-xs";
+const TAB_IDLE = "text-ink-soft hover:text-ink";
 
 /** Dar ekranda sekmelerin yerine geçen açılır menü: seçili sekme görünür,
  *  diğerleri listede. */
@@ -485,7 +504,7 @@ function TabsDropdown({ label, current, children }: { label: string; current: Re
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         aria-label={label}
-        className="group flex w-full items-center justify-between gap-3 rounded-md border border-line bg-paper px-3.5 py-2.5 text-left text-[13px] font-semibold uppercase tracking-wide text-ink transition-colors hover:border-paprika"
+        className="group flex min-h-10 w-full items-center justify-between gap-3 rounded-md border border-line bg-paper px-3 py-2 text-left text-sm font-medium text-ink shadow-xs transition-colors hover:bg-crema"
       >
         <span className="flex min-w-0 items-center gap-1.5 truncate">{current}</span>
         <ChevronDownIcon size={15} className="shrink-0 text-ink-soft transition-transform group-data-[state=open]:rotate-180" />
@@ -728,7 +747,7 @@ export function Switch({
   if (compact) {
     return (
       <label className="flex shrink-0 cursor-pointer items-center gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{label}</span>
+        <span className="text-sm text-ink-soft">{label}</span>
         <button
           type="button"
           role="switch"
@@ -943,13 +962,16 @@ export function Dropdown({
   );
 }
 
-// Özet sayı şeridi: birkaç metriği tek çerçevede, ince çizgilerle ayrılmış
-// hücrelerde gösterir. Her sayıyı ayrı karta bölmek yerine kullanılır.
+// Özet sayı kartları (shadcn panel deseni): her metrik kendi kartında, etiket
+// ve isteğe bağlı ikon üstte, değer altında. Ekranlar metrik kartını elle
+// yazmaz; sayıları hep bu ızgara gösterir.
 export interface StatItem {
   label: string;
   value: ReactNode;
   hint?: ReactNode;
   href?: string;
+  /** Etiketin sağındaki küçük ikon. */
+  icon?: ReactNode;
 }
 
 export function StatGroup({
@@ -961,7 +983,7 @@ export function StatGroup({
   items: StatItem[];
   className?: string;
   /** sm ve üstündeki sütun sayısı; verilmezse her öğe bir sütun. Çok öğeli
-   *  şeritte (ör. 6 para değeri) satır başına 3 vermek değerleri sığdırır. */
+   *  ızgarada (ör. 6 para değeri) satır başına 3 vermek değerleri sığdırır. */
   columns?: number;
   /** "sm": uzun değerler (para tutarı) için küçük punto. */
   size?: "md" | "sm";
@@ -970,26 +992,32 @@ export function StatGroup({
     <div
       style={{ "--stat-cols": columns ?? items.length } as CSSProperties}
       className={cn(
-        "grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-[repeat(var(--stat-cols),minmax(0,1fr))] [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1",
+        "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-[repeat(var(--stat-cols),minmax(0,1fr))] [&>*:last-child:nth-child(odd)]:col-span-2 lg:[&>*:last-child:nth-child(odd)]:col-span-1",
+        // Dört ve daha az kart sm'de de tek satıra sığar.
+        (columns ?? items.length) <= 4 && "sm:grid-cols-[repeat(var(--stat-cols),minmax(0,1fr))] sm:[&>*:last-child:nth-child(odd)]:col-span-1",
         className
       )}
     >
       {items.map((item) => {
         const body = (
           <>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{item.label}</p>
-            <p className={cn("mt-1 font-display font-bold leading-tight text-ink", size === "sm" ? "text-lg sm:text-xl" : "text-2xl")}>
+            <div className="flex items-start justify-between gap-2">
+              <p className="min-w-0 text-sm font-medium text-ink-soft">{item.label}</p>
+              {item.icon && <span className="shrink-0 text-ink-soft/70">{item.icon}</span>}
+            </div>
+            <p className={cn("mt-2 font-display font-bold leading-tight text-ink", size === "sm" ? "text-lg sm:text-xl" : "text-2xl")}>
               {item.value}
             </p>
-            {item.hint && <p className="mt-0.5 text-xs text-ink-soft">{item.hint}</p>}
+            {item.hint && <p className="mt-1 text-xs text-ink-soft">{item.hint}</p>}
           </>
         );
+        const card = "block min-w-0 rounded-md border border-line bg-paper p-4 shadow-xs sm:p-5";
         return item.href ? (
-          <Link key={item.label} href={item.href} className="block min-w-0 bg-paper px-4 py-4 transition-colors hover:bg-crema/50 sm:px-5">
+          <Link key={item.label} href={item.href} className={cn(card, "transition-colors hover:border-paprika/40 hover:bg-crema/40")}>
             {body}
           </Link>
         ) : (
-          <div key={item.label} className="min-w-0 bg-paper px-4 py-4 sm:px-5">
+          <div key={item.label} className={card}>
             {body}
           </div>
         );
@@ -1007,8 +1035,8 @@ export function StatGroup({
 // de `overflow-x-auto`'dur — bir şey taşarsa taşan tablonun kendisi olur, sayfa değil.
 export function Table({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`overflow-x-auto rounded-md border border-line bg-paper ${className}`}>
-      <table className="w-full border-collapse text-left text-sm [&_tbody_tr]:border-t [&_tbody_tr]:border-line [&_tbody_tr:hover]:bg-crema/40 [&_td]:px-3 [&_td]:py-3 [&_td]:align-middle sm:[&_td]:px-4 [&_th]:whitespace-nowrap [&_th]:px-3 [&_th]:py-2.5 sm:[&_th]:px-4 [&_th]:font-mono [&_th]:text-[11px] [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-ink-soft [&_thead]:bg-crema/50">
+    <div className={cn("overflow-x-auto rounded-md border border-line bg-paper shadow-xs", className)}>
+      <table className="w-full border-collapse text-left text-sm [&_tbody_tr]:border-t [&_tbody_tr]:border-line [&_tbody_tr:hover]:bg-crema/40 [&_td]:px-3 [&_td]:py-3 [&_td]:align-middle sm:[&_td]:px-4 [&_th]:h-10 [&_th]:whitespace-nowrap [&_th]:px-3 sm:[&_th]:px-4 [&_th]:text-xs [&_th]:font-medium [&_th]:text-ink-soft [&_thead]:bg-crema/40">
         {children}
       </table>
     </div>

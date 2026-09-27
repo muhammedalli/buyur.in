@@ -16,6 +16,8 @@ import { CheckCircleIcon, ImageIcon, TrashIcon } from "@/components/icons";
 import { aiUsage } from "@/lib/entitlements";
 import type { ScannedCategory, ScannedProduct } from "@/lib/ai/menu-scan";
 import type { Business } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 // Fiziksel menü aktarımı: yükle → tara → önizle/düzelt → onayla → aktar.
 //
@@ -35,10 +37,10 @@ type DraftCategory = Omit<ScannedCategory, "products"> & { products: DraftProduc
 type MenuImportPlan = ImportPlan<DraftCategory, DraftProduct>;
 
 const UNCERTAIN_LABELS: Record<string, string> = {
-  name: "Ad okunamadı",
-  description: "Açıklama belirsiz",
-  price: "Fiyat okunamadı",
-  currency: "Para birimi belirsiz",
+  name: msg("Ad okunamadı"),
+  description: msg("Açıklama belirsiz"),
+  price: msg("Fiyat okunamadı"),
+  currency: msg("Para birimi belirsiz"),
 };
 
 function readAsDataUrl(file: File): Promise<string> {
@@ -51,9 +53,10 @@ function readAsDataUrl(file: File): Promise<string> {
 }
 
 function UncertainBadge({ field }: { field: string }) {
+  const { t } = useUiLocale();
   return (
-    <span className="inline-flex items-center rounded-md border border-paprika/40 bg-paprika/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-paprika-deep">
-      {UNCERTAIN_LABELS[field] ?? field}
+    <span className="inline-flex items-center rounded-md border border-paprika/40 bg-paprika/10 px-2 py-0.5 text-xs font-semibold text-paprika-deep">
+      {t(UNCERTAIN_LABELS[field] ?? field)}
     </span>
   );
 }
@@ -89,6 +92,7 @@ function ProductRow({
   onChange: (next: DraftProduct) => void;
   onDelete: () => void;
 }) {
+  const { t } = useUiLocale();
   const [picking, setPicking] = useState(false);
   const missingPrice = product.price === null;
 
@@ -99,7 +103,7 @@ function ProductRow({
           type="button"
           disabled={disabled}
           onClick={() => setPicking(true)}
-          title="Görsel seç"
+          title={t("Görsel seç")}
           className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-crema text-ink-soft transition-colors hover:border-paprika disabled:opacity-50"
         >
           {product.image_url ? (
@@ -115,14 +119,14 @@ function ProductRow({
             value={product.name}
             disabled={disabled}
             onChange={(e) => onChange({ ...product, name: e.target.value })}
-            placeholder="Ürün adı"
+            placeholder={t("Ürün adı")}
             className="w-full rounded-md border border-line bg-paper px-3 py-1.5 text-sm font-semibold outline-none focus:border-paprika"
           />
           <textarea
             value={product.description}
             disabled={disabled}
             onChange={(e) => onChange({ ...product, description: e.target.value })}
-            placeholder="Açıklama (opsiyonel)"
+            placeholder={t("Açıklama (opsiyonel)")}
             rows={2}
             className="w-full rounded-md border border-line bg-paper px-3 py-1.5 text-sm outline-none focus:border-paprika"
           />
@@ -162,7 +166,7 @@ function ProductRow({
             type="button"
             disabled={disabled}
             onClick={onDelete}
-            title="Ürünü çıkar"
+            title={t("Ürünü çıkar")}
             className="rounded p-1.5 text-ink-soft transition-colors hover:bg-crema hover:text-paprika disabled:opacity-50"
           >
             <TrashIcon size={15} />
@@ -194,6 +198,7 @@ interface BulkImageState {
 }
 
 export function MenuImport({ business }: { business: Business }) {
+  const { t } = useUiLocale();
   const { toast } = useToast();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -272,7 +277,7 @@ export function MenuImport({ business }: { business: Business }) {
       setFiles(parsed);
       setFingerprint(await fingerprintPages(parsed.map((f) => f.dataUrl)));
     } catch {
-      toast("Dosyalar okunamadı. Tekrar deneyin.", "error");
+      toast(t("Dosyalar okunamadı. Tekrar deneyin."), "error");
     }
   }
 
@@ -303,7 +308,7 @@ export function MenuImport({ business }: { business: Business }) {
           setRepeatAsk("scan");
           return;
         }
-        throw new Error(data.error ?? "Tarama başarısız oldu.");
+        throw new Error(data.error ? t(data.error) : t("Tarama başarısız oldu."));
       }
 
       setCategories(
@@ -315,9 +320,9 @@ export function MenuImport({ business }: { business: Business }) {
       setCurrency(typeof data.currency === "string" ? data.currency : "");
       if (fingerprint) setScannedPrints((current) => [...new Set([...current, fingerprint])]);
       setReviewOpen(true);
-      toast("Menü tarandı. Kontrol edip düzenleyebilirsiniz.");
+      toast(t("Menü tarandı. Kontrol edip düzenleyebilirsiniz."));
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Tarama başarısız oldu.", "error");
+      toast(error instanceof Error ? error.message : t("Tarama başarısız oldu."), "error");
     } finally {
       busyRef.current = false;
       setScanning(false);
@@ -346,7 +351,7 @@ export function MenuImport({ business }: { business: Business }) {
 
     if (pending.length === 0) {
       busyRef.current = false;
-      toast("Tüm ürünlerin görseli zaten var.");
+      toast(t("Tüm ürünlerin görseli zaten var."));
       return;
     }
 
@@ -438,7 +443,7 @@ export function MenuImport({ business }: { business: Business }) {
 
       setPlan(buildImportPlan<DraftProduct, DraftCategory>(categories, existingCategories, existingProducts));
     } catch {
-      toast("Menünüz okunamadı. Bağlantınızı kontrol edip tekrar deneyin.", "error");
+      toast(t("Menünüz okunamadı. Bağlantınızı kontrol edip tekrar deneyin."), "error");
     } finally {
       busyRef.current = false;
       setPreparing(false);
@@ -523,11 +528,11 @@ export function MenuImport({ business }: { business: Business }) {
       if (failed > 0) {
         setPlan(null);
         setImportError(
-          `${done} ürün eklendi, ${failed} ürün eklenemedi${
-            isRetryableError(firstError) ? " (sunucu yanıt vermedi)" : ""
-          }. Tekrar denediğinizde eklenenler tekrarlanmaz, yalnızca eksikler yazılır.`
+          isRetryableError(firstError)
+            ? t("{done} ürün eklendi, {failed} ürün eklenemedi (sunucu yanıt vermedi). Tekrar denediğinizde eklenenler tekrarlanmaz, yalnızca eksikler yazılır.", { done, failed })
+            : t("{done} ürün eklendi, {failed} ürün eklenemedi. Tekrar denediğinizde eklenenler tekrarlanmaz, yalnızca eksikler yazılır.", { done, failed })
         );
-        toast(`${failed} ürün eklenemedi.`, "error");
+        toast(t("{count} ürün eklenemedi.", { count: failed }), "error");
         return;
       }
 
@@ -536,8 +541,8 @@ export function MenuImport({ business }: { business: Business }) {
       setReviewOpen(false);
       toast(
         publishNow
-          ? `${done} ürün menünüze eklendi ve yayınlandı.`
-          : `${done} ürün taslak olarak eklendi. Ürünler sayfasından yayınlayabilirsiniz.`
+          ? t("{count} ürün menünüze eklendi ve yayınlandı.", { count: done })
+          : t("{count} ürün taslak olarak eklendi. Ürünler sayfasından yayınlayabilirsiniz.", { count: done })
       );
       router.push("/panel/products");
     } catch {
@@ -547,8 +552,8 @@ export function MenuImport({ business }: { business: Business }) {
       setPlan(null);
       setImportError(
         done > 0
-          ? `${done} ürün eklendikten sonra bağlantı koptu. Tekrar denediğinizde eklenenler tekrarlanmaz, yalnızca eksikler yazılır.`
-          : "Kaydedilirken bir hata oluştu. Hiçbir ürün eklenmedi, tekrar deneyebilirsiniz."
+          ? t("{count} ürün eklendikten sonra bağlantı koptu. Tekrar denediğinizde eklenenler tekrarlanmaz, yalnızca eksikler yazılır.", { count: done })
+          : t("Kaydedilirken bir hata oluştu. Hiçbir ürün eklenmedi, tekrar deneyebilirsiniz.")
       );
     } finally {
       busyRef.current = false;
@@ -563,10 +568,9 @@ export function MenuImport({ business }: { business: Business }) {
       {/* ── 1. Yükleme ────────────────────────────────────────── */}
       <div className="space-y-4">
         <Card>
-          <h3 className="mb-1 font-display text-lg font-bold">1 · Menünüzü yükleyin</h3>
+          <h3 className="mb-1 font-display text-lg font-bold">{t("1 · Menünüzü yükleyin")}</h3>
           <p className="mb-4 text-sm text-ink-soft">
-            Fiziksel menünüzün net çekilmiş fotoğraflarını veya PDF dosyasını seçin. Tek seferde en fazla{" "}
-            {pagesPerScan} sayfa.
+            {t("Fiziksel menünüzün net çekilmiş fotoğraflarını veya PDF dosyasını seçin. Tek seferde en fazla {count} sayfa.", { count: pagesPerScan })}
           </p>
 
           <input
@@ -588,7 +592,7 @@ export function MenuImport({ business }: { business: Business }) {
                 >
                   {file.isPdf ? (
                     <div className="flex h-full flex-col items-center justify-center gap-1 p-2 text-center">
-                      <span className="font-mono text-[11px] font-bold text-paprika">PDF</span>
+                      <span className="font-mono text-[11px] font-bold text-paprika">{t("PDF")}</span>
                       <span className="line-clamp-2 text-[10px] text-ink-soft">{file.name}</span>
                     </div>
                   ) : (
@@ -602,21 +606,20 @@ export function MenuImport({ business }: { business: Business }) {
 
           {fingerprint !== "" && scannedPrints.includes(fingerprint) && (
             <p className="mt-4 rounded-md border border-line bg-crema/50 px-3 py-2 text-xs leading-relaxed text-ink-soft">
-              Bu sayfalar bu oturumda tarandı. Yeniden taramak kotanızdan bir hak daha harcar.
+              {t("Bu sayfalar bu oturumda tarandı. Yeniden taramak kotanızdan bir hak daha harcar.")}
             </p>
           )}
 
           <div className="mt-6 flex justify-end">
             <AiButton onClick={handleScanClick} disabled={files.length === 0 || busy}>
-              {scanning ? "Taranıyor…" : "Menüyü Tara"}
+              {scanning ? t("Taranıyor…") : t("Menüyü Tara")}
             </AiButton>
           </div>
         </Card>
 
         <Card className="bg-crema/30">
           <p className="text-xs leading-relaxed text-ink-soft">
-            <strong className="text-ink">Yapay zekâ tahmin etmez.</strong> Okunamayan fiyat veya metin boş
-            bırakılır ve işaretlenir. İçe aktarmadan önce bu alanları kontrol edin.
+            <strong className="text-ink">{t("Yapay zekâ tahmin etmez.")}</strong>{" "}{t("Okunamayan fiyat veya metin boş bırakılır ve işaretlenir. İçe aktarmadan önce bu alanları kontrol edin.")}
           </p>
         </Card>
       </div>
@@ -626,14 +629,14 @@ export function MenuImport({ business }: { business: Business }) {
         {scanning && (
           <Card className="flex flex-col items-center justify-center gap-3 py-20 text-ink-soft">
             <Spinner className="h-8 w-8 text-paprika" />
-            <p>Yapay zekâ menüyü inceliyor…</p>
-            <p className="text-xs">Sayfa sayısına göre 5-20 saniye sürebilir.</p>
+            <p>{t("Yapay zekâ menüyü inceliyor…")}</p>
+            <p className="text-xs">{t("Sayfa sayısına göre 5-20 saniye sürebilir.")}</p>
           </Card>
         )}
 
         {!scanning && !categories && (
           <Card className="flex items-center justify-center border-dashed py-20 text-center text-sm text-ink-soft">
-            Tarama bitince kategoriler ve ürünler burada görünür.
+            {t("Tarama bitince kategoriler ve ürünler burada görünür.")}
           </Card>
         )}
 
@@ -641,17 +644,17 @@ export function MenuImport({ business }: { business: Business }) {
             kaybolmaz; buradan yeniden açılır. */}
         {!scanning && categories && (
           <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <h3 className="font-display text-lg font-bold">Tarama hazır</h3>
+            <h3 className="font-display text-lg font-bold">{t("Tarama hazır")}</h3>
             <p className="text-sm text-ink-soft">
-              {categories.length} kategori · {totalProducts} ürün
+              {t("{categories} kategori · {products} ürün", { categories: categories.length, products: totalProducts })}
               {currency && ` · ${currency}`}
-              {uncertainCount > 0 && ` · ${uncertainCount} alan kontrol bekliyor`}
+              {uncertainCount > 0 && ` · ${t("{count} alan kontrol bekliyor", { count: uncertainCount })}`}
             </p>
             {missingPriceCount > 0 && (
-              <p className="text-sm text-paprika-deep">{missingPriceCount} ürünün fiyatı okunamadı.</p>
+              <p className="text-sm text-paprika-deep">{t("{count} ürünün fiyatı okunamadı.", { count: missingPriceCount })}</p>
             )}
             <Button type="button" className="mt-2" onClick={() => setReviewOpen(true)} disabled={busy}>
-              Kontrol et ve aktar
+              {t("Kontrol et ve aktar")}
             </Button>
           </Card>
         )}
@@ -665,11 +668,11 @@ export function MenuImport({ business }: { business: Business }) {
         dismissable={false}
         onClose={() => (busy ? undefined : setCloseAsk(true))}
         size="xl"
-        title="2 · Kontrol edin ve onaylayın"
+        title={t("2 · Kontrol edin ve onaylayın")}
         description={
           categories
-            ? `${categories.length} kategori · ${totalProducts} ürün${currency ? ` · ${currency}` : ""}${
-                uncertainCount > 0 ? ` · ${uncertainCount} alan kontrol bekliyor` : ""
+            ? `${t("{categories} kategori · {products} ürün", { categories: categories.length, products: totalProducts })}${currency ? ` · ${currency}` : ""}${
+                uncertainCount > 0 ? ` · ${t("{count} alan kontrol bekliyor", { count: uncertainCount })}` : ""
               }`
             : undefined
         }
@@ -678,16 +681,16 @@ export function MenuImport({ business }: { business: Business }) {
             <Switch
               checked={publishNow}
               onChange={setPublishNow}
-              label="İçe aktardıktan sonra hemen yayınla"
-              description="Kapalıyken içerik taslak olarak eklenir ve menüde görünmez. Ürünler sayfasından tek tek yayınlayabilirsiniz."
+              label={t("İçe aktardıktan sonra hemen yayınla")}
+              description={t("Kapalıyken içerik taslak olarak eklenir ve menüde görünmez. Ürünler sayfasından tek tek yayınlayabilirsiniz.")}
             />
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setCloseAsk(true)} disabled={busy}>
-                Kapat
+                {t("Kapat")}
               </Button>
               <Button type="button" variant="outline" onClick={handleFindImages} disabled={busy}>
                 <ImageIcon size={16} />
-                Görselleri otomatik bul
+                {t("Görselleri otomatik bul")}
               </Button>
               <Button
                 type="button"
@@ -696,7 +699,7 @@ export function MenuImport({ business }: { business: Business }) {
                 disabled={busy || missingPriceCount > 0 || totalProducts === 0}
               >
                 <CheckCircleIcon size={16} />
-                {importError ? "Tekrar dene" : "Menüye aktar"}
+                {importError ? t("Tekrar dene") : t("Menüye aktar")}
               </Button>
             </div>
           </div>
@@ -713,13 +716,13 @@ export function MenuImport({ business }: { business: Business }) {
             {missingPriceCount > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-paprika/40 bg-paprika/5 px-4 py-3">
                 <p className="text-sm">
-                  <strong>{missingPriceCount} ürünün fiyatı okunamadı.</strong>{" "}
+                  <strong>{t("{count} ürünün fiyatı okunamadı.", { count: missingPriceCount })}</strong>{" "}
                   <span className="text-ink-soft">
-                    Yapay zekâ tahmin etmedi — fiyatları girin ya da bu ürünleri çıkarın.
+                    {t("Yapay zekâ tahmin etmedi — fiyatları girin ya da bu ürünleri çıkarın.")}
                   </span>
                 </p>
                 <Button type="button" variant="ghost" onClick={dropMissingPrices} disabled={busy}>
-                  Bunları çıkar
+                  {t("Bunları çıkar")}
                 </Button>
               </div>
             )}
@@ -765,11 +768,11 @@ export function MenuImport({ business }: { business: Business }) {
         open={closeAsk}
         onClose={() => setCloseAsk(false)}
         size="sm"
-        title="Pencereyi kapatalım mı?"
+        title={t("Pencereyi kapatalım mı?")}
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setCloseAsk(false)}>
-              Düzenlemeye dön
+              {t("Düzenlemeye dön")}
             </Button>
             <Button
               type="button"
@@ -779,14 +782,13 @@ export function MenuImport({ business }: { business: Business }) {
                 setReviewOpen(false);
               }}
             >
-              Kapat
+              {t("Kapat")}
             </Button>
           </>
         }
       >
         <p className="text-sm leading-relaxed text-ink-soft">
-          Tarama sonucu silinmez — sağdaki karttan aynı listeyi yeniden açıp kaldığınız yerden devam
-          edebilirsiniz. Menünüze hiçbir şey yazılmadı.
+          {t("Tarama sonucu silinmez — sağdaki karttan aynı listeyi yeniden açıp kaldığınız yerden devam edebilirsiniz. Menünüze hiçbir şey yazılmadı.")}
         </p>
       </Modal>
       {/* ── Aktarım onayı ─────────────────────────────────────── */}
@@ -796,20 +798,20 @@ export function MenuImport({ business }: { business: Business }) {
         // Onay penceresi de dışarı tıklamayla kapanmaz; karar "Vazgeç" ile verilir.
         dismissable={false}
         size="md"
-        title="Menüye aktarılacaklar"
+        title={t("Menüye aktarılacaklar")}
         description={
           saving
-            ? "Aktarım sürüyor, pencereyi kapatmayın."
-            : "Onaylamadan önce ne yazılacağına bakın. Menüde zaten olan kategori ve ürünler yeniden oluşturulmaz."
+            ? t("Aktarım sürüyor, pencereyi kapatmayın.")
+            : t("Onaylamadan önce ne yazılacağına bakın. Menüde zaten olan kategori ve ürünler yeniden oluşturulmaz.")
         }
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setPlan(null)} disabled={saving}>
-              Vazgeç
+              {t("Vazgeç")}
             </Button>
             <Button type="button" onClick={runImport} loading={saving} disabled={saving || planEmpty}>
               <CheckCircleIcon size={16} />
-              {publishNow ? "Aktar ve yayınla" : "Taslak olarak aktar"}
+              {publishNow ? t("Aktar ve yayınla") : t("Taslak olarak aktar")}
             </Button>
           </>
         }
@@ -817,34 +819,36 @@ export function MenuImport({ business }: { business: Business }) {
         {plan && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <PlanStat value={plan.newCategoryCount} label="yeni kategori" />
-              <PlanStat value={plan.newProductCount} label="yeni ürün" />
+              <PlanStat value={plan.newCategoryCount} label={t("yeni kategori")} />
+              <PlanStat value={plan.newProductCount} label={t("yeni ürün")} />
               <PlanStat
                 value={plan.reusedCategoryCount}
-                label="mevcut kategoriye eklenecek"
+                label={t("mevcut kategoriye eklenecek")}
                 tone="muted"
               />
               <PlanStat
                 value={plan.duplicateProductCount + plan.mergedProductCount}
-                label="tekrar olduğu için atlanacak"
+                label={t("tekrar olduğu için atlanacak")}
                 tone={plan.duplicateProductCount + plan.mergedProductCount > 0 ? "warn" : "muted"}
               />
             </div>
 
             {planEmpty && (
               <p className="rounded-md border border-herb/40 bg-herb/10 px-4 py-3 text-sm leading-relaxed">
-                Bu taramadaki her şey menünüzde zaten var. Yazılacak yeni bir kayıt yok — muhtemelen bu
-                menüyü daha önce aktardınız.
+                {t("Bu taramadaki her şey menünüzde zaten var. Yazılacak yeni bir kayıt yok — muhtemelen bu menüyü daha önce aktardınız.")}
               </p>
             )}
 
             {(plan.mergedCategoryCount > 0 || plan.mergedProductCount > 0) && (
               <p className="text-xs leading-relaxed text-ink-soft">
-                Taramanın kendi içindeki tekrarlar birleştirildi:{" "}
-                {plan.mergedCategoryCount > 0 && `${plan.mergedCategoryCount} kategori`}
-                {plan.mergedCategoryCount > 0 && plan.mergedProductCount > 0 && ", "}
-                {plan.mergedProductCount > 0 && `${plan.mergedProductCount} ürün`}. Çok sayfalı menülerde
-                aynı başlık her sayfada yeniden okunabiliyor.
+                {t("Taramanın kendi içindeki tekrarlar birleştirildi: {list}. Çok sayfalı menülerde aynı başlık her sayfada yeniden okunabiliyor.", {
+                  list: [
+                    plan.mergedCategoryCount > 0 ? t("{count} kategori", { count: plan.mergedCategoryCount }) : "",
+                    plan.mergedProductCount > 0 ? t("{count} ürün", { count: plan.mergedProductCount }) : "",
+                  ]
+                    .filter(Boolean)
+                    .join(", "),
+                })}
               </p>
             )}
 
@@ -854,15 +858,15 @@ export function MenuImport({ business }: { business: Business }) {
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-display font-bold">{planned.draft.name}</span>
                     <span
-                      className={`font-mono text-[10px] uppercase tracking-wider ${planned.existingId ? "text-ink-soft" : "text-herb"}`}
+                      className={`text-xs font-medium ${planned.existingId ? "text-ink-soft" : "text-herb"}`}
                     >
-                      {planned.existingId ? "menüde var" : "yeni kategori"}
+                      {planned.existingId ? t("menüde var") : t("yeni kategori")}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink-soft">
-                    {planned.newProducts.length} ürün eklenecek
+                    {t("{count} ürün eklenecek", { count: planned.newProducts.length })}
                     {planned.skippedNames.length > 0 &&
-                      ` · ${planned.skippedNames.length} ürün atlanacak (${planned.skippedNames.slice(0, 3).join(", ")}${planned.skippedNames.length > 3 ? "…" : ""})`}
+                      ` · ${t("{count} ürün atlanacak", { count: planned.skippedNames.length })} (${planned.skippedNames.slice(0, 3).join(", ")}${planned.skippedNames.length > 3 ? "…" : ""})`}
                   </p>
                 </div>
               ))}
@@ -876,16 +880,16 @@ export function MenuImport({ business }: { business: Business }) {
                     style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
                   />
                 </div>
-                <p className="text-center font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-                  {importProgress.done}/{importProgress.total} ürün yazıldı
+                <p className="text-center text-xs font-medium text-ink-soft">
+                  {t("{done}/{total} ürün yazıldı", { done: importProgress.done, total: importProgress.total })}
                 </p>
               </div>
             )}
 
             <p className="text-xs leading-relaxed text-ink-soft">
               {publishNow
-                ? "Aktarılan kategori ve ürünler hemen menünüzde görünür."
-                : "Aktarılan içerik taslaktır; Ürünler sayfasından yayınlayana kadar menünüzde görünmez."}
+                ? t("Aktarılan kategori ve ürünler hemen menünüzde görünür.")
+                : t("Aktarılan içerik taslaktır; Ürünler sayfasından yayınlayana kadar menünüzde görünmez.")}
             </p>
           </div>
         )}
@@ -897,8 +901,8 @@ export function MenuImport({ business }: { business: Business }) {
         onClose={() => bulkImages?.finished && setBulkImages(null)}
         dismissable={bulkImages?.finished === true}
         size="md"
-        title="Ürün görselleri aranıyor"
-        description="Açık lisanslı kaynaklarda ürün adına göre arama yapılıyor. Bulunamayan ürünler görselsiz kalır — sonra tek tek seçebilirsiniz."
+        title={t("Ürün görselleri aranıyor")}
+        description={t("Açık lisanslı kaynaklarda ürün adına göre arama yapılıyor. Bulunamayan ürünler görselsiz kalır — sonra tek tek seçebilirsiniz.")}
         footer={
           <Button
             type="button"
@@ -906,7 +910,7 @@ export function MenuImport({ business }: { business: Business }) {
             disabled={!bulkImages?.finished}
             variant={bulkImages?.finished ? "primary" : "ghost"}
           >
-            {bulkImages?.finished ? "Tamam" : "Aranıyor…"}
+            {bulkImages?.finished ? t("Tamam") : t("Aranıyor…")}
           </Button>
         }
       >
@@ -919,9 +923,9 @@ export function MenuImport({ business }: { business: Business }) {
                   style={{ width: `${Math.round((bulkImages.done / bulkImages.total) * 100)}%` }}
                 />
               </div>
-              <p className="text-center font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+              <p className="text-center text-xs font-medium text-ink-soft">
                 {bulkImages.finished
-                  ? `${bulkImages.results.filter((r) => r.found).length}/${bulkImages.total} ürüne görsel bulundu`
+                  ? t("{found}/{total} ürüne görsel bulundu", { found: bulkImages.results.filter((r) => r.found).length, total: bulkImages.total })
                   : `${bulkImages.done}/${bulkImages.total} · ${bulkImages.current}`}
               </p>
             </div>
@@ -934,9 +938,9 @@ export function MenuImport({ business }: { business: Business }) {
                 >
                   <span className="min-w-0 truncate">{result.name}</span>
                   <span
-                    className={`shrink-0 font-mono text-[10px] uppercase tracking-wider ${result.found ? "text-herb" : "text-ink-soft"}`}
+                    className={`shrink-0 text-xs font-medium ${result.found ? "text-herb" : "text-ink-soft"}`}
                   >
-                    {result.found ? "bulundu" : "bulunamadı"}
+                    {result.found ? t("bulundu") : t("bulunamadı")}
                   </span>
                 </div>
               ))}
@@ -951,11 +955,11 @@ export function MenuImport({ business }: { business: Business }) {
         onClose={() => setRepeatAsk(null)}
         dismissable={false}
         size="sm"
-        title={repeatAsk === "import" ? "Bu menüyü zaten aktardınız" : "Bu menüyü zaten taradınız"}
+        title={repeatAsk === "import" ? t("Bu menüyü zaten aktardınız") : t("Bu menüyü zaten taradınız")}
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setRepeatAsk(null)}>
-              Vazgeç
+              {t("Vazgeç")}
             </Button>
             <Button
               type="button"
@@ -966,21 +970,18 @@ export function MenuImport({ business }: { business: Business }) {
                 else prepareImport();
               }}
             >
-              {repeatAsk === "import" ? "Yine de kontrol et" : "Yine de tara"}
+              {repeatAsk === "import" ? t("Yine de kontrol et") : t("Yine de tara")}
             </Button>
           </>
         }
       >
         {repeatAsk === "import" ? (
           <p className="text-sm leading-relaxed text-ink-soft">
-            Bu tarama sonucunu bu oturumda bir kez menünüze aktardınız. Devam ederseniz menünüz yeniden
-            okunur ve yalnızca gerçekten eksik olan kayıtlar yazılır — mevcut ürünler tekrarlanmaz.
+            {t("Bu tarama sonucunu bu oturumda bir kez menünüze aktardınız. Devam ederseniz menünüz yeniden okunur ve yalnızca gerçekten eksik olan kayıtlar yazılır — mevcut ürünler tekrarlanmaz.")}
           </p>
         ) : (
           <p className="text-sm leading-relaxed text-ink-soft">
-            Aynı dosyaları az önce taradınız. Yeniden tarama aylık tarama hakkınızdan bir hak daha harcar ve
-            büyük ihtimalle aynı sonucu verir. Sonuçta bir eksiklik gördüyseniz daha net bir fotoğrafla
-            deneyin.
+            {t("Aynı dosyaları az önce taradınız. Yeniden tarama aylık tarama hakkınızdan bir hak daha harcar ve büyük ihtimalle aynı sonucu verir. Sonuçta bir eksiklik gördüyseniz daha net bir fotoğrafla deneyin.")}
           </p>
         )}
       </Modal>

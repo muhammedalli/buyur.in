@@ -192,7 +192,7 @@ export default function CategoriesPage() {
                   <p className="font-display text-lg font-bold">
                     {cat.name}
                     {!cat.is_active && (
-                      <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-ink-soft">{t("(gizli)")}</span>
+                      <span className="ml-2 text-xs font-medium text-ink-soft">{t("(gizli)")}</span>
                     )}
                   </p>
                   <p className="text-sm text-ink-soft">

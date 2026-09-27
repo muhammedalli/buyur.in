@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 // Yıllık ödemenin karşılığı sistem ayarındaki indirimle hesaplanır; burada
 // yalnızca gösterilir, ayrı bir fiyat olarak yönetilmez.
 
-const TAG = "inline-flex items-center rounded-md border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider";
+const TAG = "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium";
 
 export default async function AdminPlansPage() {
   const { pb, admin } = await requireAdmin({ action: "plans.edit" });

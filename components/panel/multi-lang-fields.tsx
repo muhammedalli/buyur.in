@@ -113,7 +113,7 @@ export function MultiLangFields({
     <div>
       {(title || showTranslate) && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-          {title ? <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{title}</p> : <span />}
+          {title ? <p className="text-xs font-medium text-ink-soft">{title}</p> : <span />}
           {showTranslate && translate && (
             <AiTranslateButton
               business={translate.business}

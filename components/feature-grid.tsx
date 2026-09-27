@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { sectionId } from "@/lib/landing-sections";
 import {
   FlameIcon,
   LanguagesIcon,
@@ -95,7 +96,7 @@ export function FeatureGrid({ locale = "tr" }: { locale?: UiLocale }) {
   ];
 
   return (
-    <section id="ozellikler" className="border-b border-line bg-crema/40">
+    <section id={sectionId("features", locale)} className="border-b border-line bg-crema/40">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Özellikler")}</p>

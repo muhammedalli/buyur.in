@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CHART_SURFACE, seriesColor } from "@/components/panel/charts/palette";
 import { formatNumber, formatPercent } from "@/components/panel/charts/chart-utils";
 import { ChartEmpty, ChartTable } from "@/components/panel/charts/frame";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 // Pay dağılımı (trafik kaynağı gibi). Dilim sayısı 6'yı geçerse kalanı "Diğer"e
 // katlanır: palet sırası döngüye sokulmaz, okunmayan ince dilim de üretilmez.
@@ -21,19 +23,20 @@ const STROKE = 26;
 export function DonutChart({
   items,
   centerLabel,
-  emptyLabel = "Bu dönemde ziyaret kaydı yok.",
+  emptyLabel = msg("Bu dönemde ziyaret kaydı yok."),
 }: {
   items: DonutDatum[];
   centerLabel?: string;
   emptyLabel?: string;
 }) {
+  const { t } = useUiLocale();
   const [hovered, setHovered] = useState<string | null>(null);
 
   const sorted = items.slice().sort((a, b) => b.value - a.value);
   const head = sorted.slice(0, MAX_SLICES);
   const tail = sorted.slice(MAX_SLICES);
   const slices = tail.length
-    ? [...head, { key: "other", label: "Diğer", value: tail.reduce((sum, item) => sum + item.value, 0) }]
+    ? [...head, { key: "other", label: t("Diğer"), value: tail.reduce((sum, item) => sum + item.value, 0) }]
     : head;
 
   const total = slices.reduce((sum, item) => sum + item.value, 0);
@@ -46,7 +49,7 @@ export function DonutChart({
   return (
     <div>
       <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center">
-        <svg width={SIZE} height={SIZE} role="img" aria-label="Dağılım grafiği" className="shrink-0">
+        <svg width={SIZE} height={SIZE} role="img" aria-label={t("Dağılım grafiği")} className="shrink-0">
           <g transform={`translate(${SIZE / 2} ${SIZE / 2}) rotate(-90)`}>
             {slices.map((slice, index) => {
               const fraction = slice.value / total;
@@ -105,9 +108,9 @@ export function DonutChart({
 
       <ChartTable
         columns={[
-          { key: "label", label: "Kaynak" },
-          { key: "value", label: "Oturum", align: "right" },
-          { key: "share", label: "Pay", align: "right" },
+          { key: "label", label: msg("Kaynak") },
+          { key: "value", label: msg("Oturum"), align: "right" },
+          { key: "share", label: msg("Pay"), align: "right" },
         ]}
         rows={slices.map((slice) => ({
           label: slice.label,

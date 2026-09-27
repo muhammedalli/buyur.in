@@ -78,7 +78,7 @@ export function SiteHero({ content, rich }: { content: SiteContent; rich: boolea
         <div className="rise rise-4 mt-2 flex flex-col gap-3 sm:flex-row">
           <a
             href={menuHref}
-            className="group inline-flex items-center justify-center gap-2 rounded-md bg-[var(--brand)] px-8 py-3.5 font-mono text-[13px] uppercase tracking-wider text-[var(--brand-on)] shadow-[0_16px_34px_-14px_rgba(0,0,0,0.55)] transition-transform duration-300 hover:-translate-y-0.5"
+            className="group inline-flex items-center justify-center gap-2 rounded-md bg-[var(--brand)] px-8 py-3.5 text-[15px] font-semibold text-[var(--brand-on)] shadow-[0_16px_34px_-14px_rgba(0,0,0,0.55)] transition-transform duration-300 hover:-translate-y-0.5"
           >
             {t("seeMenu")}
             <ArrowRightIcon size={16} className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
@@ -88,7 +88,7 @@ export function SiteHero({ content, rich }: { content: SiteContent; rich: boolea
               href={reservation.href}
               target={reservation.kind === "url" || reservation.kind === "whatsapp" ? "_blank" : undefined}
               rel="noopener noreferrer"
-              className={`rounded-md border px-8 py-3.5 font-mono text-[13px] uppercase tracking-wider transition-colors ${
+              className={`rounded-md border px-8 py-3.5 text-[15px] font-semibold transition-colors ${
                 hero.image
                   ? "border-paper/50 text-paper hover:bg-paper hover:text-ink"
                   : "border-ink text-ink hover:bg-ink hover:text-paper"
@@ -183,7 +183,7 @@ export function ProductCards({ products, columns = 4 }: { products: SiteContent[
                 {product.badges.slice(0, 2).map((badge) => (
                   <span
                     key={badge}
-                    className="rounded-full bg-crema px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft"
+                    className="rounded-full bg-crema px-2.5 py-1 text-xs font-medium text-ink-soft"
                   >
                     {badgeLabels[locale][badge]}
                   </span>
@@ -247,7 +247,7 @@ export function SiteAbout({ content }: { content: SiteContent }) {
 
         {hasHighlights && (
           <div>
-            <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            <p className="mb-4 text-center text-xs font-medium text-ink-soft">
               {t("siteHighlights")}
             </p>
             <SiteInfo content={content} />
@@ -256,7 +256,7 @@ export function SiteAbout({ content }: { content: SiteContent }) {
 
         {hasHours && (
           <div>
-            <p className="mb-4 text-center font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            <p className="mb-4 text-center text-xs font-medium text-ink-soft">
               {t("workingHoursLabel")}
             </p>
             <SiteHours hours={content.hours} />
@@ -283,7 +283,7 @@ export function SiteLocation({ content }: { content: SiteContent }) {
           href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-md border border-ink px-6 py-3 font-mono text-[12px] uppercase tracking-wider transition-colors hover:bg-ink hover:text-paper"
+          className="rounded-md border border-ink px-6 py-3 text-[13px] font-medium transition-colors hover:bg-ink hover:text-paper"
         >
           {t("directionsLabel")}
         </a>
@@ -331,7 +331,7 @@ export function SiteContact({ content }: { content: SiteContent }) {
         >
           {link.kind === "phone" && <PhoneIcon size={14} />}
           {link.kind === "whatsapp" && <WhatsappIcon size={14} />}
-          <span className="font-mono text-[12px] uppercase tracking-wider">{contactLabel(t, link)}</span>
+          <span className="text-[13px] font-medium">{contactLabel(t, link)}</span>
         </a>
       ))}
     </div>
@@ -359,7 +359,7 @@ export function SiteReservationCta({ content }: { content: SiteContent }) {
         href={reservation.href}
         target={reservation.kind === "phone" ? undefined : "_blank"}
         rel="noopener noreferrer"
-        className="rounded-md bg-paper px-8 py-3.5 font-mono text-[13px] uppercase tracking-wider text-ink transition-transform duration-300 hover:-translate-y-0.5"
+        className="rounded-md bg-paper px-8 py-3.5 text-[15px] font-semibold text-ink transition-transform duration-300 hover:-translate-y-0.5"
       >
         {reservationLabel(t, reservation.kind)}
       </a>
@@ -379,7 +379,7 @@ export function SiteFooter({ content }: { content: SiteContent }) {
     <footer className="border-t border-line bg-paper">
       {credited.length > 0 && (
         <div className="mx-auto max-w-5xl border-b border-line px-6 py-8">
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <p className="mb-3 text-xs font-medium text-ink-soft">
             {t("imageCreditsTitle")}
           </p>
           <ImageCreditList products={credited} locale={locale} />
@@ -389,7 +389,7 @@ export function SiteFooter({ content }: { content: SiteContent }) {
         <p className="font-display text-lg font-bold">{tf(content.business, "name")}</p>
         <a
           href={menuHref}
-          className="font-mono text-[12px] uppercase tracking-wider text-[var(--brand-text)] transition-opacity hover:opacity-75"
+          className="text-[13px] font-medium text-[var(--brand-text)] transition-opacity hover:opacity-75"
         >
           {t("openDigitalMenu")}
         </a>

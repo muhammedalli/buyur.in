@@ -19,7 +19,7 @@ import { saveActivation } from "@/lib/activation";
 import { trackMarketingEvent } from "@/lib/marketing-events";
 import { readPlanIntent, type PlanIntent } from "@/lib/plan-intent";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
-import { CompassIcon, PencilIcon } from "@/components/icons";
+import { CompassIcon, EyeIcon, FolderIcon, PackageIcon, PencilIcon, ShoppingBagIcon, SparkIcon, TrendingUpIcon } from "@/components/icons";
 import type { Translator } from "@/lib/ui-i18n";
 import type { Business } from "@/lib/types";
 
@@ -143,7 +143,7 @@ function Onboarding() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <p className="rise rise-1 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-paprika">
+      <p className="rise rise-1 flex items-center gap-1.5 text-xs font-medium text-paprika">
         <CompassIcon size={14} /> {t("Hoş geldin")}
       </p>
       <h1 className="rise rise-2 mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
@@ -164,7 +164,7 @@ function Onboarding() {
                 <button
                   type="button"
                   onClick={() => setEditName(true)}
-                  className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
+                  className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-paprika"
                 >
                   <PencilIcon size={13} /> {t("Düzenle")}
                 </button>
@@ -193,7 +193,7 @@ function Onboarding() {
           </div>
 
           <fieldset>
-            <legend className="mb-1.5 block font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            <legend className="mb-1.5 block text-sm font-medium text-ink">
               {t("İşletme türün")}
             </legend>
             <div className="grid grid-cols-2 gap-2.5">
@@ -246,7 +246,7 @@ function BarList({ title, items }: { title: string; items: { label: string; coun
   const max = Math.max(...items.map((i) => i.count), 1);
   return (
     <Card>
-      <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{title}</p>
+      <p className="text-xs font-medium text-ink-soft">{title}</p>
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-ink-soft">{t("Henüz veri yok.")}</p>
       ) : (
@@ -318,10 +318,10 @@ function StatsSection({ business }: { business: Business }) {
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="font-display text-xl font-bold">{t("Ziyaretçi istatistikleri")}</h2>
         <div className="flex items-baseline gap-3 whitespace-nowrap">
-          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Son 30 gün")}</span>
+          <span className="text-xs font-medium text-ink-soft">{t("Son 30 gün")}</span>
           <Link
             href="/panel/analytics"
-            className="font-mono text-[11px] uppercase tracking-wider text-paprika transition-colors hover:text-paprika-deep"
+            className="text-xs font-medium text-paprika transition-colors hover:text-paprika-deep"
           >
             {t("Detaylı analiz →")}
           </Link>
@@ -330,9 +330,9 @@ function StatsSection({ business }: { business: Business }) {
 
       <StatGroup
         items={[
-          { label: t("Sayfa görüntülenme"), value: formatNumber(totals.page_views ?? 0) },
-          { label: t("Bugün"), value: formatNumber(todayViews) },
-          { label: t("Sepete ekleme"), value: formatNumber(totals.cart_adds ?? 0) },
+          { label: t("Sayfa görüntülenme"), value: formatNumber(totals.page_views ?? 0), icon: <EyeIcon size={16} /> },
+          { label: t("Bugün"), value: formatNumber(todayViews), icon: <TrendingUpIcon size={16} /> },
+          { label: t("Sepete ekleme"), value: formatNumber(totals.cart_adds ?? 0), icon: <ShoppingBagIcon size={16} /> },
         ]}
       />
 
@@ -432,10 +432,11 @@ function Overview({ business }: { business: Business }) {
       <LaunchChecklist business={business} counts={counts} />
       <StatGroup
         items={[
-          { label: t("Kategori"), value: counts?.categories ?? "—", href: "/panel/categories" },
-          { label: t("Ürün"), value: counts?.products ?? "—", href: "/panel/products" },
+          { label: t("Kategori"), value: counts?.categories ?? "—", href: "/panel/categories", icon: <FolderIcon size={16} /> },
+          { label: t("Ürün"), value: counts?.products ?? "—", href: "/panel/products", icon: <PackageIcon size={16} /> },
           {
             label: t("Plan"),
+            icon: <SparkIcon size={16} />,
             value: PLAN_LABELS[normalizePlan(business.plan)],
             hint: planHint(business, t, formatNumber),
             href: "/panel/plan",

@@ -5,7 +5,8 @@ import { useBusiness } from "@/components/panel/business-context";
 import { buttonClass, Card, PageHeader, Spinner } from "@/components/panel/ui";
 import { FeatureLocked } from "@/components/panel/plan-gate";
 import { MenuImport } from "@/components/panel/ai/menu-import";
-import { PLAN_LABELS_DATIVE, aiUsage, entitlementsFor, isFeatureAvailable, upgradePlans } from "@/lib/entitlements";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { PLAN_LABELS, PLAN_LABELS_DATIVE, aiUsage, entitlementsFor, isFeatureAvailable, upgradePlans } from "@/lib/entitlements";
 import { SparklesIcon } from "@/components/icons";
 
 // Yapay Zeka — fiziksel menüyü dijitale taşıyan tek ekran.
@@ -17,6 +18,7 @@ import { SparklesIcon } from "@/components/icons";
 
 export default function AiPage() {
   const { business, isLoading } = useBusiness();
+  const { t } = useUiLocale();
 
   if (isLoading || !business) {
     return (
@@ -29,11 +31,11 @@ export default function AiPage() {
   if (!isFeatureAvailable(business, "ai_menu_import")) {
     return (
       <>
-        <PageHeader title="Yapay Zeka" description="Menünüzü yapay zekâ ile hazırlayın." />
+        <PageHeader title={t("Yapay Zeka")} description={t("Menünüzü yapay zekâ ile hazırlayın.")} />
         <FeatureLocked
           feature="ai_menu_import"
-          subject="Yapay zekâ ile menü aktarımı"
-          description="Fiziksel menünüzün fotoğrafından ürünler otomatik okunup listeye eklenir."
+          subject={t("Yapay zekâ ile menü aktarımı")}
+          description={t("Fiziksel menünüzün fotoğrafından ürünler otomatik okunup listeye eklenir.")}
         />
       </>
     );
@@ -50,15 +52,15 @@ export default function AiPage() {
   return (
     <>
       <PageHeader
-        title="Yapay Zeka"
-        description="Fiziksel menünüzün fotoğrafını yükleyin, ürünler otomatik okunup listeye eklensin."
+        title={t("Yapay Zeka")}
+        description={t("Fiziksel menünüzün fotoğrafını yükleyin, ürünler otomatik okunup listeye eklensin.")}
         action={
           <div className="flex items-center gap-2 rounded-md border border-line bg-crema/40 px-4 py-2">
             <SparklesIcon size={16} className="text-paprika" />
-            <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+            <span className="text-xs font-medium text-ink-soft">
               {usage.limit === null
-                ? "Sınırsız tarama"
-                : `Bu ay ${usage.used}/${usage.limit} tarama`}
+                ? t("Sınırsız tarama")
+                : t("Bu ay {used}/{limit} tarama", { used: usage.used, limit: usage.limit })}
             </span>
           </div>
         }
@@ -66,14 +68,15 @@ export default function AiPage() {
 
       {usage.exhausted ? (
         <Card className="border-paprika/40 bg-paprika/5 text-center">
-          <p className="font-display text-lg font-bold">Bu ayki tarama hakkınız doldu</p>
+          <p className="font-display text-lg font-bold">{t("Bu ayki tarama hakkınız doldu")}</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-            {usage.limit} taramanın tamamını kullandınız. Hakkınız gelecek ay yenilenir.
-            {moreScansPlan && ` Daha fazla tarama için ${PLAN_LABELS_DATIVE[moreScansPlan]} yükseltebilirsiniz.`}
+            {t("{count} taramanın tamamını kullandınız. Hakkınız gelecek ay yenilenir.", { count: usage.limit ?? 0 })}
+            {moreScansPlan &&
+              ` ${t("Daha fazla tarama için {planDative} yükseltebilirsiniz.", { planDative: PLAN_LABELS_DATIVE[moreScansPlan], plan: PLAN_LABELS[moreScansPlan] })}`}
           </p>
           {moreScansPlan && (
             <Link href="/panel/plan" className={buttonClass("primary", "mt-4")}>
-              {PLAN_LABELS_DATIVE[moreScansPlan]} yükselt
+              {t("{planDative} yükselt", { planDative: PLAN_LABELS_DATIVE[moreScansPlan], plan: PLAN_LABELS[moreScansPlan] })}
             </Link>
           )}
         </Card>

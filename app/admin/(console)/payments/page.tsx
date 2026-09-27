@@ -171,7 +171,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
       {totalPages > 1 && (
         <nav aria-label="Sayfalar" className="mt-6 flex items-center justify-between gap-3">
           {page > 1 ? <ButtonLink href={paymentListHref(query, { page: page - 1 })}>Önceki</ButtonLink> : <span />}
-          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+          <span className="text-xs font-medium text-ink-soft">
             {page} / {totalPages}
           </span>
           {page < totalPages ? <ButtonLink href={paymentListHref(query, { page: page + 1 })}>Sonraki</ButtonLink> : <span />}

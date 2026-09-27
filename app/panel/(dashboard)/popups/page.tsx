@@ -136,7 +136,7 @@ export default function AnnouncementsPage() {
                 <p className="font-display font-bold">
                   {p.title}{" "}
                   {!p.is_active && (
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{t("(pasif)")}</span>
+                    <span className="text-xs font-medium text-ink-soft">{t("(pasif)")}</span>
                   )}
                 </p>
                 {p.message && <p className="text-sm text-ink-soft">{p.message}</p>}

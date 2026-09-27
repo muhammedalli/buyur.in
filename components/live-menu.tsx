@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { sectionId } from "@/lib/landing-sections";
 import { menuUrl } from "@/lib/site";
 import { ExternalLinkIcon } from "@/components/icons";
 import { siteClientTranslator } from "@/lib/ui-messages/site-client";
@@ -56,7 +57,7 @@ export function LiveMenu({
   return (
     <section
       ref={sectionRef}
-      id="canli-menu"
+      id={sectionId("liveMenu", locale)}
       data-track-view="live_demo_viewed"
       className="border-b border-line bg-ink text-paper"
     >
