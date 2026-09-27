@@ -144,8 +144,10 @@ describe("kayıt ekranı filtreleri", () => {
 
   it("filtre yoksa sorgu boştur; bağlantı filtreleri korur, sayfa 1'de yazılmaz", () => {
     expect(buildAuditFilter(query(), filter)).toBe("");
-    const parsed = parseAuditLogQuery({ isletme: "kafe", aktor: "business", sayfa: "3" });
-    expect(auditLogHref(parsed, { page: 1 })).toBe("/admin/logs?isletme=kafe&aktor=business");
-    expect(auditLogHref(parsed)).toBe("/admin/logs?isletme=kafe&aktor=business&sayfa=3");
+    const parsed = parseAuditLogQuery({ business: "kafe", actor: "business", page: "3" });
+    expect(auditLogHref(parsed, { page: 1 })).toBe("/admin/logs?business=kafe&actor=business");
+    expect(auditLogHref(parsed)).toBe("/admin/logs?business=kafe&actor=business&page=3");
+    // Eski Türkçe adlı bağlantı (yer imi, eski kayıt ekranı bağlantısı) aynı sorguya çıkar.
+    expect(parseAuditLogQuery({ isletme: "kafe", aktor: "business", sayfa: "3" })).toEqual(parsed);
   });
 });

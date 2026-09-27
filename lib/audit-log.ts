@@ -12,6 +12,7 @@
 // bağımsız aynı adı taşır (işletme de yönetici de ürün fiyatını değiştirse
 // `product.price_change`). Kimin yaptığı aktör alanlarındadır.
 
+import { readParam } from "@/lib/url-params";
 import type { AuditActorType, AuditLog } from "@/lib/types";
 
 export type { AuditActorType, AuditLog };
@@ -98,6 +99,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "category.create": "Kategori ekledi",
   "category.update": "Kategoriyi güncelledi",
   "category.delete": "Kategoriyi sildi",
+  "category.import": "Menüye toplu aktarım yaptı",
   "product.create": "Ürün ekledi",
   "product.update": "Ürünü güncelledi",
   "product.price_change": "Fiyat değiştirdi",
@@ -129,6 +131,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "ai.menu_scan": "AI ile menü taradı",
   "ai.translate": "AI ile çeviri yaptı",
   "ai.image_search": "AI ile ürün görseli aradı",
+  "ai.menu_assist": "Menü asistanını kullandı",
 };
 
 export function auditActionLabel(action: string): string {
@@ -155,6 +158,7 @@ export const AUDIT_ACTION_GROUPS: { label: string; prefix: string }[] = [
  *  onlar denetim kaydı ekranında filtreyle görülür. */
 export const HIGHLIGHT_ACTIONS = [
   "business.register",
+  "business.create",
   "business.plan_assign",
   "business.trial_extend",
   "business.suspend",
@@ -343,18 +347,18 @@ const COLLECTION = /^[a-z_]{1,60}$/;
 /** Adres çubuğundaki parametreleri güvenli bir sorguya çevirir; tanınmayan
  *  değer boşa düşer. Parametre adları Türkçe (paylaşılan bağlantılar okunur). */
 export function parseAuditLogQuery(params: Record<string, string | undefined>): Omit<AuditLogQuery, "businessIds"> {
-  const page = Number.parseInt(params.sayfa ?? "", 10);
-  const actorType = params.aktor ?? "";
+  const page = Number.parseInt(readParam(params, "page") ?? "", 10);
+  const actorType = readParam(params, "actor") ?? "";
   return {
     q: (params.q ?? "").trim().slice(0, 100),
-    from: DAY.test(params.baslangic ?? "") ? (params.baslangic as string) : "",
-    to: DAY.test(params.bitis ?? "") ? (params.bitis as string) : "",
-    business: (params.isletme ?? "").trim().slice(0, 100),
-    actor: (params.kullanici ?? "").trim().slice(0, 200),
+    from: DAY.test(readParam(params, "from") ?? "") ? (readParam(params, "from") as string) : "",
+    to: DAY.test(readParam(params, "to") ?? "") ? (readParam(params, "to") as string) : "",
+    business: (readParam(params, "business") ?? "").trim().slice(0, 100),
+    actor: (readParam(params, "user") ?? "").trim().slice(0, 200),
     actorType: (AUDIT_ACTOR_TYPES as readonly string[]).includes(actorType) ? (actorType as AuditActorType) : "",
-    action: ACTION.test(params.islem ?? "") ? (params.islem as string) : "",
-    resource: COLLECTION.test(params.kaynak ?? "") ? (params.kaynak as string) : "",
-    target: RECORD_ID.test(params.hedef ?? "") ? (params.hedef as string) : "",
+    action: ACTION.test(readParam(params, "action") ?? "") ? (readParam(params, "action") as string) : "",
+    resource: COLLECTION.test(readParam(params, "resource") ?? "") ? (readParam(params, "resource") as string) : "",
+    target: RECORD_ID.test(readParam(params, "target") ?? "") ? (readParam(params, "target") as string) : "",
     page: Number.isFinite(page) && page > 0 ? page : 1,
   };
 }
@@ -433,15 +437,15 @@ export function auditLogHref(
   const next = { ...query, ...patch };
   const params = new URLSearchParams();
   if (next.q) params.set("q", next.q);
-  if (next.from) params.set("baslangic", next.from);
-  if (next.to) params.set("bitis", next.to);
-  if (next.business) params.set("isletme", next.business);
-  if (next.actor) params.set("kullanici", next.actor);
-  if (next.actorType) params.set("aktor", next.actorType);
-  if (next.action) params.set("islem", next.action);
-  if (next.resource) params.set("kaynak", next.resource);
-  if (next.target) params.set("hedef", next.target);
-  if (next.page > 1) params.set("sayfa", String(next.page));
+  if (next.from) params.set("from", next.from);
+  if (next.to) params.set("to", next.to);
+  if (next.business) params.set("business", next.business);
+  if (next.actor) params.set("user", next.actor);
+  if (next.actorType) params.set("actor", next.actorType);
+  if (next.action) params.set("action", next.action);
+  if (next.resource) params.set("resource", next.resource);
+  if (next.target) params.set("target", next.target);
+  if (next.page > 1) params.set("page", String(next.page));
   const qs = params.toString();
   return qs ? `${base}?${qs}` : base;
 }

@@ -92,7 +92,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
       <form method="get" className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
         <div>
           <Label htmlFor="filter-business">İşletme</Label>
-          <Select id="filter-business" name="isletme" defaultValue={query.business}>
+          <Select id="filter-business" name="business" defaultValue={query.business}>
             <option value="">Tüm işletmeler</option>
             {businesses.map((business) => (
               <option key={business.id} value={business.id}>
@@ -103,7 +103,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
         </div>
         <div>
           <Label htmlFor="filter-type">İşlem tipi</Label>
-          <Select id="filter-type" name="tip" defaultValue={query.type}>
+          <Select id="filter-type" name="type" defaultValue={query.type}>
             <option value="">Tümü</option>
             {PAYMENT_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -114,7 +114,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
         </div>
         <div>
           <Label htmlFor="filter-status">Durum</Label>
-          <Select id="filter-status" name="durum" defaultValue={query.status}>
+          <Select id="filter-status" name="status" defaultValue={query.status}>
             <option value="">Tümü</option>
             {PAYMENT_STATUSES.map((status) => (
               <option key={status} value={status}>
@@ -125,11 +125,11 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
         </div>
         <div>
           <Label htmlFor="filter-from">Başlangıç</Label>
-          <Input id="filter-from" type="date" name="baslangic" defaultValue={query.from} />
+          <Input id="filter-from" type="date" name="from" defaultValue={query.from} />
         </div>
         <div>
           <Label htmlFor="filter-to">Bitiş</Label>
-          <Input id="filter-to" type="date" name="bitis" defaultValue={query.to} />
+          <Input id="filter-to" type="date" name="to" defaultValue={query.to} />
         </div>
         <div className="flex gap-2 sm:col-span-2 lg:col-span-5 lg:justify-end">
           <Button type="submit" className="flex-1 sm:flex-none">

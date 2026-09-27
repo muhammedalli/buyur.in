@@ -185,7 +185,7 @@ export default function WebsitePage() {
                   </span>
                 ) : (
                   <Link
-                    href={item.key === "whatsapp" ? "/panel/settings?tab=sosyal" : item.key === "google_maps_url" || item.key === "address" || item.key === "working_hours" ? "/panel/settings?tab=iletisim" : "/panel/settings?tab=genel"}
+                    href={item.key === "whatsapp" ? "/panel/settings?tab=social" : item.key === "google_maps_url" || item.key === "address" || item.key === "working_hours" ? "/panel/settings?tab=contact" : "/panel/settings?tab=general"}
                     className="text-xs font-medium text-paprika transition-colors hover:text-paprika-deep"
                   >
                     {t("Ekle")}

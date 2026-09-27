@@ -83,8 +83,11 @@ describe("admin işletme listesi", () => {
   });
 
   it("bağlantılar varsayılanları taşımaz", () => {
-    const query = parseBusinessListQuery({ q: "kafe", plan: "elite", sayfa: "2" });
-    expect(businessListHref(query)).toBe("/admin/businesses?q=kafe&plan=elite&sayfa=2");
+    const query = parseBusinessListQuery({ q: "kafe", plan: "elite", page: "2" });
+    expect(businessListHref(query)).toBe("/admin/businesses?q=kafe&plan=elite&page=2");
+    // Adres parametreleri İngilizce üretilir; eski Türkçe adlı bağlantı aynı sorguya çıkar.
+    expect(parseBusinessListQuery({ q: "kafe", plan: "elite", sayfa: "2" })).toEqual(query);
+    expect(businessListHref(parseBusinessListQuery({ durum: "live", sirala: "expiring" }))).toBe("/admin/businesses?status=live&sort=expiring");
     expect(businessListHref(query, { page: 1, q: "" })).toBe("/admin/businesses?plan=elite");
     expect(businessListHref(parseBusinessListQuery({}))).toBe("/admin/businesses");
   });

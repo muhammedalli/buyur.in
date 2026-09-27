@@ -6,6 +6,7 @@
 // findBusinessByEmail) ve durum gibi türetilmiş alanlar sorguya çevrilemiyor.
 // İşletme sayısı binlerle ölçülene kadar tek turda hepsini okumak yeterince hızlı.
 
+import { readParam } from "@/lib/url-params";
 import { isSuspended } from "@/lib/business-suspension";
 import { isDeleted } from "@/lib/business-deletion";
 import { PLAN_ORDER } from "@/lib/entitlements";
@@ -80,12 +81,12 @@ function pick<T extends string>(value: unknown, allowed: readonly T[], fallback:
 /** Adres çubuğundaki parametreleri güvenli bir sorguya çevirir; tanınmayan
  *  değer varsayılana düşer. */
 export function parseBusinessListQuery(params: Record<string, string | undefined>): BusinessListQuery {
-  const page = Number.parseInt(params.sayfa ?? "", 10);
+  const page = Number.parseInt(readParam(params, "page") ?? "", 10);
   return {
     q: (params.q ?? "").trim().slice(0, 100),
     plan: pick(params.plan, ["", ...PLAN_ORDER], ""),
-    status: pick(params.durum, ["", "live", "setup", "offline", "suspended", "deleted"], ""),
-    sort: pick(params.sirala, ["newest", "oldest", "name", "expiring", "updated"], "newest"),
+    status: pick(readParam(params, "status"), ["", "live", "setup", "offline", "suspended", "deleted"], ""),
+    sort: pick(readParam(params, "sort"), ["newest", "oldest", "name", "expiring", "updated"], "newest"),
     page: Number.isFinite(page) && page > 0 ? page : 1,
   };
 }
@@ -157,9 +158,9 @@ export function businessListHref(query: BusinessListQuery, patch: Partial<Busine
   const params = new URLSearchParams();
   if (next.q) params.set("q", next.q);
   if (next.plan) params.set("plan", next.plan);
-  if (next.status) params.set("durum", next.status);
-  if (next.sort !== "newest") params.set("sirala", next.sort);
-  if (next.page > 1) params.set("sayfa", String(next.page));
+  if (next.status) params.set("status", next.status);
+  if (next.sort !== "newest") params.set("sort", next.sort);
+  if (next.page > 1) params.set("page", String(next.page));
   const qs = params.toString();
   return qs ? `/admin/businesses?${qs}` : "/admin/businesses";
 }

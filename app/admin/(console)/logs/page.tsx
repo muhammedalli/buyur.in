@@ -60,9 +60,9 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
           aria-label="Ara"
           className="sm:col-span-2"
         />
-        <Input name="isletme" defaultValue={parsed.business} placeholder="İşletme: ad, menü adresi ya da kimlik" aria-label="İşletme" />
-        <Input name="kullanici" defaultValue={parsed.actor} placeholder="Yapan: e-posta ya da kimlik" aria-label="Yapan" />
-        <Select name="aktor" defaultValue={parsed.actorType} aria-label="Yapan türü">
+        <Input name="business" defaultValue={parsed.business} placeholder="İşletme: ad, menü adresi ya da kimlik" aria-label="İşletme" />
+        <Input name="user" defaultValue={parsed.actor} placeholder="Yapan: e-posta ya da kimlik" aria-label="Yapan" />
+        <Select name="actor" defaultValue={parsed.actorType} aria-label="Yapan türü">
           <option value="">Tüm yapanlar</option>
           {AUDIT_ACTOR_TYPES.map((type) => (
             <option key={type} value={type}>
@@ -70,7 +70,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
             </option>
           ))}
         </Select>
-        <Select name="islem" defaultValue={parsed.action} aria-label="İşlem tipi">
+        <Select name="action" defaultValue={parsed.action} aria-label="İşlem tipi">
           <option value="">Tüm işlemler</option>
           {actionsByGroup.map((group) => (
             <optgroup key={group.label} label={group.label}>
@@ -82,7 +82,7 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
             </optgroup>
           ))}
         </Select>
-        <Select name="kaynak" defaultValue={parsed.resource} aria-label="Kaynak">
+        <Select name="resource" defaultValue={parsed.resource} aria-label="Kaynak">
           <option value="">Tüm kaynaklar</option>
           {Object.entries(AUDIT_RESOURCE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -91,10 +91,10 @@ export default async function AdminLogsPage({ searchParams }: { searchParams: Pr
           ))}
         </Select>
         <div className="grid grid-cols-2 gap-2">
-          <Input type="date" name="baslangic" defaultValue={parsed.from} aria-label="Başlangıç tarihi" title="Başlangıç" />
-          <Input type="date" name="bitis" defaultValue={parsed.to} aria-label="Bitiş tarihi" title="Bitiş" />
+          <Input type="date" name="from" defaultValue={parsed.from} aria-label="Başlangıç tarihi" title="Başlangıç" />
+          <Input type="date" name="to" defaultValue={parsed.to} aria-label="Bitiş tarihi" title="Bitiş" />
         </div>
-        {parsed.target && <input type="hidden" name="hedef" value={parsed.target} />}
+        {parsed.target && <input type="hidden" name="target" value={parsed.target} />}
         <div className="flex gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">
           <Button type="submit" className="flex-1 lg:flex-none">
             Filtrele

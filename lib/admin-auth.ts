@@ -89,7 +89,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 export async function requireAdmin(options: { action?: AdminAction } = {}): Promise<AdminSession> {
   const session = await sessionFromCookies();
   if (!session) redirect("/admin/login");
-  if (options.action && !canPerform(session.admin.role, options.action)) redirect("/admin?yetkisiz=1");
+  if (options.action && !canPerform(session.admin.role, options.action)) redirect("/admin?denied=1");
   return session;
 }
 

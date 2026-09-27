@@ -20,6 +20,7 @@ import {
   type SettingRecordLike,
 } from "@/lib/system-settings";
 import type { Admin } from "@/lib/types";
+import { readParam, systemTabFromParam, type SystemTab } from "@/lib/url-params";
 
 export const dynamic = "force-dynamic";
 
@@ -28,16 +29,16 @@ export const dynamic = "force-dynamic";
 // ekranında; altyapı durumu genel bakışta kısa bir liste olarak durur.
 // Sekme adres çubuğunda: bağlantı paylaşılabilir.
 
-type Tab = "ayarlar" | "ekip";
 
 export default async function AdminSystemPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ pb, admin }, params] = await Promise.all([requireAdmin({ action: "system.view" }), searchParams]);
   const canManageAdmins = canPerform(admin.role, "admins.manage");
-  const tab: Tab = params.sekme === "ekip" && canManageAdmins ? "ekip" : "ayarlar";
+  const requested = systemTabFromParam(readParam(params, "tab"));
+  const tab: SystemTab = requested === "team" && canManageAdmins ? "team" : "settings";
 
-  const tabs: { key: Tab; label: string; show: boolean }[] = [
-    { key: "ayarlar", label: "Genel ayarlar", show: true },
-    { key: "ekip", label: "Yönetim ekibi", show: canManageAdmins },
+  const tabs: { key: SystemTab; label: string; show: boolean }[] = [
+    { key: "settings", label: "Genel ayarlar", show: true },
+    { key: "team", label: "Yönetim ekibi", show: canManageAdmins },
   ];
 
   return (
@@ -48,12 +49,12 @@ export default async function AdminSystemPage({ searchParams }: { searchParams: 
         items={tabs
           .filter((item) => item.show)
           .map((item) => ({
-            href: item.key === "ayarlar" ? "/admin/system" : `/admin/system?sekme=${item.key}`,
+            href: item.key === "settings" ? "/admin/system" : `/admin/system?tab=${item.key}`,
             label: item.label,
             active: tab === item.key,
           }))}
       />
-      {tab === "ayarlar" ? <SettingsTab pb={pb} /> : <TeamTab pb={pb} selfId={admin.id} />}
+      {tab === "settings" ? <SettingsTab pb={pb} /> : <TeamTab pb={pb} selfId={admin.id} />}
     </>
   );
 }

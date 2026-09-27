@@ -8,6 +8,8 @@
 // işletme müşterisiyle karşı karşıya kalır. Bu yüzden okunamayan fiyat `null`
 // döner ve `uncertain` listesine "price" eklenir — kullanıcı önizlemede görür.
 
+import { msg } from "@/lib/ui-i18n";
+
 /** Bir alanın modelce okunamadığını/belirsiz olduğunu belirten anahtar. */
 export type UncertainField = "name" | "description" | "price" | "currency";
 
@@ -37,6 +39,44 @@ export interface ScanResult {
   currency: string;
   /** Kontrol edilmesi gereken toplam alan sayısı. */
   uncertainCount: number;
+}
+
+// ── Girdi: sayfa veri URI'leri ──────────────────────────────────────────
+
+/** Tek bir sayfanın veri URI üst sınırı (~8MB base64 ≈ 6MB dosya). */
+export const MAX_PAGE_BYTES = 8 * 1024 * 1024;
+
+const IMAGE_PREFIX = /^data:image\/(jpeg|jpg|png|webp|gif);base64,/;
+const PDF_PREFIX = /^data:application\/pdf;base64,/;
+
+export type MenuPage = { kind: "image"; data: string } | { kind: "pdf"; data: string };
+
+/** Girdiyi doğrular: yalnızca beklenen veri URI biçimleri ve boyut sınırı.
+ *  Panel taraması (/api/ai/scan) ve yönetim asistanı aynı kapıdan geçer. */
+export function parseMenuPages(value: unknown, maxPages: number): { pages: MenuPage[] } | { error: string } {
+  if (!Array.isArray(value) || value.length === 0) {
+    return { error: msg("Görsel bulunamadı.") };
+  }
+  if (value.length > maxPages) {
+    return { error: `Tek seferde en fazla ${maxPages} sayfa menü tarayabilirsiniz.` };
+  }
+
+  const pages: MenuPage[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") return { error: msg("Geçersiz dosya biçimi.") };
+    if (entry.length > MAX_PAGE_BYTES) {
+      return { error: msg("Dosyalardan biri çok büyük. Her sayfa en fazla 6 MB olmalı.") };
+    }
+    if (IMAGE_PREFIX.test(entry)) {
+      pages.push({ kind: "image", data: entry });
+    } else if (PDF_PREFIX.test(entry)) {
+      pages.push({ kind: "pdf", data: entry });
+    } else {
+      return { error: msg("Yalnızca görsel (jpg, png, webp) veya PDF yükleyebilirsiniz.") };
+    }
+  }
+
+  return { pages };
 }
 
 // Tek bir taramanın makul üst sınırları. Model bozuk/çok uzun çıktı üretirse

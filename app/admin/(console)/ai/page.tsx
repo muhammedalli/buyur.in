@@ -68,7 +68,7 @@ export default async function AdminAiPage() {
         title="Yapay zekâ"
         description="Menü tarama kotaları ve AI maliyetinin özeti. Her işlem denetim kaydında model ve token bilgisiyle durur."
         action={
-          <ButtonLink href="/admin/logs?kaynak=ai" size="sm">
+          <ButtonLink href="/admin/logs?resource=ai" size="sm">
             AI kayıtları
           </ButtonLink>
         }

@@ -59,6 +59,34 @@ export function localizedReleaseNote(note: ReleaseNote, locale: UiLocale): { tit
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.11.0",
+    date: "2026-09-27",
+    title: "buyur ekibi hesabınızı ve menünüzü sizin için kurabiliyor",
+    items: [
+      { kind: "yeni", text: "Hesabınızı buyur ekibi sizin yerinize açabilir: planınız ve menü diliniz seçilmiş, menü adresiniz hazır olarak. Size giriş bilgileriniz iletilir; ilk girişte şifrenizi değiştirebilirsiniz." },
+      { kind: "yeni", text: "Mevcut menünüz tek seferde aktarılabilir: başka bir QR menü sitesindeki menünüzün bağlantısı, menü dosyası, fotoğrafı ya da düz metni yeter. Okunamayan fiyatlar tahmin edilmez; ekibimiz kontrol edip tamamlar." },
+      { kind: "yeni", text: "Aktarım sırasında ürünlerinize uygun görseller otomatik aranabilir; istemediğiniz görsel yayına girmeden kaldırılır." },
+      { kind: "iyileştirme", text: "Sayfa adreslerindeki bölüm ve sekme adları İngilizceye geçti (ör. buyur.in/#pricing, ayarlarda ?tab=contact). Daha önce kaydettiğiniz ya da paylaştığınız eski bağlantılar aynı yere açılmaya devam ediyor." },
+    ],
+    en: {
+      title: "The buyur team can now set up your account and menu for you",
+      items: [
+        "The buyur team can open your account on your behalf, with your plan and menu language selected and your menu address ready. You receive your sign-in details and can change your password on first sign-in.",
+        "Your existing menu can be imported in one go: a link to your menu on another QR menu site, a menu file, a photo or plain text is enough. Unreadable prices are never guessed; our team checks and completes them.",
+        "Matching images can be searched for your products during import; any image you do not want is removed before it goes live.",
+        "Section and tab names in page addresses are now in English (e.g. buyur.in/#pricing, ?tab=contact in settings). Old links you saved or shared still open the same place.",
+      ],
+    },
+    internal: [
+      "Yönetim: /admin/businesses/new (NewBusinessWizard) + POST /api/admin/businesses (yeni yetki business.create, yalnızca super_admin; runAuditedCreate, admin'in kendi token'ı — createRule TRUSTED_ADMIN). Kurallar lib/admin-onboarding.ts: OTP yok, telefon engellemez (adminPhone: TR ise biçimlenir, değilse olduğu gibi, boş olabilir), menü tek dilde (languages: []), kurulum alanları dolu açılır (slug/template/main_language/activation.sector). Kayıtlı e-posta PocketBase'de validation_not_unique dönerse giriş e-postası artı adresli takma ada geçer (loginEmailAlias: sahip+slug@alan, gerekirse -2…); ekran giriş adresini gösterir. İşletmeye e-posta gitmez.",
+      "Menü asistanı sayfanın içinde (MenuAssistant: avatarlı sohbet, harf harf akan yanıt, yazıyor göstergesi, içerikle uzayan mesaj kutusu; animasyonlar globals.css → chat-in/ai-float/ai-orbit/typing-dot, hareket azaltmada kapalı); önizleme (MenuPreviewModal) ve son onay (oluştur / menüye yaz) pencerede. Durum useMenuSession'da. POST /api/admin/menu-assistant (business.content). Kaynaklar: ek dosya (vision), JSON (bizim biçim → modelsiz), bağlantı, düz metin. Bağlantı okuma kademeli (lib/ai/menu-extract.ts → readMenuLink): düz okuma (SSRF korumalı, HTML + JSON-LD/__NEXT_DATA__) → ürün çıkmazsa sayfayı gerçek tarayıcıda açan Jina Reader (r.jina.ai; JINA_API_KEY isteğe bağlı, MENU_LINK_RENDERER=off kapatır; yalnızca herkese açık, güvenlik kontrolünden geçmiş adres gider) → sayfadaki menü görselleri (en çok 4, vision). \"www.\" ile başlayan protokolsüz adres de bağlantı sayılır. Düzenleme komutları işlem listesi olarak alınır, lib/ai/menu-assistant.ts'te deterministik uygulanır. Model: OPENAI_ASSISTANT_MODEL ?? OPENAI_MENU_MODEL. Denetim: ai.menu_assist.",
+      "Toplu görsel: POST /api/admin/menu-assistant/images (kayda yazmaz). Aktarım: POST /api/admin/businesses/[id]/import — kategori başına bir istek, buildImportPlan ile idempotent, sıralı withRetry(verify), tek denetim kaydı category.import; kayıt yazılamazsa bu istekte açılanlar silinir.",
+      "Var olan işletmede de: /admin/businesses/[id]/menu → \"Asistanla menü aktar\" (AdminMenuImport, aynı tam ekran asistan).",
+      "Taşımalar: parsePages → lib/ai/menu-scan.ts parseMenuPages (i18n panel kapsamına eklendi); toEnglishFoodQuery → lib/ai/image-query.ts. Kit Textarea ref kabul eder (ComponentProps<\"textarea\">). Şema değişikliği ve göç yok.",
+      "Adresler İngilizce (lib/url-params.ts, tests/url-params.test.ts): panel ayarları ?tab=general|languages|theme|marquee|amenities|contact|social|panel; landing çapaları her dilde İngilizce (lib/landing-sections.ts, eski /#fiyat → LegacyAnchorRedirect ile /#pricing); yönetim filtreleri status/sort/page/from/to/business/user/actor/action/resource/target/type, sistem ?tab=team, yetkisiz uyarısı ?denied=1. Eski Türkçe adlar readParam ile okunmaya devam eder; yeni bağlantı Türkçe üretilmez (CLAUDE.md §9).",
+    ],
+  },
+  {
     version: "0.10.0",
     date: "2026-09-27",
     title: "Panele yeni görünüm: tam boy yan menü ve sade kartlar",

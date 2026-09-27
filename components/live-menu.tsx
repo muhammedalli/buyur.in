@@ -57,7 +57,7 @@ export function LiveMenu({
   return (
     <section
       ref={sectionRef}
-      id={sectionId("liveMenu", locale)}
+      id={sectionId("liveMenu")}
       data-track-view="live_demo_viewed"
       className="border-b border-line bg-ink text-paper"
     >

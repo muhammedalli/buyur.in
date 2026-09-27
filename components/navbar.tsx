@@ -17,7 +17,7 @@ import {
   type UiLocale,
 } from "@/lib/ui-i18n";
 
-// Bölüm çapaları: kimlik dile göre (lib/landing-sections.ts); sayfadaki bölümün kimliği (kaydırırken hangisinde
+// Bölüm çapaları: her dilde İngilizce (lib/landing-sections.ts); sayfadaki bölümün kimliği (kaydırırken hangisinde
 // olunduğu buradan izlenir). Dil kökü önek olarak eklenir (/#… ya da /en#…).
 const LINKS: { section: LandingSection; label: string }[] = [
   { section: "platform", label: msg("Platform") },
@@ -155,7 +155,7 @@ export function Navbar({
 
   const links = [
     ...LINKS.map((link) => {
-      const id = sectionId(link.section, locale);
+      const id = sectionId(link.section);
       return { href: `${home}#${id}`, id, label: t(link.label) };
     }),
     { href: siteLocalePath(locale, "/docs"), id: "", label: t("Yardım") },
@@ -173,7 +173,7 @@ export function Navbar({
 
   // Bulunulan bölümün bağlantısı vurgulanır (landing dışında bölüm yoksa hiçbiri).
   useEffect(() => {
-    const sections = LINKS.map((link) => document.getElementById(sectionId(link.section, locale))).filter(
+    const sections = LINKS.map((link) => document.getElementById(sectionId(link.section))).filter(
       (element): element is HTMLElement => element !== null
     );
     if (sections.length === 0 || typeof IntersectionObserver === "undefined") return;

@@ -214,6 +214,7 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 - **Kullanıcıya görünen tüm metinler Türkçe** (panel, menü, hata mesajları dâhil)
 - Kod yorumları Türkçe; **neden** açıklanır, ne yapıldığı değil
 - Değişken/fonksiyon adları İngilizce, camelCase
+- Adres çubuğunda görünen parametre adları, sekme değerleri ve sayfa içi çapalar İngilizcedir (`?tab=contact`, `?status=live`, `/#pricing`); eski Türkçe karşılıkları `lib/url-params.ts` ile okunmaya devam eder, yeni bağlantı Türkçe üretilmez
 - Hata mesajları kullanıcı diliyle konuşur: "Giriş yapmalısınız." — yığın izi değil
 
 ---

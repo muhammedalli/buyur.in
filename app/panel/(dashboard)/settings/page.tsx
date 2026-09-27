@@ -69,32 +69,30 @@ import {
   type RebasePatch,
 } from "@/lib/language-rebase";
 import type { Business, Highlight, Template } from "@/lib/types";
+import { settingsTabFromParam, type SettingsTab } from "@/lib/url-params";
 
 const ALL_HIGHLIGHTS = Object.keys(highlightLabels.tr) as Highlight[];
 
-type SettingsTab = "genel" | "diller" | "tema" | "yazi" | "ozellik" | "iletisim" | "sosyal" | "panel";
 const ICON = { size: 17 } as const;
 const SETTINGS_TABS: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
-  { key: "genel", label: msg("Genel bilgiler"), icon: <InfoIcon {...ICON} /> },
-  { key: "diller", label: msg("Menü dilleri"), icon: <LanguagesIcon {...ICON} /> },
-  { key: "tema", label: msg("Tema"), icon: <PaletteIcon {...ICON} /> },
-  { key: "yazi", label: msg("Kayan yazı"), icon: <MarqueeIcon {...ICON} /> },
-  { key: "ozellik", label: msg("Mekân özellikleri"), icon: <StarIcon {...ICON} /> },
-  { key: "iletisim", label: msg("Adres & iletişim"), icon: <MapPinIcon {...ICON} /> },
-  { key: "sosyal", label: msg("Sosyal medya"), icon: <ShareIcon {...ICON} /> },
+  { key: "general", label: msg("Genel bilgiler"), icon: <InfoIcon {...ICON} /> },
+  { key: "languages", label: msg("Menü dilleri"), icon: <LanguagesIcon {...ICON} /> },
+  { key: "theme", label: msg("Tema"), icon: <PaletteIcon {...ICON} /> },
+  { key: "marquee", label: msg("Kayan yazı"), icon: <MarqueeIcon {...ICON} /> },
+  { key: "amenities", label: msg("Mekân özellikleri"), icon: <StarIcon {...ICON} /> },
+  { key: "contact", label: msg("Adres & iletişim"), icon: <MapPinIcon {...ICON} /> },
+  { key: "social", label: msg("Sosyal medya"), icon: <ShareIcon {...ICON} /> },
   { key: "panel", label: msg("Panel"), icon: <MonitorIcon {...ICON} /> },
 ];
 
-const isSettingsTab = (value: string | null): value is SettingsTab =>
-  SETTINGS_TABS.some((tab) => tab.key === value);
-
 /** Adres çubuğundaki ?tab= bölümü açar (kılavuz ve bağlantılar bu yolla bir
- *  bölüme götürür). useSearchParams Suspense içinde olmalı. */
+ *  bölüme götürür). Değerler İngilizce; eski Türkçe değerler (?tab=iletisim)
+ *  de tanınır (lib/url-params.ts). useSearchParams Suspense içinde olmalı. */
 function TabFromUrl({ onTab }: { onTab: (tab: SettingsTab) => void }) {
   const params = useSearchParams();
-  const requested = params.get("tab");
+  const requested = settingsTabFromParam(params.get("tab"));
   useEffect(() => {
-    if (isSettingsTab(requested)) onTab(requested);
+    if (requested) onTab(requested);
   }, [requested, onTab]);
   return null;
 }
@@ -374,7 +372,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
   const [mainLang, setMainLang] = useState<Locale>(initial.mainLang);
   const [languages, setLanguages] = useState<Locale[]>(initial.languages);
   const [translations, setTranslations] = useState<Translations>(initial.translations);
-  const [tab, setTab] = useState<SettingsTab>("genel");
+  const [tab, setTab] = useState<SettingsTab>("general");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -514,14 +512,14 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
       const message = !phoneCheck.ok
         ? t("Telefon: {error}", { error: t(phoneCheck.error) })
         : t("WhatsApp: {error}", { error: !whatsappCheck.ok ? t(whatsappCheck.error) : "" });
-      selectTab(!phoneCheck.ok ? "genel" : "sosyal");
+      selectTab(!phoneCheck.ok ? "general" : "social");
       setError(message);
       toast(message, "error");
       return;
     }
     if (languages.length + 1 > MAX_MENU_LOCALES) {
       const message = t("Menüde en fazla {max} dil açık olabilir.", { max: MAX_MENU_LOCALES });
-      selectTab("diller");
+      selectTab("languages");
       setError(message);
       toast(message, "error");
       return;
@@ -654,7 +652,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           <FormActions saving={saving} dirty={dirty} savedAt={savedAt ?? business.updated ?? null} error={error || undefined} />
         )}
 
-        {tab === "genel" && (
+        {tab === "general" && (
           <div className="space-y-8">
             {/* Kapak + logo başlığı */}
             <Card className="space-y-4" data-guide="settings-images">
@@ -741,7 +739,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </div>
         )}
 
-        {tab === "diller" && (
+        {tab === "languages" && (
           <Card className="space-y-6">
             <div>
               <p className="text-xs font-medium text-ink-soft">{t("Menü dilleri")}</p>
@@ -845,7 +843,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </Card>
         )}
 
-        {tab === "tema" && (
+        {tab === "theme" && (
           <div className="grid gap-6 lg:grid-cols-[1fr_20rem]" data-guide="settings-theme">
             <div className="space-y-6">
               {/* Marka rengi */}
@@ -1009,7 +1007,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </div>
         )}
 
-        {tab === "yazi" && (
+        {tab === "marquee" && (
           <div className="grid gap-6 lg:grid-cols-[1fr_20rem]" data-guide="settings-marquee">
             <Card className="space-y-5">
               <Switch
@@ -1073,7 +1071,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </div>
         )}
 
-        {tab === "ozellik" && (
+        {tab === "amenities" && (
           <Card className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
@@ -1109,7 +1107,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </Card>
         )}
 
-        {tab === "iletisim" && (
+        {tab === "contact" && (
           <Card className="space-y-4">
             <p className="text-xs font-medium text-ink-soft">{t("Adres & iletişim")}</p>
             <div>
@@ -1157,7 +1155,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </Card>
         )}
 
-        {tab === "sosyal" && (
+        {tab === "social" && (
           <Card className="space-y-4">
             <p className="text-xs font-medium text-ink-soft">{t("Sosyal medya")}</p>
             <div className="grid gap-3 sm:grid-cols-2">

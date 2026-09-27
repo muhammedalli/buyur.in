@@ -12,6 +12,7 @@ import { Pricing, FAQ, ClosingCTA, getFaqs } from "@/components/pricing";
 import { Comparison } from "@/components/comparison";
 import { LandingTracker } from "@/components/landing-tracker";
 import { DocumentLang } from "@/components/document-lang";
+import { LegacyAnchorRedirect } from "@/components/legacy-anchor-redirect";
 import { DEMO_SLUG, loadShowcase } from "@/lib/showcase";
 import { BRAND_ICON, OG_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_URL, absoluteUrl, jsonLdScript } from "@/lib/seo";
 import { planPricing } from "@/lib/pricing";
@@ -123,6 +124,7 @@ export async function LandingPage({ locale }: { locale: UiLocale }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(buildProductJsonLd(t, locale))} />
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdScript(buildFaqJsonLd(locale))} />
       <DocumentLang lang={locale} />
+      <LegacyAnchorRedirect />
       {/* lang sarmalayıcısı: CSS büyük harf dönüşümü (İngilizce "i" → "I", Türkçe
           "i" → "İ") ilk boyamadan itibaren doğru dilde yapılsın. */}
       <div lang={locale} className="contents">

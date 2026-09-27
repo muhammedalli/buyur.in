@@ -15,6 +15,7 @@ describe("admin yetki matrisi", () => {
     "payments.view",
   ];
   const superOnly: AdminAction[] = [
+    "business.create",
     "business.plan_assign",
     "business.suspend",
     "business.slug_change",

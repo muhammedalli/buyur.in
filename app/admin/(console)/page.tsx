@@ -15,6 +15,7 @@ import { PLAN_LABELS, PLAN_ORDER } from "@/lib/entitlements";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { getServicePB } from "@/lib/pocketbase-server";
 import type { AuditLog } from "@/lib/types";
+import { readParam } from "@/lib/url-params";
 
 export const dynamic = "force-dynamic";
 
@@ -85,7 +86,7 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader title="Genel bakış" description={firstName ? `Hoş geldin, ${firstName}. Platformun bugünkü durumu.` : "Platformun bugünkü durumu."} />
 
-      {params.yetkisiz === "1" && (
+      {readParam(params, "denied") === "1" && (
         <p role="alert" className="mb-6 rounded-md border border-paprika/30 bg-paprika/10 px-4 py-3 text-sm text-paprika">
           Açmaya çalıştığın sayfa için yetkin yok. Gerekiyorsa bir süper yöneticiden iste.
         </p>
@@ -108,7 +109,7 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
                 overview.byStatus.suspended > 0
                   ? `${count(overview.byStatus.setup)} kurulum bekliyor · ${count(overview.byStatus.suspended)} askıda`
                   : `${count(overview.byStatus.setup)} kurulum bekliyor`,
-              href: "/admin/businesses?durum=live",
+              href: "/admin/businesses?status=live",
               icon: <CheckCircleIcon size={16} />,
             },
             {
@@ -171,7 +172,7 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
             title="Plan bitişleri"
             description="Önümüzdeki 30 gün içinde bitenler ve son 30 günde bitenler."
             action={
-              <ButtonLink href="/admin/businesses?sirala=expiring" size="sm">
+              <ButtonLink href="/admin/businesses?sort=expiring" size="sm">
                 Tümü
               </ButtonLink>
             }

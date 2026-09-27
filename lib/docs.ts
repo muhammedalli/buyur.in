@@ -305,7 +305,7 @@ export const DOC_GUIDES: DocGuide[] = [
       {
         heading: "Planlar",
         paragraphs: [
-          "Freemium, Premium ve Elite planları vardır. Hangi özelliğin hangi planda olduğu, kotalar ve güncel fiyatlar Plan ekranında ve buyur.in/#fiyat sayfasında her zaman günceldir.",
+          "Freemium, Premium ve Elite planları vardır. Hangi özelliğin hangi planda olduğu, kotalar ve güncel fiyatlar Plan ekranında ve buyur.in/#pricing sayfasında her zaman günceldir.",
           "Kilitli bir özelliğe tıkladığınızda neyin açılacağını gösteren bir yükseltme notu görürsünüz.",
         ],
       },

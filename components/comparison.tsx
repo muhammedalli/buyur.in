@@ -33,7 +33,7 @@ function buildRows(t: Translator) {
 export function Comparison({ locale = "tr" }: { locale?: UiLocale }) {
   const t = siteTranslator(locale);
   return (
-    <section id={sectionId("compare", locale)} className="border-t border-line">
+    <section id={sectionId("compare")} className="border-t border-line">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Karşılaştırın")}</p>

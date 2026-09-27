@@ -3,6 +3,7 @@ import { ButtonLink } from "@/components/admin/button-link";
 import { StatusBadge, PlanBadge } from "@/components/admin/badges";
 import { Button, EmptyState, Input, PageHeader, Select, Table } from "@/components/panel/ui";
 import { requireAdmin } from "@/lib/admin-auth";
+import { canPerform } from "@/lib/admin-roles";
 import {
   BUSINESS_SORT_LABELS,
   BUSINESS_STATUS_LABELS,
@@ -18,7 +19,7 @@ import { PLAN_LABELS, PLAN_ORDER } from "@/lib/entitlements";
 export const dynamic = "force-dynamic";
 
 export default async function AdminBusinessesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [, params, rows] = await Promise.all([requireAdmin({ action: "business.view" }), searchParams, loadBusinessRows()]);
+  const [{ admin }, params, rows] = await Promise.all([requireAdmin({ action: "business.view" }), searchParams, loadBusinessRows()]);
   const query = parseBusinessListQuery(params);
   const result = queryBusinesses(rows, query);
   const filtered = Boolean(query.q || query.plan || query.status);
@@ -28,6 +29,13 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
       <PageHeader
         title="İşletmeler"
         description={`${rows.length.toLocaleString("tr-TR")} hesap${filtered ? ` · filtreyle ${result.total.toLocaleString("tr-TR")}` : ""}. Her işletme bir hesaptır; giriş, plan ve erişim işlemleri işletmenin sayfasındadır.`}
+        action={
+          canPerform(admin.role, "business.create") && (
+            <ButtonLink href="/admin/businesses/new" variant="primary" size="sm">
+              Yeni işletme
+            </ButtonLink>
+          )
+        }
       />
 
       {/* Sade GET formu: filtreler adres çubuğunda durur, bağlantı paylaşılabilir. */}
@@ -41,7 +49,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
             </option>
           ))}
         </Select>
-        <Select name="durum" defaultValue={query.status} aria-label="Durum">
+        <Select name="status" defaultValue={query.status} aria-label="Durum">
           <option value="">Tüm durumlar</option>
           {Object.entries(BUSINESS_STATUS_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -49,7 +57,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
             </option>
           ))}
         </Select>
-        <Select name="sirala" defaultValue={query.sort} aria-label="Sıralama">
+        <Select name="sort" defaultValue={query.sort} aria-label="Sıralama">
           {Object.entries(BUSINESS_SORT_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
               {label}

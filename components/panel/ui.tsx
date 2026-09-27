@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
+  ComponentProps,
   ButtonHTMLAttributes,
   CSSProperties,
   HTMLAttributes,
@@ -10,7 +11,6 @@ import type {
   LabelHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
-  TextareaHTMLAttributes,
 } from "react";
 import Link from "next/link";
 import { ChevronDownIcon, LockIcon, SparklesIcon } from "@/components/icons";
@@ -85,7 +85,8 @@ export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(FIELD_BASE, "min-h-10", className)} {...rest} />;
 }
 
-export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+// React 19: ref prop olarak iletilir (ör. sohbet kutusuna odak vermek için).
+export function Textarea(props: ComponentProps<"textarea">) {
   const { className = "", ...rest } = props;
   return <textarea className={cn(FIELD_BASE, className)} {...rest} />;
 }

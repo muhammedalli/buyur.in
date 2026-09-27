@@ -80,7 +80,7 @@ export function Showcase({ items, locale = "tr" }: { items: ShowcaseItem[]; loca
   const hasCustomers = items.some((item) => item.kind === "customer");
 
   return (
-    <section id={sectionId("customers", locale)} data-track-view="social_proof_viewed" className="border-t border-line bg-crema/40">
+    <section id={sectionId("customers")} data-track-view="social_proof_viewed" className="border-t border-line bg-crema/40">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Canlı menüler")}</p>

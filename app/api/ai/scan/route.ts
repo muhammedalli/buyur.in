@@ -11,17 +11,9 @@ import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { guardAiRequest, openaiClient, isGuardFailure, MENU_MODEL } from "@/lib/ai/guard";
 import { aiTokenUsage, recordAiAction } from "@/lib/system-audit";
 import { localeLabels, mainLocale } from "@/lib/i18n";
-import { buildScanPrompt, normalizeScanResult } from "@/lib/ai/menu-scan";
+import { buildScanPrompt, normalizeScanResult, parseMenuPages } from "@/lib/ai/menu-scan";
 import { aiUsage, aiPeriodKey } from "@/lib/entitlements";
 import { msg } from "@/lib/ui-i18n";
-
-/** Tek bir sayfanın veri URI üst sınırı (~8MB base64 ≈ 6MB dosya). */
-const MAX_PAGE_BYTES = 8 * 1024 * 1024;
-
-const IMAGE_PREFIX = /^data:image\/(jpeg|jpg|png|webp|gif);base64,/;
-const PDF_PREFIX = /^data:application\/pdf;base64,/;
-
-type Page = { kind: "image"; data: string } | { kind: "pdf"; data: string };
 
 // ── Çift tarama koruması ────────────────────────────────────────────────
 //
@@ -46,33 +38,6 @@ function rememberScan(key: string, now: number) {
   }
 }
 
-/** Girdiyi doğrular: yalnızca beklenen veri URI biçimleri ve boyut sınırı. */
-function parsePages(value: unknown, maxPages: number): { pages: Page[] } | { error: string } {
-  if (!Array.isArray(value) || value.length === 0) {
-    return { error: msg("Görsel bulunamadı.") };
-  }
-  if (value.length > maxPages) {
-    return { error: `Tek seferde en fazla ${maxPages} sayfa menü tarayabilirsiniz.` };
-  }
-
-  const pages: Page[] = [];
-  for (const entry of value) {
-    if (typeof entry !== "string") return { error: msg("Geçersiz dosya biçimi.") };
-    if (entry.length > MAX_PAGE_BYTES) {
-      return { error: msg("Dosyalardan biri çok büyük. Her sayfa en fazla 6 MB olmalı.") };
-    }
-    if (IMAGE_PREFIX.test(entry)) {
-      pages.push({ kind: "image", data: entry });
-    } else if (PDF_PREFIX.test(entry)) {
-      pages.push({ kind: "pdf", data: entry });
-    } else {
-      return { error: msg("Yalnızca görsel (jpg, png, webp) veya PDF yükleyebilirsiniz.") };
-    }
-  }
-
-  return { pages };
-}
-
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -94,7 +59,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const parsed = parsePages(body.images, usage.pagesPerScan);
+  const parsed = parseMenuPages(body.images, usage.pagesPerScan);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

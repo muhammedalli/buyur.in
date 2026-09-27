@@ -42,7 +42,7 @@ export interface GuideStep {
 export const GUIDE_STEPS: GuideStep[] = [
   {
     id: "info",
-    route: "/panel/settings?tab=genel",
+    route: "/panel/settings?tab=general",
     target: "settings-info",
     title: msg("İşletme bilgilerinizi tamamlayın"),
     body: msg("Kısa bir açıklama ve telefon ya da adres girin. Bu bilgiler vitrininizde ve menünüzün bilgi bölümünde görünür."),
@@ -51,7 +51,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     id: "images",
-    route: "/panel/settings?tab=genel",
+    route: "/panel/settings?tab=general",
     target: "settings-images",
     title: msg("Logonuzu ve kapak görselinizi ekleyin"),
     body: msg("Logo menünün başında ve QR kartlarında, kapak görseli vitrin sayfanızın en üstünde görünür."),
@@ -78,7 +78,7 @@ export const GUIDE_STEPS: GuideStep[] = [
   },
   {
     id: "customize",
-    route: "/panel/settings?tab=tema",
+    route: "/panel/settings?tab=theme",
     target: "settings-theme",
     title: msg("Menünüzü özelleştirin"),
     body: msg("Marka renginizi, menü zeminini ve yazı tipini seçin. “Kayan yazı” sekmesinden duyuru şeridi de ekleyebilirsiniz."),

@@ -17,6 +17,7 @@
 // Tutarlar kuruş cinsinden tamsayıdır (1.250,50 ₺ = 125050): toplamlar
 // kayan nokta hatası taşımaz.
 
+import { readParam, type ParamKey } from "@/lib/url-params";
 import type { Payment, PaymentMethod, PaymentStatus, PaymentType } from "@/lib/types";
 
 export type { Payment, PaymentMethod, PaymentStatus, PaymentType };
@@ -282,16 +283,14 @@ export interface PaymentQuery {
 export const PAYMENTS_PAGE_SIZE = 50;
 
 export function parsePaymentQuery(params: Record<string, string | string[] | undefined>): PaymentQuery {
-  const one = (key: string) => {
-    const value = params[key];
-    return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
-  };
-  const business = one("isletme");
-  const type = one("tip");
-  const status = one("durum");
-  const from = one("baslangic");
-  const to = one("bitis");
-  const page = Number.parseInt(one("sayfa"), 10);
+  // İngilizce ad; eski Türkçe adlar (?isletme=, ?durum=) da okunur.
+  const one = (key: ParamKey) => readParam(params, key)?.trim() ?? "";
+  const business = one("business");
+  const type = one("type");
+  const status = one("status");
+  const from = one("from");
+  const to = one("to");
+  const page = Number.parseInt(one("page"), 10);
   return {
     business: /^[a-z0-9]{15}$/.test(business) ? business : "",
     type: isPaymentType(type) ? type : "",
@@ -326,12 +325,12 @@ export function sortPayments<T extends Payment>(payments: readonly T[]): T[] {
 export function paymentListHref(query: PaymentQuery, overrides: Partial<PaymentQuery> = {}): string {
   const next = { ...query, ...overrides };
   const params = new URLSearchParams();
-  if (next.business) params.set("isletme", next.business);
-  if (next.type) params.set("tip", next.type);
-  if (next.status) params.set("durum", next.status);
-  if (next.from) params.set("baslangic", next.from);
-  if (next.to) params.set("bitis", next.to);
-  if (next.page > 1) params.set("sayfa", String(next.page));
+  if (next.business) params.set("business", next.business);
+  if (next.type) params.set("type", next.type);
+  if (next.status) params.set("status", next.status);
+  if (next.from) params.set("from", next.from);
+  if (next.to) params.set("to", next.to);
+  if (next.page > 1) params.set("page", String(next.page));
   const search = params.toString();
   return search ? `/admin/payments?${search}` : "/admin/payments";
 }

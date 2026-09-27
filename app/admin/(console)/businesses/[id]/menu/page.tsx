@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AdminMenuImport } from "@/components/admin/admin-menu-import";
 import { ButtonLink } from "@/components/admin/button-link";
 import { ContentManager, type ContentCategory, type ContentProduct } from "@/components/admin/content-manager";
 import { PageHeader } from "@/components/panel/ui";
@@ -56,7 +57,7 @@ export default async function AdminBusinessMenuPage({ params }: { params: Promis
             <ButtonLink href={`/admin/businesses/${id}`} variant="ghost" size="sm">
               İşletmeye dön
             </ButtonLink>
-            <ButtonLink href={`/admin/logs?isletme=${id}&kaynak=buyur_products`} size="sm">
+            <ButtonLink href={`/admin/logs?business=${id}&resource=buyur_products`} size="sm">
               Ürün geçmişi
             </ButtonLink>
           </>
@@ -67,6 +68,7 @@ export default async function AdminBusinessMenuPage({ params }: { params: Promis
           İşletme silinmiş; içerik düzenlenemez. Önce silmeyi geri alın.
         </p>
       )}
+      {canEdit && <AdminMenuImport businessId={id} businessName={business.name} userName={admin.name || admin.email} />}
       <ContentManager businessId={id} categories={categories} products={products} canEdit={canEdit} />
     </>
   );

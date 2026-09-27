@@ -189,7 +189,7 @@ export default async function AdminBusinessPage({ params }: { params: Promise<{ 
           description="Sahibinin panel işlemleri, girişleri, yönetim işlemleri ve AI kullanımı."
           action={
             logTotal > logs.length && canPerform(admin.role, "logs.view") ? (
-              <ButtonLink href={`/admin/logs?isletme=${business.id}`} size="sm">
+              <ButtonLink href={`/admin/logs?business=${business.id}`} size="sm">
                 Tümü ({count(logTotal)})
               </ButtonLink>
             ) : undefined

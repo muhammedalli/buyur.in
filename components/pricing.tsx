@@ -56,7 +56,7 @@ export function Pricing({ locale = "tr" }: { locale?: UiLocale }) {
   const freemium = freemiumLimits(t, uiLocaleTags[locale]);
 
   return (
-    <section id={sectionId("pricing", locale)} data-track-view="pricing_viewed" className="mx-auto max-w-6xl px-5 py-24">
+    <section id={sectionId("pricing")} data-track-view="pricing_viewed" className="mx-auto max-w-6xl px-5 py-24">
       <div data-reveal>
         <p className="text-center font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Hesap lütfen")}</p>
         <h2 className="mt-3 text-center font-display text-4xl font-extrabold tracking-tight md:text-5xl">
@@ -236,7 +236,7 @@ export function getFaqs(locale: UiLocale = "tr") {
 export function FAQ({ locale = "tr" }: { locale?: UiLocale }) {
   const t = siteTranslator(locale);
   return (
-    <section id={sectionId("faq", locale)} className="border-t border-line bg-crema/40">
+    <section id={sectionId("faq")} className="border-t border-line bg-crema/40">
       <div className="mx-auto max-w-3xl px-5 py-24">
         <h2 data-reveal className="text-center font-display text-4xl font-extrabold tracking-tight">
           {t("Sık sorulanlar")}

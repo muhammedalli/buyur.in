@@ -65,7 +65,7 @@ export function LaunchChecklist({
       hint: t("Menünün başında ve QR kartlarında görünür."),
       done: Boolean(business.logo_url),
       cta: t("Logo yükle"),
-      href: "/panel/settings?tab=genel",
+      href: "/panel/settings?tab=general",
     },
     {
       key: "info",
@@ -73,7 +73,7 @@ export function LaunchChecklist({
       hint: t("Kısa bir açıklama ve telefon ya da adres — müşteri kime baktığını bilsin."),
       done: hasBusinessInfo(business),
       cta: t("Bilgileri gir"),
-      href: "/panel/settings?tab=genel",
+      href: "/panel/settings?tab=general",
     },
     {
       key: "category",

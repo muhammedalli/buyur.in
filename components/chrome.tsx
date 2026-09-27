@@ -21,11 +21,11 @@ function footerNav(t: Translator, locale: UiLocale) {
     {
       title: t("Ürün"),
       links: [
-        { label: t("Platform"), href: `${home}#${sectionId("platform", locale)}` },
-        { label: t("Özellikler"), href: `${home}#${sectionId("features", locale)}` },
-        { label: t("Canlı demo"), href: `${home}#${sectionId("liveMenu", locale)}` },
-        { label: t("Nasıl çalışır"), href: `${home}#${sectionId("how", locale)}` },
-        { label: t("Fiyatlar"), href: `${home}#${sectionId("pricing", locale)}` },
+        { label: t("Platform"), href: `${home}#${sectionId("platform")}` },
+        { label: t("Özellikler"), href: `${home}#${sectionId("features")}` },
+        { label: t("Canlı demo"), href: `${home}#${sectionId("liveMenu")}` },
+        { label: t("Nasıl çalışır"), href: `${home}#${sectionId("how")}` },
+        { label: t("Fiyatlar"), href: `${home}#${sectionId("pricing")}` },
       ],
     },
     {

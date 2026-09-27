@@ -3,6 +3,24 @@
 > Bu dosya `lib/release-notes.ts`'ten üretilir (`bun run changelog`). Elle düzenlemeyin.
 > Kullanıcıya görünen hâli: https://buyur.in/docs/surum-notlari
 
+## [0.11.0] — 2026-09-27
+
+**buyur ekibi hesabınızı ve menünüzü sizin için kurabiliyor**
+
+- **Yeni:** Hesabınızı buyur ekibi sizin yerinize açabilir: planınız ve menü diliniz seçilmiş, menü adresiniz hazır olarak. Size giriş bilgileriniz iletilir; ilk girişte şifrenizi değiştirebilirsiniz.
+- **Yeni:** Mevcut menünüz tek seferde aktarılabilir: başka bir QR menü sitesindeki menünüzün bağlantısı, menü dosyası, fotoğrafı ya da düz metni yeter. Okunamayan fiyatlar tahmin edilmez; ekibimiz kontrol edip tamamlar.
+- **Yeni:** Aktarım sırasında ürünlerinize uygun görseller otomatik aranabilir; istemediğiniz görsel yayına girmeden kaldırılır.
+- **İyileştirme:** Sayfa adreslerindeki bölüm ve sekme adları İngilizceye geçti (ör. buyur.in/#pricing, ayarlarda ?tab=contact). Daha önce kaydettiğiniz ya da paylaştığınız eski bağlantılar aynı yere açılmaya devam ediyor.
+
+Geliştirici notu:
+
+- Yönetim: /admin/businesses/new (NewBusinessWizard) + POST /api/admin/businesses (yeni yetki business.create, yalnızca super_admin; runAuditedCreate, admin'in kendi token'ı — createRule TRUSTED_ADMIN). Kurallar lib/admin-onboarding.ts: OTP yok, telefon engellemez (adminPhone: TR ise biçimlenir, değilse olduğu gibi, boş olabilir), menü tek dilde (languages: []), kurulum alanları dolu açılır (slug/template/main_language/activation.sector). Kayıtlı e-posta PocketBase'de validation_not_unique dönerse giriş e-postası artı adresli takma ada geçer (loginEmailAlias: sahip+slug@alan, gerekirse -2…); ekran giriş adresini gösterir. İşletmeye e-posta gitmez.
+- Menü asistanı sayfanın içinde (MenuAssistant: avatarlı sohbet, harf harf akan yanıt, yazıyor göstergesi, içerikle uzayan mesaj kutusu; animasyonlar globals.css → chat-in/ai-float/ai-orbit/typing-dot, hareket azaltmada kapalı); önizleme (MenuPreviewModal) ve son onay (oluştur / menüye yaz) pencerede. Durum useMenuSession'da. POST /api/admin/menu-assistant (business.content). Kaynaklar: ek dosya (vision), JSON (bizim biçim → modelsiz), bağlantı, düz metin. Bağlantı okuma kademeli (lib/ai/menu-extract.ts → readMenuLink): düz okuma (SSRF korumalı, HTML + JSON-LD/__NEXT_DATA__) → ürün çıkmazsa sayfayı gerçek tarayıcıda açan Jina Reader (r.jina.ai; JINA_API_KEY isteğe bağlı, MENU_LINK_RENDERER=off kapatır; yalnızca herkese açık, güvenlik kontrolünden geçmiş adres gider) → sayfadaki menü görselleri (en çok 4, vision). "www." ile başlayan protokolsüz adres de bağlantı sayılır. Düzenleme komutları işlem listesi olarak alınır, lib/ai/menu-assistant.ts'te deterministik uygulanır. Model: OPENAI_ASSISTANT_MODEL ?? OPENAI_MENU_MODEL. Denetim: ai.menu_assist.
+- Toplu görsel: POST /api/admin/menu-assistant/images (kayda yazmaz). Aktarım: POST /api/admin/businesses/[id]/import — kategori başına bir istek, buildImportPlan ile idempotent, sıralı withRetry(verify), tek denetim kaydı category.import; kayıt yazılamazsa bu istekte açılanlar silinir.
+- Var olan işletmede de: /admin/businesses/[id]/menu → "Asistanla menü aktar" (AdminMenuImport, aynı tam ekran asistan).
+- Taşımalar: parsePages → lib/ai/menu-scan.ts parseMenuPages (i18n panel kapsamına eklendi); toEnglishFoodQuery → lib/ai/image-query.ts. Kit Textarea ref kabul eder (ComponentProps<"textarea">). Şema değişikliği ve göç yok.
+- Adresler İngilizce (lib/url-params.ts, tests/url-params.test.ts): panel ayarları ?tab=general|languages|theme|marquee|amenities|contact|social|panel; landing çapaları her dilde İngilizce (lib/landing-sections.ts, eski /#fiyat → LegacyAnchorRedirect ile /#pricing); yönetim filtreleri status/sort/page/from/to/business/user/actor/action/resource/target/type, sistem ?tab=team, yetkisiz uyarısı ?denied=1. Eski Türkçe adlar readParam ile okunmaya devam eder; yeni bağlantı Türkçe üretilmez (CLAUDE.md §9).
+
 ## [0.10.0] — 2026-09-27
 
 **Panele yeni görünüm: tam boy yan menü ve sade kartlar**

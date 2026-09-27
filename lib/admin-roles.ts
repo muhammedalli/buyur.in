@@ -21,6 +21,7 @@ export const ADMIN_ACTIONS = [
   "logs.view",
   "ai.view",
   "business.view",
+  "business.create",
   "business.note",
   "business.password_reset",
   "business.trial_extend",
