@@ -9,6 +9,7 @@ import { isSubscriptionActive } from "@/lib/entitlements";
 import { isSuspended } from "@/lib/business-suspension";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { menuUrl } from "@/lib/site";
+import { hasActiveWebsite } from "@/lib/storefront";
 import { SITE_NAME, shareImages } from "@/lib/seo";
 import type { Business, Category, Popup, Product } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const business = await getBusiness(slug);
   if (!business) return {};
 
+  // Kök şablon (" | buyur") eklenmesin: başlık zaten markayı taşıyor.
   const title = `${business.name} — Menü | buyur`;
   const description = business.description || `${business.name} dijital menüsü — güncel fiyatlar, kategoriler ve ürünler.`;
   // Kapak yoksa markalı paylaşım görseli: WhatsApp'ta paylaşılan menü linki
@@ -43,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   // Not: canonical burada verilemez — layout metadata'sı alt sayfalara
   // (ürün, kategori, sepet) da miras kalır ve hepsini menü köküne eşitler.
   return {
-    title,
+    title: { absolute: title },
     description,
     openGraph: {
       title,
@@ -127,6 +129,7 @@ export default async function MenuLayout({
         basePath={basePath}
         initialCategories={categories}
         initialProducts={products}
+        hasWebsite={hasActiveWebsite(business)}
       >
         {children}
       </MenuProvider>

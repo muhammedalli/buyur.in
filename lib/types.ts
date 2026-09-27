@@ -123,8 +123,32 @@ export interface Business {
   deleted_at?: string;
   /** Silme gerekçesi — yalnızca yönetim görür. */
   deletion_reason?: string;
+  /** Kayan yazı menüde, sitede ve karşılama sayfasında gösterilsin mi (lib/marquee.ts). */
+  marquee_enabled?: boolean;
+  /** Kayan yazı mesajları — her satır bir mesaj, ana dilde. Çevirileri
+   *  `translations[dil].marquee_text` kutusunda. */
+  marquee_text?: string;
+  /** Sahibi web sitesini yayından kaldırdıysa true; boşsa plan izin verdiği
+   *  sürece site yayındadır (lib/storefront.ts). */
+  site_disabled?: boolean;
+  /** Panelin arayüz dili (lib/ui-i18n.ts). Boşsa Türkçe. */
+  ui_locale?: string;
+  /** Panel kılavuzunun durumu (lib/guide.ts). */
+  guide?: BusinessGuide;
   created: string;
   updated: string;
+}
+
+/** Panel kılavuzunun (adım adım tanıtım) işletmeye bağlı durumu. Tarayıcıya
+ *  değil kayda yazılır: aynı hesap başka cihazda açılınca kılavuz tekrar
+ *  kendiliğinden başlamaz. */
+export interface BusinessGuide {
+  /** Kılavuz açık mı. Boşsa açık kabul edilir (Ayarlar → Kılavuz). */
+  enabled?: boolean;
+  started_at?: string;
+  completed_at?: string;
+  /** Kullanıcı kılavuzu yarıda kapattı; otomatik açılış bir daha denenmez. */
+  dismissed_at?: string;
 }
 
 /** "Menünü yayına hazırla" hunisinin kalıcı işaretleri. Aktivasyon metriği:
@@ -136,9 +160,6 @@ export interface BusinessActivation {
   /** Panel kontrol listesinin tamamlandığı an. */
   checklist_completed_at?: string;
 }
-
-/** @deprecated Sözlük lib/analytics/events.ts'e taşındı; eski adı kırmamak için alias. */
-export type MenuEventType = AnalyticsEventType;
 
 export interface MenuEvent {
   id: string;
@@ -358,6 +379,31 @@ export interface AdminNote {
   admin_email: string;
   body: string;
   created: string;
+}
+
+/** Cari hesap hareketinin türü (lib/payments.ts):
+ *  charge   = borç kaydı (işletmeye tahakkuk eden tutar, ör. plan ücreti)
+ *  incoming = alınan ödeme (işletmeden gelen para)
+ *  outgoing = verilen ödeme (işletmeye giden para, ör. iade) */
+export type PaymentType = "charge" | "incoming" | "outgoing";
+export type PaymentStatus = "completed" | "pending" | "cancelled";
+export type PaymentMethod = "bank_transfer" | "credit_card" | "cash" | "online" | "other";
+
+/** `buyur_payments` kaydı. Yalnızca yönetim paneli yazar (app/api/admin/payments).
+ *  Tutar kuruş cinsinden tamsayıdır: toplamlar yuvarlama hatası taşımaz. */
+export interface Payment {
+  id: string;
+  business: string;
+  type: PaymentType;
+  amount: number;
+  /** İşlem günü; PocketBase'de "YYYY-MM-DD 12:00:00.000Z" (saat dilimi kaymasın). */
+  date: string;
+  method?: PaymentMethod | "";
+  status: PaymentStatus;
+  note?: string;
+  created: string;
+  updated: string;
+  expand?: { business?: Pick<Business, "id" | "name" | "slug"> };
 }
 
 /** Denetim kaydında işlemi kimin yaptığı. */

@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatPrice } from "@/lib/format";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
+import { isRTLLocale } from "@/lib/i18n";
+import { ArrowRightIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { useSiteLocale } from "@/components/site/site-locale";
+import { useMenuHref } from "@/components/site/storefront-links";
 import { typewriterPhrases, type MenuHighlightGroup } from "@/lib/site-content";
 import type { Business } from "@/lib/types";
 
@@ -72,15 +74,18 @@ export function Typewriter({ business, groups }: { business: Business; groups: M
   return (
     <p className="font-mono text-sm uppercase tracking-[0.25em] text-[var(--brand-on)]" aria-live="off">
       {reduced ? phrases[0] : text}
-      {!reduced && <span className="ml-0.5 animate-pulse">|</span>}
+      {!reduced && <span className="ms-0.5 animate-pulse">|</span>}
     </p>
   );
 }
 
 /** Menü slider'ı: kategori kategori yatay kaydırma. Mevcut menü ürünlerini
  *  kullanır — ikinci bir ürün yönetimi yok. */
-export function MenuSlider({ groups }: { groups: MenuHighlightGroup[] }) {
-  const { tf } = useSiteLocale();
+export function MenuSlider({ groups, slug }: { groups: MenuHighlightGroup[]; slug: string }) {
+  const { t, tf, locale } = useSiteLocale();
+  // Oklar görsel yöne göre kaydırır; sağdan sola dilde "geri" sağdaki oktur.
+  const rtl = isRTLLocale(locale);
+  const menuHref = useMenuHref(slug);
   const [active, setActive] = useState(0);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
@@ -112,7 +117,7 @@ export function MenuSlider({ groups }: { groups: MenuHighlightGroup[] }) {
       <div className="relative">
         <button
           type="button"
-          aria-label="Önceki ürünler"
+          aria-label={rtl ? t("scrollMore") : t("back")}
           onClick={() => trackRef.current?.scrollBy({ left: -280, behavior: "smooth" })}
           className="absolute left-0 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 rounded-full border border-line bg-paper p-2 text-ink-soft shadow-[0_10px_24px_-14px_rgba(35,24,18,0.5)] transition-colors hover:border-[var(--brand)] hover:text-ink sm:flex"
         >
@@ -120,7 +125,7 @@ export function MenuSlider({ groups }: { groups: MenuHighlightGroup[] }) {
         </button>
         <button
           type="button"
-          aria-label="Sonraki ürünler"
+          aria-label={rtl ? t("back") : t("scrollMore")}
           onClick={() => trackRef.current?.scrollBy({ left: 280, behavior: "smooth" })}
           className="absolute right-0 top-1/2 z-10 hidden translate-x-1/2 -translate-y-1/2 rounded-full border border-line bg-paper p-2 text-ink-soft shadow-[0_10px_24px_-14px_rgba(35,24,18,0.5)] transition-colors hover:border-[var(--brand)] hover:text-ink sm:flex"
         >
@@ -131,10 +136,11 @@ export function MenuSlider({ groups }: { groups: MenuHighlightGroup[] }) {
           ref={trackRef}
           className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {group.products.map((product) => (
+          {group.products.map((product, index) => (
             <article
-              key={product.id}
-              className="w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-paper"
+              key={`${group.category.id}-${product.id}`}
+              style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
+              className="slide-in w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-paper"
             >
               {product.images?.[0] && (
                 <div className="aspect-[4/3] overflow-hidden bg-crema">
@@ -159,6 +165,16 @@ export function MenuSlider({ groups }: { groups: MenuHighlightGroup[] }) {
             </article>
           ))}
         </div>
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <a
+          href={menuHref}
+          className="group inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-wider text-[var(--brand-text)] transition-opacity hover:opacity-75"
+        >
+          {t("openDigitalMenu")}
+          <ArrowRightIcon size={14} className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+        </a>
       </div>
     </div>
   );

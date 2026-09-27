@@ -33,6 +33,8 @@ export const ADMIN_ACTIONS = [
   "business.email_change",
   "business.delete",
   "plans.edit",
+  "payments.view",
+  "payments.edit",
   "settings.edit",
   "admins.manage",
   "system.view",
@@ -45,7 +47,9 @@ export type AdminAction = (typeof ADMIN_ACTIONS)[number];
  *  Deneme uzatma ve AI kotası sıfırlama destek görüşmesinde anında
  *  gerekebildiği için destekte kalır. İşletme adına içerik/bilgi düzenleme
  *  ve giriş e-postası değiştirme de super_admin'de: müşterinin canlı
- *  menüsüne ve hesabına dokunur. AI kullanımı salt okunurdur, destekte. */
+ *  menüsüne ve hesabına dokunur. AI kullanımı salt okunurdur, destekte.
+ *  Ödemeleri destek görür ("ödemem ulaştı mı?" sorusuna cevap verebilsin) ama
+ *  kayıt ekleyemez/değiştiremez: para kaydı gelir kararıdır. */
 const SUPPORT_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   "logs.view",
   "ai.view",
@@ -54,6 +58,7 @@ const SUPPORT_ACTIONS: ReadonlySet<AdminAction> = new Set<AdminAction>([
   "business.password_reset",
   "business.trial_extend",
   "business.ai_quota_reset",
+  "payments.view",
 ]);
 
 export function isAdminRole(value: unknown): value is AdminRole {

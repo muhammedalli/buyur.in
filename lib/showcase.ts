@@ -2,6 +2,7 @@ import { createServerPB } from "@/lib/pocketbase";
 import { activeLocales } from "@/lib/i18n";
 import type { Business } from "@/lib/types";
 import { isSuspended } from "@/lib/business-suspension";
+import { msg } from "@/lib/ui-i18n";
 
 // Landing'deki sosyal kanıt katmanı. Kural: yalnızca doğrulanabilir bilgi.
 //   · Kart verisi (ad, logo, kategori/ürün/dil sayısı) canlı menüden okunur.
@@ -16,7 +17,8 @@ export interface ShowcaseEntry {
   slug: string;
   kind: ShowcaseKind;
   city?: string;
-  /** Menüde kullanılan özellikler — kısa, gerçek. */
+  /** Menüde kullanılan özellikler — kısa, gerçek. Türkçe kaynak metin (msg);
+   *  landing ekrana basarken arayüz diline çevirir. */
   highlight: string;
   quote?: { text: string; author: string };
 }
@@ -30,7 +32,7 @@ export const SHOWCASE: ShowcaseEntry[] = [
   {
     slug: DEMO_SLUG,
     kind: "demo",
-    highlight: "Fotoğraflı ürünler · Türkçe/İngilizce dil seçimi · sepet",
+    highlight: msg("Fotoğraflı ürünler · Türkçe/İngilizce dil seçimi · sepet"),
   },
 ];
 

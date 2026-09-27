@@ -97,7 +97,7 @@ export default function ProductDetailPage() {
       <div className="space-y-4 px-5 pt-5">
         <div className="flex items-start justify-between gap-3">
           <h1 className="font-display text-2xl font-bold leading-tight text-ink">{name}</h1>
-          <div className="shrink-0 text-right">
+          <div className="shrink-0 text-end">
             {hasDiscount && <p className="font-sans text-sm text-ink-soft line-through">{formatPrice(product.price)}</p>}
             <p className="font-display text-2xl font-bold text-[var(--brand-text)]">
               {formatPrice(finalPrice)}

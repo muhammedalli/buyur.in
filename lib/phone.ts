@@ -6,6 +6,8 @@
 // "0532…", "532…", "90532…" ya da "+90 (532)…" yazsa da aynı numara aynı
 // metin olur ve tel:/wa.me bağlantıları ülke kodu eksik diye kırılmaz.
 
+import { msg } from "@/lib/ui-i18n";
+
 /** Ülke kodu ve baştaki 0 olmadan 10 hane. İlk hane: 5 (mobil), 2–4 (sabit
  *  hat), 8 (850 gibi ulusal numaralar). */
 const TR_NATIONAL_RE = /^[2-58]\d{9}$/;
@@ -41,7 +43,7 @@ export function formatTurkishPhone(value: string): string | null {
 
 export type PhoneCheck = { ok: true; value: string } | { ok: false; error: string };
 
-export const PHONE_ERROR_TR = "Geçerli bir telefon numarası gir (ör. 0532 123 45 67).";
+export const PHONE_ERROR_TR = msg("Geçerli bir telefon numarası gir (ör. 0532 123 45 67).");
 
 /** Hesap sahibinin kayıt numarası: Türkiye numarası zorunlu. */
 export function checkSignupPhone(value: unknown): PhoneCheck {
@@ -62,7 +64,7 @@ export function checkBusinessPhone(value: string): PhoneCheck {
   const compact = trimmed.replace(/[\s().-]/g, "");
   if (INTERNATIONAL_RE.test(compact)) return { ok: true, value: trimmed };
 
-  return { ok: false, error: "Geçerli bir telefon numarası gir (ör. 0532 123 45 67 ya da +44 20 7946 0958)." };
+  return { ok: false, error: msg("Geçerli bir telefon numarası gir (ör. 0532 123 45 67 ya da +44 20 7946 0958).") };
 }
 
 /** tel: bağlantısı için boşluksuz biçim. */

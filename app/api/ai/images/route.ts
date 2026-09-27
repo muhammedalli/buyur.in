@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { guardAiRequest, isGuardFailure, MENU_MODEL, openaiClient } from "@/lib/ai/guard";
 import { recordAiAction } from "@/lib/system-audit";
 import { buildImageQuery, configuredProviders, pickAutoImage, searchProductImages } from "@/lib/ai/images";
+import { msg } from "@/lib/ui-i18n";
 
 const MAX_QUERY_LENGTH = 150;
 // Panel seçicisi çeşitlilik ister; otomatik akış varsayılan 8 ile yetinir.
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçersiz istek.") }, { status: 400 });
   }
 
   const guard = await guardAiRequest(req.headers.get("authorization"), body.businessId, "ai_menu_import");
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
   const category = typeof body.category === "string" ? body.category.trim().slice(0, MAX_QUERY_LENGTH) : "";
 
   if (name === "" && category === "") {
-    return NextResponse.json({ error: "Arama için ürün adı gerekli." }, { status: 400 });
+    return NextResponse.json({ error: msg("Arama için ürün adı gerekli.") }, { status: 400 });
   }
 
   const requested = typeof body.limit === "number" && Number.isFinite(body.limit) ? Math.floor(body.limit) : DEFAULT_LIMIT;

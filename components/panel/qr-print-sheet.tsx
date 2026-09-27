@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import QRCode from "qrcode";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Toplu QR baskı sayfası: A4'e 2×3 masa kartı. Kartlar body'nin doğrudan
 // çocuğu olarak basılır (globals.css → body.qr-printing), tarayıcının
@@ -24,6 +25,7 @@ export function QrPrintSheet({
   items: PrintableQr[];
   onDone: () => void;
 }) {
+  const { t } = useUiLocale();
   const [svgs, setSvgs] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
@@ -103,7 +105,7 @@ export function QrPrintSheet({
               dangerouslySetInnerHTML={{ __html: svgs[item.id] ?? "" }}
             />
             <p style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "19pt", lineHeight: 1 }}>{item.name}</p>
-            <p style={{ fontSize: "8.5pt", color: "#5c4a3d" }}>Menüyü görmek için telefon kamerasıyla okutun</p>
+            <p style={{ fontSize: "8.5pt", color: "#5c4a3d" }}>{t("Menüyü görmek için telefon kamerasıyla okutun")}</p>
           </div>
         ))}
       </div>

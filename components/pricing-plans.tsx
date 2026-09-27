@@ -6,14 +6,14 @@ import { whatsappLink } from "@/lib/site";
 import { CheckCircleIcon, WhatsappIcon } from "@/components/icons";
 import { MONTHS_IN_YEAR, formatTL, yearlyDiscountPercent } from "@/lib/pricing";
 import { PLAN_ORDER } from "@/lib/entitlements";
-import { PLAN_SEEDS } from "@/scripts/plan-catalog.mjs";
+import { siteClientTranslator } from "@/lib/ui-messages/site-client";
+import type { Translator, UiLocale } from "@/lib/ui-i18n";
 import type { Plan } from "@/lib/types";
 
-// Fiyat kartlarının içeriği (ad, açıklama, özellikler) veritabanına yazılan
-// paket kataloğuyla AYNI kaynaktan, rakamlar ilan fiyatının tek kaynağından
-// (lib/pricing.ts) geliyor. Canlı `buyur_plans` kaydı bayat kalsa bile (göç
-// çalıştırılmamış olsa bile) sitede çelişkili bir paket metni görünmez —
-// toplantıdaki "30 ürün / sınırsız ürün" çelişkisi tam olarak buradan doğmuştu.
+// Fiyat kartları. İçerik (ad, açıklama, özellikler) sunucuda arayüz dilinde
+// hazırlanıp gelir (components/pricing.tsx → planTexts: canlı `buyur_plans`,
+// yoksa tohum katalog); rakamlar ilan fiyatının tek kaynağından (lib/pricing.ts).
+// Burada yalnızca dönem seçimi ve kartın sabit metinleri var.
 
 interface PlanCard {
   key: Plan;
@@ -28,7 +28,7 @@ interface PlanCard {
   badge?: string;
 }
 
-/** Sunucudan gelen canlı `buyur_plans` metinleri; alan eksikse tohum katalog. */
+/** Sunucudan gelen, arayüz diline çevrilmiş paket metinleri. */
 export interface PlanText {
   key: Plan;
   name?: string;
@@ -40,38 +40,47 @@ export interface PlanText {
   yearlyMonthly?: number | null;
 }
 
-function buildCards(texts: PlanText[]): PlanCard[] {
+function buildCards(texts: PlanText[], t: Translator): PlanCard[] {
   return PLAN_ORDER.map((key) => {
-  const seed = PLAN_SEEDS.find((entry) => entry.key === key);
-  const live = texts.find((entry) => entry.key === key);
-  return {
-    key,
-    name: live?.name || seed?.name || key,
-    desc: live?.description ?? seed?.description ?? "",
-    features: live?.features && live.features.length > 0 ? live.features : (seed?.features ?? []),
-    // Kodda fiyat yok: ilan fiyatı `buyur_plans`'tan gelir. Ücretsiz plan tanım
-    // gereği 0₺; ücretli planda kayıt okunamadıysa null kalır.
-    monthly: key === "freemium" ? 0 : (live?.monthly ?? null),
-    yearlyMonthly: key === "freemium" ? 0 : (live?.yearlyMonthly ?? null),
-    trialMonths: live?.trial_months ?? seed?.trial_months ?? 0,
-    // "En çok tercih edilen" vurgusu bilinçli olarak orta katmana sabit.
-    highlight: key === "premium",
-    badge: key === "premium" ? "En çok tercih edilen" : undefined,
-  };
+    const live = texts.find((entry) => entry.key === key);
+    return {
+      key,
+      name: live?.name || key,
+      desc: live?.description ?? "",
+      features: live?.features ?? [],
+      // Kodda fiyat yok: ilan fiyatı `buyur_plans`'tan gelir. Ücretsiz plan tanım
+      // gereği 0₺; ücretli planda kayıt okunamadıysa null kalır.
+      monthly: key === "freemium" ? 0 : (live?.monthly ?? null),
+      yearlyMonthly: key === "freemium" ? 0 : (live?.yearlyMonthly ?? null),
+      trialMonths: live?.trial_months ?? 0,
+      // "En çok tercih edilen" vurgusu bilinçli olarak orta katmana sabit.
+      highlight: key === "premium",
+      badge: key === "premium" ? t("En çok tercih edilen") : undefined,
+    };
   });
 }
 
 type Billing = "monthly" | "yearly";
 
-function BillingToggle({ billing, onChange, discount }: { billing: Billing; onChange: (b: Billing) => void; discount: number }) {
+function BillingToggle({
+  billing,
+  onChange,
+  discount,
+  t,
+}: {
+  billing: Billing;
+  onChange: (b: Billing) => void;
+  discount: number;
+  t: Translator;
+}) {
   const options: { value: Billing; label: string }[] = [
-    { value: "monthly", label: "Aylık" },
-    { value: "yearly", label: "Yıllık" },
+    { value: "monthly", label: t("Aylık") },
+    { value: "yearly", label: t("Yıllık") },
   ];
 
   return (
     <div className="mt-10 flex justify-center">
-      <div className="inline-flex items-center gap-1 rounded-full border border-line bg-crema/60 p-1">
+      <div className="relative inline-flex items-center gap-1 rounded-full border border-line bg-crema/60 p-1">
         {options.map((option) => {
           const active = billing === option.value;
           return (
@@ -104,21 +113,35 @@ function BillingToggle({ billing, onChange, discount }: { billing: Billing; onCh
 
 /** Yıllıkta büyük rakam aylık karşılıktır; peşin tutar hemen altında AYNI
  *  okunurlukta yazılır ("Aylık karşılığı 199,20₺ — yıllık 2.390,40₺ peşin"). */
-function PlanPrice({ card, billing, freemiumViews }: { card: PlanCard; billing: Billing; freemiumViews: string }) {
+function PlanPrice({
+  card,
+  billing,
+  freemiumViews,
+  t,
+}: {
+  card: PlanCard;
+  billing: Billing;
+  freemiumViews: string;
+  t: Translator;
+}) {
   const soft = card.highlight ? "text-paper/60" : "text-ink-soft";
   const eyebrow = `mt-4 font-mono text-[10px] uppercase tracking-wider ${soft}`;
 
   if (card.monthly === 0) {
     return (
       <>
-        <p className={eyebrow}>{card.trialMonths > 0 ? `${card.trialMonths} ay ücretsiz` : "Ücretsiz"}</p>
+        <p className={eyebrow}>
+          {card.trialMonths > 0 ? t("{count} ay ücretsiz", { count: card.trialMonths }) : t("Ücretsiz")}
+        </p>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
           <span className="font-display text-4xl font-extrabold lg:text-5xl">0₺</span>
         </div>
         <p className="mt-2 text-sm font-semibold">
-          {card.trialMonths > 0 ? `${card.trialMonths} ay veya ${freemiumViews} görüntülenme` : "Süre sınırı yok"}
+          {card.trialMonths > 0
+            ? t("{count} ay veya {views} görüntülenme", { count: card.trialMonths, views: freemiumViews })
+            : t("Süre sınırı yok")}
         </p>
-        <p className={`text-xs ${soft}`}>Kredi kartı istenmez</p>
+        <p className={`text-xs ${soft}`}>{t("Kredi kartı istenmez")}</p>
       </>
     );
   }
@@ -127,60 +150,65 @@ function PlanPrice({ card, billing, freemiumViews }: { card: PlanCard; billing: 
   if (card.monthly === null || card.yearlyMonthly === null) {
     return (
       <>
-        <p className={eyebrow}>Fiyat</p>
+        <p className={eyebrow}>{t("Fiyat")}</p>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-          <span className="font-display text-2xl font-extrabold lg:text-3xl">Bize yazın</span>
+          <span className="font-display text-2xl font-extrabold lg:text-3xl">{t("Bize yazın")}</span>
         </div>
-        <p className="mt-2 text-sm font-semibold">Güncel fiyat için WhatsApp&apos;tan ulaşın</p>
+        <p className="mt-2 text-sm font-semibold">{t("Güncel fiyat için WhatsApp'tan ulaşın")}</p>
       </>
     );
   }
 
   const saving = Math.round((1 - card.yearlyMonthly / card.monthly) * 100);
 
+  // key={billing}: dönem değişince rakam kısa bir geçişle yeniden girer.
   if (billing === "yearly") {
     return (
-      <>
-        <p className={eyebrow}>Aylık karşılığı</p>
+      <div key="yearly" className="billing-swap">
+        <p className={eyebrow}>{t("Aylık karşılığı")}</p>
         <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
           <span className="font-display text-4xl font-extrabold lg:text-5xl">{formatTL(card.yearlyMonthly)}</span>
-          <span className={`font-mono text-xs uppercase tracking-wider ${soft}`}>/ ay</span>
+          <span className={`font-mono text-xs uppercase tracking-wider ${soft}`}>{t("/ ay")}</span>
         </div>
-        <p className="mt-2 text-sm font-semibold">Yıllık {formatTL(card.yearlyMonthly * MONTHS_IN_YEAR)} peşin</p>
-        <p className={`text-xs ${soft}`}>{saving > 0 ? `Aylık ödemeye göre %${saving} tasarruf` : "Tek seferde tahsil edilir"}</p>
-      </>
+        <p className="mt-2 text-sm font-semibold">
+          {t("Yıllık {amount} peşin", { amount: formatTL(card.yearlyMonthly * MONTHS_IN_YEAR) })}
+        </p>
+        <p className={`text-xs ${soft}`}>
+          {saving > 0 ? t("Aylık ödemeye göre %{saving} tasarruf", { saving }) : t("Tek seferde tahsil edilir")}
+        </p>
+      </div>
     );
   }
 
   return (
-    <>
-      <p className={eyebrow}>Aylık ödeme</p>
+    <div key="monthly" className="billing-swap">
+      <p className={eyebrow}>{t("Aylık ödeme")}</p>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
         <span className="font-display text-4xl font-extrabold lg:text-5xl">{formatTL(card.monthly)}</span>
-        <span className={`font-mono text-xs uppercase tracking-wider ${soft}`}>/ ay</span>
+        <span className={`font-mono text-xs uppercase tracking-wider ${soft}`}>{t("/ ay")}</span>
       </div>
-      <p className="mt-2 text-sm font-semibold">Her ay faturalanır · taahhüt yok</p>
-      <p className={`text-xs ${soft}`}>Yıllık ödersen ayda {formatTL(card.yearlyMonthly)}</p>
-    </>
+      <p className="mt-2 text-sm font-semibold">{t("Her ay faturalanır · taahhüt yok")}</p>
+      <p className={`text-xs ${soft}`}>{t("Yıllık ödersen ayda {amount}", { amount: formatTL(card.yearlyMonthly) })}</p>
+    </div>
   );
 }
 
 /** Satın alma yolları: Freemium ve Premium kayıt akışından başlar (WhatsApp'a
  *  bağımlı değil); Elite bir demo görüşmesiyle başlar. */
-function PlanCta({ card, billing }: { card: PlanCard; billing: Billing }) {
+function PlanCta({ card, billing, t }: { card: PlanCard; billing: Billing; t: Translator }) {
   const style = card.highlight
     ? "bg-paprika text-paper hover:bg-paprika-deep hover:shadow-[0_16px_34px_-12px_rgba(232,73,31,0.9)]"
     : "border border-ink text-ink hover:bg-ink hover:text-paper";
-  const className = `shine-on-hover relative mt-8 flex items-center justify-center gap-2 overflow-hidden rounded-full py-3.5 text-center font-mono text-[13px] uppercase tracking-wider transition-all duration-300 hover:-translate-y-0.5 ${style}`;
+  const className = `shine-on-hover relative mt-8 flex items-center justify-center gap-2 overflow-hidden rounded-md py-3.5 text-center font-mono text-[13px] uppercase tracking-wider transition-all duration-300 hover:-translate-y-0.5 ${style}`;
   const note = `mt-2.5 text-center text-[11px] ${card.highlight ? "text-paper/50" : "text-ink-soft/80"}`;
 
   if (card.key === "freemium") {
     return (
       <>
         <Link href="/panel/register" data-track="plan_cta" data-track-plan="freemium" className={className}>
-          Ücretsiz oluştur
+          {t("Ücretsiz oluştur")}
         </Link>
-        <p className={note}>Menünü kur, QR&apos;ını yayına al</p>
+        <p className={note}>{t("Menünü kur, QR'ını yayına al")}</p>
       </>
     );
   }
@@ -195,9 +223,9 @@ function PlanCta({ card, billing }: { card: PlanCard; billing: Billing }) {
           data-track-billing={billing}
           className={className}
         >
-          Premium&apos;u başlat
+          {t("Premium'u başlat")}
         </Link>
-        <p className={note}>Hesabını aç, ödemeyi panelden başlat</p>
+        <p className={note}>{t("Hesabını aç, ödemeyi panelden başlat")}</p>
       </>
     );
   }
@@ -205,36 +233,44 @@ function PlanCta({ card, billing }: { card: PlanCard; billing: Billing }) {
   return (
     <>
       <a
-        href={whatsappLink("Merhaba! buyur Elite paketi için demo görmek istiyorum.")}
+        href={whatsappLink(t("Merhaba! buyur Elite paketi için demo görmek istiyorum."))}
         target="_blank"
         rel="noopener noreferrer"
         data-track="plan_cta"
         data-track-plan="elite"
         className={className}
       >
-        Elite demo al
+        {t("Elite demo al")}
       </a>
-      <p className={note}>Demo görüşmesi WhatsApp&apos;tan planlanır</p>
+      <p className={note}>{t("Demo görüşmesi WhatsApp'tan planlanır")}</p>
     </>
   );
 }
 
-export function PlanGrid({ texts = [], freemiumViews = "5.000" }: { texts?: PlanText[]; freemiumViews?: string }) {
-  const CARDS = buildCards(texts);
+export function PlanGrid({
+  texts = [],
+  freemiumViews = "5.000",
+  locale = "tr",
+}: {
+  texts?: PlanText[];
+  freemiumViews?: string;
+  locale?: UiLocale;
+}) {
+  const t = siteClientTranslator(locale);
+  const CARDS = buildCards(texts, t);
   // Varsayılan yıllık: ilan edilen fiyat yıllık kurguya göre belirlendi.
   const [billing, setBilling] = useState<Billing>("yearly");
+  const premium = CARDS.find((card) => card.key === "premium");
 
   return (
     <>
       <BillingToggle
         billing={billing}
         onChange={setBilling}
+        t={t}
         discount={
-          CARDS.find((card) => card.key === "premium" && card.monthly && card.yearlyMonthly !== null)
-            ? yearlyDiscountPercent({
-                monthly: CARDS.find((card) => card.key === "premium")!.monthly!,
-                yearlyMonthly: CARDS.find((card) => card.key === "premium")!.yearlyMonthly!,
-              })
+          premium?.monthly && premium.yearlyMonthly !== null
+            ? yearlyDiscountPercent({ monthly: premium.monthly, yearlyMonthly: premium.yearlyMonthly })
             : 0
         }
       />
@@ -245,7 +281,7 @@ export function PlanGrid({ texts = [], freemiumViews = "5.000" }: { texts?: Plan
             key={card.key}
             data-reveal
             style={{ transitionDelay: `${i * 90}ms` }}
-            className={`relative flex flex-col rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-1.5 ${
+            className={`plan-card relative flex flex-col rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-1.5 ${
               card.highlight
                 ? "border-paprika bg-ink text-paper shadow-[0_24px_50px_-20px_rgba(232,73,31,0.4)] hover:shadow-[0_34px_60px_-20px_rgba(232,73,31,0.55)] md:-mt-4"
                 : "border-line bg-paper hover:border-ink/30 hover:shadow-[0_24px_50px_-28px_rgba(35,24,18,0.5)]"
@@ -259,7 +295,7 @@ export function PlanGrid({ texts = [], freemiumViews = "5.000" }: { texts?: Plan
 
             <h3 className="font-display text-xl font-bold">{card.name}</h3>
             <p className={`mt-1 text-sm ${card.highlight ? "text-paper/60" : "text-ink-soft"}`}>{card.desc}</p>
-            <PlanPrice card={card} billing={billing} freemiumViews={freemiumViews} />
+            <PlanPrice card={card} billing={billing} freemiumViews={freemiumViews} t={t} />
 
             <ul className="mt-6 flex-1 space-y-2.5 border-t border-current/10 pt-6 text-sm">
               {card.features.map((f) => (
@@ -272,22 +308,22 @@ export function PlanGrid({ texts = [], freemiumViews = "5.000" }: { texts?: Plan
               ))}
             </ul>
 
-            <PlanCta card={card} billing={billing} />
+            <PlanCta card={card} billing={billing} t={t} />
           </div>
         ))}
       </div>
 
       <p className="mt-8 text-center text-sm text-ink-soft">
-        Karar vermeden önce sormak mı istiyorsunuz?{" "}
+        {t("Karar vermeden önce sormak mı istiyorsunuz?")}{" "}
         <a
-          href={whatsappLink("Merhaba, buyur paketleri hakkında bir sorum var:")}
+          href={whatsappLink(t("Merhaba, buyur paketleri hakkında bir sorum var:"))}
           target="_blank"
           rel="noopener noreferrer"
           data-track="whatsapp_lead"
           data-track-location="pricing"
           className="inline-flex items-center gap-1 font-medium text-ink underline decoration-line underline-offset-4 transition-colors hover:text-paprika"
         >
-          <WhatsappIcon size={13} /> WhatsApp&apos;tan yazın
+          <WhatsappIcon size={13} /> {t("WhatsApp'tan yazın")}
         </a>
       </p>
     </>

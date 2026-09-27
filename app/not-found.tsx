@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/chrome";
+import { Logo } from "@/components/logo";
 
 export default function NotFound() {
   return (

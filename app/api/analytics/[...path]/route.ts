@@ -6,6 +6,7 @@ import { businessTimezone } from "@/lib/analytics/time";
 import { isFeatureAvailable } from "@/lib/entitlements";
 import { createTimer } from "@/lib/analytics/timing";
 import { pbRequestCount } from "@/lib/pocketbase-server";
+import { msg } from "@/lib/ui-i18n";
 
 // Analytics okuma uçları. Ortak sözleşme (docs/analytics-architecture.md §7):
 //   GET /api/analytics/<uç>?preset=last_30&compare=previous_period
@@ -58,13 +59,13 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
         : ANALYTICS_ENDPOINTS[endpoint];
 
   if (!handler) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return NextResponse.json({ error: msg("not_found") }, { status: 404 });
   }
 
   const params = req.nextUrl.searchParams;
   const requestedBusiness = params.get("business");
   if (requestedBusiness && !PB_ID_RE.test(requestedBusiness)) {
-    return NextResponse.json({ error: "invalid_business" }, { status: 400 });
+    return NextResponse.json({ error: msg("invalid_business") }, { status: 400 });
   }
 
   const timer = createTimer();
@@ -131,10 +132,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ path: strin
       return NextResponse.json({ error: err.code }, { status: err.status });
     }
     if (err instanceof Error && err.message === "invalid_product") {
-      return NextResponse.json({ error: "invalid_product" }, { status: 400 });
+      return NextResponse.json({ error: msg("invalid_product") }, { status: 400 });
     }
     // İç hatanın detayı istemciye sızmaz; sunucu loguna düşer.
     console.error(`[analytics/${endpoint}] hata:`, err);
-    return NextResponse.json({ error: "analytics_unavailable" }, { status: 500 });
+    return NextResponse.json({ error: msg("analytics_unavailable") }, { status: 500 });
   }
 }

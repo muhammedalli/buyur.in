@@ -9,6 +9,18 @@
         "dev"
       ],
       "port": 3000
+    },
+    {
+      "name": "verify",
+      "runtimeExecutable": "/private/tmp/claude-501/-Users-muhammedaaslan-Desktop-harbi-buyur/907fe5f9-393f-472b-9337-7c5c466c2e6f/scratchpad/run-app.sh",
+      "runtimeArgs": [],
+      "port": 3100
+    },
+    {
+      "name": "verify-3200",
+      "runtimeExecutable": "/private/tmp/claude-501/-Users-muhammedaaslan-Desktop-harbi-buyur/11ad8f59-74d8-42ba-af55-f5e0112ae4cf/scratchpad/run-app.sh",
+      "runtimeArgs": [],
+      "port": 3200
     }
   ]
 }

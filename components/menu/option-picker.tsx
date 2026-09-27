@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/format";
 import type { Product, ProductOption } from "@/lib/types";
 import { useMenu } from "@/components/menu/menu-provider";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { useAnimatedClose } from "@/lib/use-animated-close";
 
 export function OptionPicker({
   product,
@@ -19,6 +20,7 @@ export function OptionPicker({
   onClose: () => void;
 }) {
   const { t, tf } = useMenu();
+  const { closing, close } = useAnimatedClose(onClose);
   // Açıkken arkadaki menü kaymasın.
   useBodyScrollLock(true);
   const groups = useMemo(() => {
@@ -45,9 +47,12 @@ export function OptionPicker({
   const unitPrice = basePrice + selections.reduce((sum, s) => sum + s.priceDelta, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-5" onClick={onClose}>
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-5 ${closing ? "fade-out" : "fade-in"}`}
+      onClick={close}
+    >
       <div
-        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-paper p-6 sm:rounded-2xl"
+        className={`max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-paper p-6 sm:rounded-2xl ${closing ? "sheet-down" : "sheet-up"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="font-display text-xl font-bold">{tf(product, "name")}</h2>

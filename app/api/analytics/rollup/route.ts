@@ -4,6 +4,7 @@ import { businessTimezone, dayKey, shiftDay } from "@/lib/analytics/time";
 import { rollupDay } from "@/lib/analytics/rollup";
 import { pruneEvents, pruneSessions, retentionDaysFor } from "@/lib/analytics/retention";
 import type { Business, PlanRecord } from "@/lib/types";
+import { msg } from "@/lib/ui-i18n";
 
 // Toplu rollup: dışarıdan bir zamanlayıcı (cron) tetikler. Panel okuma anında
 // zaten tembel rollup yapıyor; bu uç, hiç ziyaret edilmeyen panellerin de
@@ -31,13 +32,13 @@ export async function GET(req: NextRequest) {
 async function handle(req: NextRequest) {
   const secret = process.env.ANALYTICS_CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "not_configured" }, { status: 503 });
+    return NextResponse.json({ error: msg("not_configured") }, { status: 503 });
   }
   if (req.headers.get("x-analytics-secret") !== secret) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: msg("unauthorized") }, { status: 401 });
   }
   if (!hasServiceCredentials()) {
-    return NextResponse.json({ error: "not_configured" }, { status: 503 });
+    return NextResponse.json({ error: msg("not_configured") }, { status: 503 });
   }
 
   const days = Math.min(MAX_DAYS, Math.max(1, Number.parseInt(req.nextUrl.searchParams.get("days") ?? "2", 10) || 2));
@@ -79,6 +80,6 @@ async function handle(req: NextRequest) {
     });
   } catch (err) {
     console.error("[rollup] başarısız:", err);
-    return NextResponse.json({ error: "rollup_failed" }, { status: 500 });
+    return NextResponse.json({ error: msg("rollup_failed") }, { status: 500 });
   }
 }

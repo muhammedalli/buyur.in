@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Logo } from "@/components/chrome";
+import { Logo } from "@/components/logo";
 import { AdminLoginForm } from "@/components/admin/login-form";
 import { getAdminSession } from "@/lib/admin-auth";
 

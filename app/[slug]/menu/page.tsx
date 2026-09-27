@@ -9,13 +9,34 @@ import { HorizontalScroll } from "@/components/horizontal-scroll";
 import { FadeImg } from "@/components/menu/fade-img";
 import { BadgeIcon, ChevronRightIcon, MessageIcon, SearchIcon, SparklesIcon, StarIcon } from "@/components/icons";
 import { CategoryPlaceholder, ProductPlaceholder } from "@/components/menu/placeholder-art";
+import { Marquee } from "@/components/marquee";
+import { businessMarqueeItems } from "@/lib/marquee";
+import { mainLocale } from "@/lib/i18n";
 import { formatPrice } from "@/lib/format";
 import { badgeLabels } from "@/lib/labels";
 import { isRTLLocale } from "@/lib/i18n";
 import type { Category, Product } from "@/lib/types";
 
+/** İşletmenin kayan yazısı (Ayarlar → Kayan yazı) — menünün en üstünde, kapalıysa hiç çizilmez. */
+function MenuMarquee() {
+  const { business, locale, t } = useMenu();
+  const items = businessMarqueeItems(business, locale, mainLocale(business));
+  if (items.length === 0) return null;
+  return <Marquee items={items} tone="brand" label={t("announcementsLabel")} className="py-2" />;
+}
+
 /** Modern Kategori Karosu */
-function CategoryTile({ category, image, count }: { category: Category; image?: string; count: number }) {
+function CategoryTile({
+  category,
+  image,
+  count,
+  index,
+}: {
+  category: Category;
+  image?: string;
+  count: number;
+  index: number;
+}) {
   const { base, locale, t, tf } = useMenu();
   const description = tf(category, "description");
 
@@ -23,6 +44,7 @@ function CategoryTile({ category, image, count }: { category: Category; image?: 
     <Link
       href={`${base}/categories/${category.id}`}
       data-reveal
+      style={{ transitionDelay: `${Math.min(index, 6) * 55}ms` }}
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] active:scale-[0.98]"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-crema/40">
@@ -60,7 +82,7 @@ function CategoryTile({ category, image, count }: { category: Category; image?: 
 }
 
 /** Öne çıkan ürün kartı */
-function FeaturedCard({ product }: { product: Product }) {
+function FeaturedCard({ product, index }: { product: Product; index: number }) {
   const { base, locale, tf } = useMenu();
   const image = product.images?.[0];
   const hasDiscount = product.discount_percent > 0;
@@ -71,7 +93,8 @@ function FeaturedCard({ product }: { product: Product }) {
   return (
     <Link
       href={`${base}/products/${product.id}`}
-      className="group w-[155px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_18px_rgba(0,0,0,0.06)] active:scale-[0.98]"
+      style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
+      className="slide-in group w-[155px] shrink-0 snap-start overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_18px_rgba(0,0,0,0.06)] active:scale-[0.98]"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-crema/40">
         {image ? (
@@ -186,15 +209,19 @@ export default function MenuCategoriesPage() {
   if (categories.length === 0) {
     // Menü henüz boşken de işletme bilgilerine (adres, saat, WiFi) ulaşılabilsin.
     return (
-      <div className="px-4 pt-4">
+      <div className="pt-0">
+        <MenuMarquee />
+        <div className="px-4 pt-4">
         <BusinessInfoCard onOpen={openInfo} />
         <p className="py-20 text-center text-ink-soft">{t("menuPreparing")}</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="pb-8">
+      <MenuMarquee />
       <CategoryTabs />
 
       {/* İşletme özeti (açıklama, saat, adres — dokununca tüm bilgiler) + arama */}
@@ -219,8 +246,8 @@ export default function MenuCategoriesPage() {
             innerClassName="flex snap-x snap-mandatory scroll-px-4 gap-3 px-4 pb-1"
             moreLabel={t("scrollMore")}
           >
-            {featured.map((product) => (
-              <FeaturedCard key={product.id} product={product} />
+            {featured.map((product, index) => (
+              <FeaturedCard key={product.id} product={product} index={index} />
             ))}
           </HorizontalScroll>
         </section>
@@ -234,9 +261,10 @@ export default function MenuCategoriesPage() {
           </span>
         </div>
         <div className="mt-3.5 grid grid-cols-2 gap-3.5 px-4 sm:grid-cols-3">
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <CategoryTile
               key={cat.id}
+              index={index}
               category={cat}
               image={cat.image_url || imageByCategory.get(cat.id)}
               count={productCountByCategory.get(cat.id) ?? 0}

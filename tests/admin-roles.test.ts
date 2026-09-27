@@ -12,6 +12,7 @@ describe("admin yetki matrisi", () => {
     "business.password_reset",
     "business.trial_extend",
     "business.ai_quota_reset",
+    "payments.view",
   ];
   const superOnly: AdminAction[] = [
     "business.plan_assign",
@@ -22,6 +23,7 @@ describe("admin yetki matrisi", () => {
     "business.email_change",
     "business.delete",
     "plans.edit",
+    "payments.edit",
     "settings.edit",
     "admins.manage",
     "system.view",

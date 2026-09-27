@@ -65,7 +65,8 @@ export const DOC_GUIDES: DocGuide[] = [
         heading: "3. Görünümü ayarlayın",
         list: [
           "Ayarlar → marka rengi ve logo: menü bu renkle açılır.",
-          "Ayarlar → menü dilleri: ana dili ve misafirlere sunulacak ek dilleri seçin.",
+          "Ayarlar → menü dilleri: ana dili ve misafirlere sunulacak ek dilleri seçin (ana dil dahil en fazla 4).",
+          "Ayarlar → mekân özellikleri: Wi-Fi, otopark, teras gibi özellikleri istediğiniz kadar seçin; menüde ve web sitenizde ikonlarıyla görünür.",
           "Çalışma saatleri, adres ve iletişim bilgileri menünün karşılama ekranında görünür.",
         ],
       },
@@ -118,14 +119,16 @@ export const DOC_GUIDES: DocGuide[] = [
   {
     slug: "coklu-dil",
     title: "Çoklu dil ve yapay zekâ çevirisi",
-    summary: "Menüyü Türkçe, İngilizce, Arapça ve Rusça sunmak; \"AI ile tamamla\" nasıl çalışır.",
+    summary: "Menüyü sekiz dilden dördüne kadar sunmak; \"AI ile tamamla\" nasıl çalışır.",
     group: "Yapay zekâ",
     updated: D,
     sections: [
       {
         heading: "Diller nasıl çalışır",
         paragraphs: [
-          "Her metnin bir ana dili vardır (Ayarlar → menü dilleri). Ek diller açıldığında ürün, kategori, seçenek ve kampanya formlarında dil sekmeleri görünür.",
+          "Desteklenen diller: Türkçe, English, Deutsch, العربية, Français, Español, Italiano ve Русский.",
+          "Her metnin bir ana dili vardır. Ayarlar → Menü dilleri'nde ana dili açılır menüden seçin, \"Dil ekle\" ile ek dilleri açın. Menünüzde ana dil dahil en fazla 4 dil açık olabilir; kapattığınız dilin çevirileri silinmez.",
+          "Ek diller açıldığında ürün, kategori, seçenek ve kampanya formlarında dil sekmeleri görünür.",
           "Bir dilde çeviri boş bırakılırsa misafir o dilde ana dildeki metni görür; menü hiçbir zaman boş kalmaz. Arapça sağdan sola gösterilir.",
         ],
       },
@@ -276,6 +279,7 @@ export const DOC_GUIDES: DocGuide[] = [
         heading: "Otomatik web sitesi",
         paragraphs: [
           "Web sitesi ekranından menü bilgilerinizle hazırlanan tanıtım sitesini açabilirsiniz (adresiniz.buyur.in/site). Menüyü güncelledikçe site de güncellenir. Bu özellik planınıza bağlıdır.",
+          "Ayarlar → Mekân özellikleri'nde seçtiğiniz özellikler sitenin \"Hakkımızda\" bölümünde ikonlarıyla listelenir.",
         ],
       },
       {

@@ -423,26 +423,6 @@ export function ImageIcon(p: IconProps) {
 
 // ─── Admin paneli ikonları ─────────────────────────────────────────
 
-export function UsersIcon(p: IconProps) {
-  return (
-    <Svg {...p}>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </Svg>
-  );
-}
-
-export function BellIcon(p: IconProps) {
-  return (
-    <Svg {...p}>
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </Svg>
-  );
-}
-
 export function LifeBuoyIcon(p: IconProps) {
   return (
     <Svg {...p}>
@@ -736,6 +716,87 @@ export function SparkIcon(p: IconProps) {
     <Svg {...p}>
       <path d="M12 3l1.9 4.9L19 9.8l-4.4 2.5L13.4 17 12 12.6 10.6 17 9.4 12.3 5 9.8l5.1-1.9z" />
       <path d="M18 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" />
+    </Svg>
+  );
+}
+
+/** Web sitesi / tarayıcı penceresi. */
+export function MonitorIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="3" y="4" width="18" height="13" rx="2" />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+    </Svg>
+  );
+}
+
+/** Kayan yazı şeridi. */
+export function MarqueeIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="2.5" y="7" width="19" height="10" rx="2" />
+      <path d="M6.5 12h7" />
+      <path d="M16.5 10.5 18 12l-1.5 1.5" />
+    </Svg>
+  );
+}
+
+/** Kılavuz / yön gösterme (pusula). */
+export function CompassIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m15.5 8.5-2 5-5 2 2-5z" />
+    </Svg>
+  );
+}
+
+/** Dil / çeviri. */
+export function LanguagesIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M4 5h8" />
+      <path d="M8 3v2" />
+      <path d="M10.5 5c-.8 3.6-3 6.4-6.5 8" />
+      <path d="M6 9c1 1.8 2.6 3.2 4.6 4" />
+      <path d="m12.5 20 4-9 4 9" />
+      <path d="M14 17h5" />
+    </Svg>
+  );
+}
+
+/** Tema / renk paleti. */
+export function PaletteIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8Z" />
+      <circle cx="7.5" cy="11" r="1" />
+      <circle cx="10" cy="7" r="1" />
+      <circle cx="14.5" cy="7" r="1" />
+      <circle cx="17" cy="10.5" r="1" />
+    </Svg>
+  );
+}
+
+/** Ödemeler / para hareketi (banknot). */
+export function BanknoteIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="2.5" y="6" width="19" height="12" rx="2" />
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M6 12h.01M18 12h.01" />
+    </Svg>
+  );
+}
+
+/** Satır işlemleri menüsü (üç nokta). */
+export function MoreIcon(p: IconProps) {
+  return (
+    <Svg {...p} strokeWidth={0} fill="currentColor">
+      <circle cx="5" cy="12" r="1.8" />
+      <circle cx="12" cy="12" r="1.8" />
+      <circle cx="19" cy="12" r="1.8" />
     </Svg>
   );
 }

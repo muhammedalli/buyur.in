@@ -11,6 +11,7 @@ import {
   entrySourceFields,
   unsavedLocales,
 } from "@/lib/ai/translate";
+import { localeLabels } from "@/lib/i18n";
 
 // AI çeviri sözleşmesi. Korunan en kritik kural: ÇEVİRİ YALNIZCA METNE DOKUNUR.
 // Fiyat ve sayısal veri modele hiç gönderilmez (sanitizeEntries yalnızca
@@ -190,11 +191,18 @@ describe("normalizeLocaleKey", () => {
     expect(normalizeLocaleKey("en_GB")).toBe("en");
     expect(normalizeLocaleKey(" EN ")).toBe("en");
     expect(normalizeLocaleKey("ar-SA")).toBe("ar");
+    expect(normalizeLocaleKey("de-DE")).toBe("de");
+    expect(normalizeLocaleKey("Deutsch")).toBe("de");
+    expect(normalizeLocaleKey("Français")).toBe("fr");
+    expect(normalizeLocaleKey("Spanish")).toBe("es");
+    expect(normalizeLocaleKey("İtalyanca")).toBe("it");
   });
 
   it("desteklenmeyen dili tanımaz", () => {
-    expect(normalizeLocaleKey("de")).toBeNull();
-    expect(normalizeLocaleKey("deutsch")).toBeNull();
+    expect(normalizeLocaleKey("ja")).toBeNull();
+    expect(normalizeLocaleKey("japanese")).toBeNull();
+    // Menüden kaldırılan dil de artık tanınmaz.
+    expect(normalizeLocaleKey("ku")).toBeNull();
   });
 
   it("çıktıdaki bölgeli dil kodu doğru dile yazılır", () => {
@@ -266,7 +274,7 @@ describe("fillMissingTranslations", () => {
   it("boş ve desteklenmeyen dil çıktısını yazmaz", () => {
     const { merged, applied } = fillMissingTranslations({}, {
       en: { name: "  " },
-      de: { name: "Suppe" },
+      ja: { name: "スープ" },
     } as never);
     expect(merged).toEqual({});
     expect(applied).toEqual({});
@@ -334,10 +342,7 @@ describe("normalizeTranslationResult — model sapmaları", () => {
 
 describe("buildTranslationPrompt", () => {
   it("şema örneği gönderilen alanlardan kurulur — kampanya başlığı name olarak dönmesin", () => {
-    const prompt = buildTranslationPrompt(["en"], { tr: "Türkçe", en: "English", ar: "العربية", ru: "Русский" }, [
-      "title",
-      "message",
-    ]);
+    const prompt = buildTranslationPrompt(["en"], localeLabels, ["title", "message"]);
     expect(prompt).toContain('"en": { "title": "string", "message": "string" }');
     expect(prompt).not.toContain('"name": "string"');
   });

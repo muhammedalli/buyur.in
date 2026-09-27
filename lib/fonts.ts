@@ -18,8 +18,3 @@ export function getFontStack(fontKey?: string | null): string {
   if (!fontKey || !(fontKey in fonts)) return fonts[DEFAULT_FONT].stack;
   return fonts[fontKey as FontKey].stack;
 }
-
-export function getFontName(fontKey?: string | null): string {
-  if (!fontKey || !(fontKey in fonts)) return fonts[DEFAULT_FONT].name;
-  return fonts[fontKey as FontKey].name;
-}

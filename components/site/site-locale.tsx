@@ -41,6 +41,11 @@ export function useSiteLocale() {
   return ctx;
 }
 
+/** Hem menüde hem vitrinde kullanılan parçalar için: vitrin dışında null. */
+export function useOptionalSiteLocale() {
+  return useContext(SiteLocaleContext);
+}
+
 export function SiteLocaleProvider({ business, children }: { business: LangConfig; children: ReactNode }) {
   const baseLocale = mainLocale(business);
   const locales = useMemo(() => activeLocales(business), [business]);

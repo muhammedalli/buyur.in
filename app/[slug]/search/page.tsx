@@ -6,10 +6,9 @@ import { pb } from "@/lib/pocketbase";
 import { useMenu } from "@/components/menu/menu-provider";
 import { trackEvent } from "@/lib/analytics/track-client";
 import { ProductCard } from "@/components/menu/product-card";
-import type { Locale } from "@/lib/i18n";
+import { localeTags } from "@/lib/i18n";
 import type { Product } from "@/lib/types";
 
-const LOCALE_TAG: Record<Locale, string> = { tr: "tr-TR", en: "en-US", ar: "ar-SA", ru: "ru-RU" };
 
 export default function SearchPage() {
   const router = useRouter();
@@ -37,7 +36,7 @@ export default function SearchPage() {
   }, [business.id]);
 
   const results = useMemo(() => {
-    const tag = LOCALE_TAG[locale];
+    const tag = localeTags[locale];
     const q = query.trim().toLocaleLowerCase(tag);
     if (!q) return [];
     return products.filter((p) => {
@@ -57,7 +56,7 @@ export default function SearchPage() {
     const timer = setTimeout(() => {
       trackEvent(business.slug, {
         type: "search",
-        target: term.slice(0, 60).toLocaleLowerCase(LOCALE_TAG[locale]),
+        target: term.slice(0, 60).toLocaleLowerCase(localeTags[locale]),
         label: term.slice(0, 60),
         locale,
         meta: { results: results.length, no_result: results.length === 0 },

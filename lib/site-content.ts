@@ -107,8 +107,8 @@ function socialUrl(kind: ContactLink["kind"], handle: string): string {
 }
 
 /** Rezervasyon aksiyonu — spec'teki öncelik sırası. Hiçbiri yoksa CTA çıkmaz
- *  (kırık buton göstermiyoruz). */
-function reservationAction(business: Business): ReservationAction | null {
+ *  (kırık buton göstermiyoruz). Karşılama sayfası da aynı kuralı kullanır. */
+export function reservationAction(business: Business): ReservationAction | null {
   if (business.whatsapp) {
     return {
       kind: "whatsapp",

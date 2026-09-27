@@ -38,7 +38,7 @@ const REBASE_TARGETS: readonly RebaseTarget[] = [
 ];
 
 /** İşletme kaydının çevrilebilir alanları (ad tüm dillerde ortak olduğu için yok). */
-export const BUSINESS_REBASE_FIELDS = ["description"] as const;
+export const BUSINESS_REBASE_FIELDS = ["description", "marquee_text"] as const;
 
 /** Tek bir kaydın ana dil değişimi sonrası yazılacak hâli. */
 export interface RebaseResult {

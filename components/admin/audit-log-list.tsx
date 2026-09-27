@@ -126,34 +126,56 @@ export function AuditLogList({ logs, businessNames = {}, hideBusiness, filterHre
                   {changes.length > 0 ? `${isSnapshot ? "Kayıt" : "Değişiklik"} (${changes.length} alan)` : "Ayrıntı"}
                 </summary>
                 {changes.length > 0 && (
-                  <div className="mt-2 overflow-x-auto rounded-md border border-line">
-                    <table className="w-full min-w-[420px] text-left text-[12px]">
-                      <thead className="bg-crema/60 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">Alan</th>
-                          {log.before && <th className="px-3 py-2 font-medium">Önce</th>}
-                          {log.after && <th className="px-3 py-2 font-medium">Sonra</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-line font-mono">
-                        {changes.map((change) => (
-                          <tr key={change.field} className="align-top">
-                            <td className="whitespace-nowrap px-3 py-1.5 text-ink-soft">{auditFieldLabel(change.field)}</td>
-                            {log.before && (
-                              <td className="px-3 py-1.5">
-                                <ValueCell value={change.before} />
-                              </td>
-                            )}
-                            {log.after && (
-                              <td className="px-3 py-1.5">
-                                <ValueCell value={change.after} />
-                              </td>
-                            )}
+                  <>
+                    {/* Dar ekranda alan başına alt alta satırlar: üç sütunlu tablo 320px'e sığmıyordu. */}
+                    <dl className="mt-2 divide-y divide-line rounded-md border border-line font-mono text-[12px] sm:hidden">
+                      {changes.map((change) => (
+                        <div key={change.field} className="space-y-0.5 px-3 py-2">
+                          <dt className="text-ink-soft">{auditFieldLabel(change.field)}</dt>
+                          {log.before && (
+                            <dd>
+                              {log.after && <span className="text-ink-soft">Önce: </span>}
+                              <ValueCell value={change.before} />
+                            </dd>
+                          )}
+                          {log.after && (
+                            <dd>
+                              {log.before && <span className="text-ink-soft">Sonra: </span>}
+                              <ValueCell value={change.after} />
+                            </dd>
+                          )}
+                        </div>
+                      ))}
+                    </dl>
+                    <div className="mt-2 hidden overflow-x-auto rounded-md border border-line sm:block">
+                      <table className="w-full table-fixed text-left text-[12px]">
+                        <thead className="bg-crema/60 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+                          <tr>
+                            <th className="w-1/3 px-3 py-2 font-medium">Alan</th>
+                            {log.before && <th className="px-3 py-2 font-medium">Önce</th>}
+                            {log.after && <th className="px-3 py-2 font-medium">Sonra</th>}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-line font-mono">
+                          {changes.map((change) => (
+                            <tr key={change.field} className="align-top">
+                              <td className="break-words px-3 py-1.5 text-ink-soft">{auditFieldLabel(change.field)}</td>
+                              {log.before && (
+                                <td className="px-3 py-1.5">
+                                  <ValueCell value={change.before} />
+                                </td>
+                              )}
+                              {log.after && (
+                                <td className="px-3 py-1.5">
+                                  <ValueCell value={change.after} />
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
                 <dl className="mt-2 grid gap-x-4 gap-y-1 font-mono text-[11px] text-ink-soft sm:grid-cols-[auto_1fr]">
                   {cascaded &&

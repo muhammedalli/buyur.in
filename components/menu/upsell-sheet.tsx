@@ -46,7 +46,7 @@ export function UpsellSheet({
               type="button"
               onClick={onClose}
               aria-label={t("close")}
-              className="-mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-crema"
+              className="-me-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-crema"
             >
               ✕
             </button>

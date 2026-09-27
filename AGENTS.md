@@ -30,6 +30,7 @@ yorumları **Türkçe**, değişken/fonksiyon adları İngilizce.
 7. **Panel UI'sı** `components/panel/ui.tsx` kitinden; ham renk kodu yok, `@theme` token'ı kullanılır.
 8. **Okunamayan veriyi AI'ya tahmin ettirme**; AI içeriği varsayılan olarak taslaktır.
 9. **Menü sayfası mobilde 2 sn altında açılmalı** (trafiğin %95+'ı mobil).
+10. **Hiçbir panel/yönetim ekranı yatayda kaymaz** (320–1440 px); sekme → açılır menü, gezinme → Sheet. ([docs/ui-guidelines.md](./docs/ui-guidelines.md))
 
 ## Harita
 
@@ -45,6 +46,7 @@ yorumları **Türkçe**, değişken/fonksiyon adları İngilizce.
 | Şema, göç, tohum | `scripts/**` (`plan-catalog.mjs` = yeni ortam tohumu, canlıyı ezmez) |
 | İş kuralı sözleşmesi | `tests/**` — kural değişiyorsa **önce test** |
 | Analitik mimarisi (koddaki §N atıfları) | [`docs/analytics-architecture.md`](./docs/analytics-architecture.md) |
+| Alan kuralları (mimari, UI, dil, yönetim, ödemeler) | [`docs/`](./docs/) |
 
 ## Ajanlar ve skill'ler (Claude Code)
 

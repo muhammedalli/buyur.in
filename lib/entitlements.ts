@@ -1,4 +1,5 @@
 import type { Business, Plan } from "@/lib/types";
+import { msg } from "@/lib/ui-i18n";
 
 // Abonelik kurallarının OKUMA KAPISI.
 //
@@ -424,18 +425,30 @@ export function upgradeTargetFor(business: Pick<Business, "plan">, feature?: Fea
   return upgradePlans(current)[0] ?? null;
 }
 
-const formatCount = (value: number) => value.toLocaleString("tr-TR");
+/** Arayüz dilinde metin kuran çevirmen (lib/ui-i18n.ts). Verilmezse Türkçe:
+ *  kaynak metin olduğu gibi, yer tutucular doldurulmuş hâlde. */
+type TextFn = (source: string, vars?: Record<string, string | number>) => string;
+const turkishText: TextFn = (source, vars) =>
+  vars ? source.replace(/\{(\w+)\}/g, (whole, key: string) => (key in vars ? String(vars[key]) : whole)) : source;
 
 /** Freemium limitlerinin metin hâli — landing, SSS ve panel aynı cümleyi kursun.
- *  Canlı katalogdan okunur; rakam değişince metinler kendiliğinden değişir. */
-export function freemiumLimits(): { months: number | null; views: number | null; viewsLabel: string; summary: string } {
+ *  Canlı katalogdan okunur; rakam değişince metinler kendiliğinden değişir.
+ *  `t`/`numberLocale` arayüz dilini verir (İngilizce landing/panel). */
+export function freemiumLimits(
+  t: TextFn = turkishText,
+  numberLocale = "tr-TR"
+): { months: number | null; views: number | null; viewsLabel: string; summary: string } {
   const { durationMonths: months, menuViews: views } = entitlementsFor("freemium").limits;
-  const viewsLabel = views === null ? "sınırsız" : formatCount(views);
+  const viewsLabel = views === null ? t(msg("sınırsız")) : views.toLocaleString(numberLocale);
   const parts = [
-    months === null ? null : `${months} ay`,
-    views === null ? null : `${viewsLabel} menü görüntülenmesi`,
-  ].filter(Boolean);
-  return { months, views, viewsLabel, summary: parts.length > 0 ? parts.join(" veya ") : "süre ve görüntülenme sınırı yok" };
+    months === null ? null : t(msg("{count} ay"), { count: months }),
+    views === null ? null : t(msg("{views} menü görüntülenmesi"), { views: viewsLabel }),
+  ].filter((part): part is string => Boolean(part));
+  const summary =
+    parts.length === 2
+      ? t(msg("{a} veya {b}"), { a: parts[0], b: parts[1] })
+      : parts[0] ?? t(msg("süre ve görüntülenme sınırı yok"));
+  return { months, views, viewsLabel, summary };
 }
 
 // ─── Pazarlama ve panel için ortak karşılaştırma tablosu ───────────────
@@ -449,47 +462,53 @@ export interface FeatureMatrixRow {
 const feat = (feature: Feature) => (plan: Plan): boolean | string => entitlementsFor(plan).features[feature];
 
 /** Satır tanımları: etiket sabit, DEĞERLER canlı katalogdan hesaplanır. */
-const MATRIX_ROWS: { label: string; value: (plan: Plan) => boolean | string }[] = [
-  { label: "Dijital QR menü", value: feat("menu") },
+const MATRIX_ROWS: { label: string; value: (plan: Plan, t: TextFn, numberLocale: string) => boolean | string }[] = [
+  { label: msg("Dijital QR menü"), value: feat("menu") },
   {
-    label: "Menü görüntülenme",
-    value: (plan) => {
+    label: msg("Menü görüntülenme"),
+    value: (plan, t, numberLocale) => {
       const limit = entitlementsFor(plan).limits.menuViews;
-      return limit === null ? "Sınırsız" : formatCount(limit);
+      return limit === null ? t(msg("Sınırsız")) : limit.toLocaleString(numberLocale);
     },
   },
   {
-    label: "Kullanım süresi",
-    value: (plan) => {
+    label: msg("Kullanım süresi"),
+    value: (plan, t) => {
       const months = entitlementsFor(plan).limits.durationMonths;
-      return months === null ? "Sınırsız" : `${months} ay`;
+      return months === null ? t(msg("Sınırsız")) : t(msg("{count} ay"), { count: months });
     },
   },
-  { label: "Temel analizler", value: feat("basic_analytics") },
-  { label: "Gelişmiş analizler", value: feat("advanced_analytics") },
-  { label: "Otomatik içgörüler & performans skoru", value: feat("insights") },
-  { label: "Kampanyalar", value: feat("campaigns") },
-  { label: "buyur markasını kaldırma", value: feat("branding_removal") },
-  { label: "Otomatik web sitesi (menü verisinden · animasyon · slider · galeri)", value: feat("website") },
+  { label: msg("Temel analizler"), value: feat("basic_analytics") },
+  { label: msg("Gelişmiş analizler"), value: feat("advanced_analytics") },
+  { label: msg("Otomatik içgörüler & performans skoru"), value: feat("insights") },
+  { label: msg("Kampanyalar"), value: feat("campaigns") },
+  { label: msg("buyur markasını kaldırma"), value: feat("branding_removal") },
+  { label: msg("Otomatik web sitesi (menü verisinden · animasyon · slider · galeri)"), value: feat("website") },
   {
-    label: "Yapay zekâ ile fiziksel menü aktarımı",
-    value: (plan) => {
+    label: msg("Yapay zekâ ile fiziksel menü aktarımı"),
+    value: (plan, t) => {
       const { features, limits } = entitlementsFor(plan);
       if (!features.ai_menu_import) return false;
-      return limits.aiScansPerMonth === null ? "Sınırsız" : `Ayda ${limits.aiScansPerMonth} tarama`;
+      return limits.aiScansPerMonth === null
+        ? t(msg("Sınırsız"))
+        : t(msg("Ayda {count} tarama"), { count: limits.aiScansPerMonth });
     },
   },
-  { label: "Yapay zekâ ile çoklu dil tamamlama", value: feat("ai_translation") },
-  { label: "Gelişmiş raporlar", value: feat("advanced_reports") },
-  { label: "PDF ve CSV dışa aktarma", value: feat("report_export") },
+  { label: msg("Yapay zekâ ile çoklu dil tamamlama"), value: feat("ai_translation") },
+  { label: msg("Gelişmiş raporlar"), value: feat("advanced_reports") },
+  { label: msg("PDF ve CSV dışa aktarma"), value: feat("report_export") },
 ];
 
 /** Landing sayfası ve panelin plan sayfası aynı tablodan beslenir. Değerler
  *  her çağrıda canlı katalogdan okunur — panelde admin'in değiştirdiği rakam
- *  ile fiyat sayfasında görünen rakam ayrışamaz. */
-export function featureMatrix(): FeatureMatrixRow[] {
+ *  ile fiyat sayfasında görünen rakam ayrışamaz. Etiketler arayüz dilindedir
+ *  (`t` verilmezse Türkçe). */
+export function featureMatrix(t: TextFn = turkishText, numberLocale = "tr-TR"): FeatureMatrixRow[] {
   return MATRIX_ROWS.map((row) => ({
-    label: row.label,
-    values: Object.fromEntries(PLAN_ORDER.map((plan) => [plan, row.value(plan)])) as Record<Plan, boolean | string>,
+    label: t(row.label),
+    values: Object.fromEntries(PLAN_ORDER.map((plan) => [plan, row.value(plan, t, numberLocale)])) as Record<
+      Plan,
+      boolean | string
+    >,
   }));
 }

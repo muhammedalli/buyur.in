@@ -1,61 +1,53 @@
 import { formatTL, planPricing } from "@/lib/pricing";
 import { CheckCircleIcon } from "@/components/icons";
+import { siteTranslator } from "@/lib/ui-messages/site";
+import type { Translator, UiLocale } from "@/lib/ui-i18n";
 
-// Kâğıt menü karşılaştırması + özellik matrisi. Satın alma kararını etkileyen
-// üç sonuç sayfanın üstünde; buradaki detaylar ikna değil, kontrol listesi.
+// Kâğıt menü karşılaştırması. Satın alma kararını etkileyen sonuçlar sayfanın
+// üstünde; buradaki detaylar ikna değil, kontrol listesi. (Menüdeki diğer
+// özellikler "Özellikler" bölümünde: components/feature-grid.tsx.)
 
 // Fiyat canlı katalogdan gelir; modül yüklenirken değil render anında okunur.
-function buildRows() {
+function buildRows(t: Translator) {
   const premiumFrom = planPricing("premium")?.yearlyMonthly ?? null;
   return [
-  { label: "Fiyat değişikliği", paper: "Yeniden baskı, günlerce bekleme", buyur: "Panelden anında, tüm masalarda" },
-  { label: "Tükenen ürün", paper: "Garson masada söyler", buyur: "Tek dokunuşla menüden kalkar" },
-  {
-    label: "Maliyet",
-    paper: "Her zamda yeni baskı",
-    buyur: premiumFrom ? `Ücretsiz başlar · Premium ayda ${formatTL(premiumFrom)}'den` : "Ücretsiz başlar",
-  },
-  { label: "Yabancı misafir", paper: "Tek dil", buyur: "TR · EN · AR · RU" },
-  { label: "Alerjen ve kalori", paper: "Çoğunlukla yok", buyur: "Her üründe gösterilebilir" },
-  { label: "Sipariş", paper: "Garson not alır, karışabilir", buyur: "Müşteri seçimini sepette garsona gösterir" },
-  { label: "Hangi ürün ilgi görüyor?", paper: "Bilinmez", buyur: "Panelde ürün ve QR bazında" },
-  { label: "Hijyen", paper: "Elden ele dolaşır", buyur: "Müşterinin kendi telefonunda" },
+    { label: t("Fiyat değişikliği"), paper: t("Yeniden baskı, günlerce bekleme"), buyur: t("Panelden anında, tüm masalarda") },
+    { label: t("Tükenen ürün"), paper: t("Garson masada söyler"), buyur: t("Tek dokunuşla menüden kalkar") },
+    {
+      label: t("Maliyet"),
+      paper: t("Her zamda yeni baskı"),
+      buyur: premiumFrom
+        ? t("Ücretsiz başlar · Premium ayda {price}'den", { price: formatTL(premiumFrom) })
+        : t("Ücretsiz başlar"),
+    },
+    { label: t("Yabancı misafir"), paper: t("Tek dil"), buyur: t("8 dil, işletme başına 4") },
+    { label: t("Alerjen ve kalori"), paper: t("Çoğunlukla yok"), buyur: t("Her üründe gösterilebilir") },
+    { label: t("Sipariş"), paper: t("Garson not alır, karışabilir"), buyur: t("Müşteri seçimini sepette garsona gösterir") },
+    { label: t("Hangi ürün ilgi görüyor?"), paper: t("Bilinmez"), buyur: t("Panelde ürün ve QR bazında") },
+    { label: t("İşletme bilgileri"), paper: t("Kapıdaki tabelada"), buyur: t("Vitrinde: adres, saatler, iletişim, sosyal medya") },
+    { label: t("Hijyen"), paper: t("Elden ele dolaşır"), buyur: t("Müşterinin kendi telefonunda") },
   ];
 }
 
-const features = [
-  "Hazırlanma süresi",
-  "Kalori ve alerjen bilgisi",
-  "Rozetler: Şefin önerisi, Yeni, Popüler",
-  "Boy ve ekstra seçenekleri",
-  "Menü içi arama",
-  "4 dilde menü",
-  "Size özel menü adresi",
-  "Kategori sürükle-bırak sıralama",
-  "Müşteri değerlendirmesi",
-  "Wi-Fi, adres, çalışma saatleri",
-  "Kampanya ve açılış pop-up'ı (Premium)",
-  "Otomatik web sitesi (Elite)",
-];
-
-export function Comparison() {
+export function Comparison({ locale = "tr" }: { locale?: UiLocale }) {
+  const t = siteTranslator(locale);
   return (
     <section id="karsilastir" className="border-t border-line">
       <div className="mx-auto max-w-6xl px-5 py-24">
-        <div className="max-w-2xl">
-          <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">Karşılaştırın</p>
-          <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">Kâğıt menü mü, buyur mı?</h2>
+        <div data-reveal className="max-w-2xl">
+          <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Karşılaştırın")}</p>
+          <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">{t("Kâğıt menü mü, buyur mı?")}</h2>
         </div>
 
-        <div className="mt-12 overflow-x-auto rounded-2xl border border-line bg-paper">
+        <div data-reveal className="mt-12 overflow-x-auto rounded-2xl border border-line bg-paper">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-line bg-crema/50 text-left">
                 <th className="px-5 py-3 font-mono text-[10px] uppercase tracking-wider text-ink-soft" scope="col">
-                  <span className="sr-only">Konu</span>
+                  <span className="sr-only">{t("Konu")}</span>
                 </th>
                 <th className="px-5 py-3 font-display text-base font-bold text-ink-soft" scope="col">
-                  Kâğıt menü
+                  {t("Kâğıt menü")}
                 </th>
                 <th className="px-5 py-3 font-display text-base font-bold text-paprika" scope="col">
                   buyur
@@ -63,8 +55,8 @@ export function Comparison() {
               </tr>
             </thead>
             <tbody>
-              {buildRows().map((row) => (
-                <tr key={row.label} className="border-b border-line/60 last:border-0">
+              {buildRows(t).map((row) => (
+                <tr key={row.label} className="border-b border-line/60 transition-colors last:border-0 hover:bg-crema/30">
                   <th scope="row" className="px-5 py-3 text-left font-medium">
                     {row.label}
                   </th>
@@ -81,17 +73,6 @@ export function Comparison() {
               ))}
             </tbody>
           </table>
-        </div>
-
-        <div className="mt-12">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Menüde ayrıca</p>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {features.map((feature) => (
-              <li key={feature} className="rounded-full border border-line bg-paper px-3.5 py-1.5 text-sm">
-                {feature}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
     </section>

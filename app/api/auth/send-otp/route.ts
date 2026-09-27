@@ -11,6 +11,7 @@ import {
 } from "@/lib/otp";
 import { clearOtpRecords, createOtpRecord, findOtpRecord } from "@/lib/otp-store";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { msg } from "@/lib/ui-i18n";
 
 // Kayıt akışının ilk adımı: adrese 6 haneli doğrulama kodu gönderir.
 // Kod burada üretilir ve yalnızca özeti saklanır; yanıt hiçbir koşulda kodu
@@ -25,24 +26,24 @@ const withinRateLimit = createRateLimiter(10, 3_600_000);
 
 export async function POST(req: NextRequest) {
   if (!hasServiceCredentials() || !isEmailConfigured()) {
-    return NextResponse.json({ error: "E-posta servisi yapılandırılmamış. Yöneticinize başvurun." }, { status: 503 });
+    return NextResponse.json({ error: msg("E-posta servisi yapılandırılmamış. Yöneticinize başvurun.") }, { status: 503 });
   }
 
   let body: { name?: unknown; email?: unknown };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçersiz istek.") }, { status: 400 });
   }
 
   if (!isValidEmail(body.email)) {
-    return NextResponse.json({ error: "Geçerli bir e-posta adresi gir." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçerli bir e-posta adresi gir.") }, { status: 400 });
   }
   const email = normalizeEmail(body.email);
   const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
 
   if (!withinRateLimit(clientIp(req))) {
-    return NextResponse.json({ error: "Çok fazla kod istendi. Biraz sonra tekrar dene." }, { status: 429 });
+    return NextResponse.json({ error: msg("Çok fazla kod istendi. Biraz sonra tekrar dene.") }, { status: 429 });
   }
 
   try {
@@ -50,12 +51,12 @@ export async function POST(req: NextRequest) {
 
     // Zaten kayıtlı adrese kod göndermeyiz: kullanıcı kayıt yerine giriş yapmalı.
     if (await findBusinessByEmail(pb, email)) {
-      return NextResponse.json({ error: "Bu e-posta zaten kayıtlı. Giriş yapmayı dene." }, { status: 409 });
+      return NextResponse.json({ error: msg("Bu e-posta zaten kayıtlı. Giriş yapmayı dene.") }, { status: 409 });
     }
 
     const existing = await findOtpRecord(pb, email);
     if (existing && !canResendOtp(existing.created)) {
-      return NextResponse.json({ error: "Yeni kod istemek için biraz bekle." }, { status: 429 });
+      return NextResponse.json({ error: msg("Yeni kod istemek için biraz bekle.") }, { status: 429 });
     }
 
     const code = generateOtpCode();
@@ -68,12 +69,12 @@ export async function POST(req: NextRequest) {
       // Mail gitmediyse ortada kullanıcının bilmediği bir kod kalmasın.
       await clearOtpRecords(pb, email).catch(() => undefined);
       console.error("[send-otp] mail gönderilemedi", record.id, err);
-      return NextResponse.json({ error: "Doğrulama e-postası gönderilemedi, tekrar dene." }, { status: 502 });
+      return NextResponse.json({ error: msg("Doğrulama e-postası gönderilemedi, tekrar dene.") }, { status: 502 });
     }
 
     return NextResponse.json({ ok: true, expiresInMinutes: OTP_TTL_MINUTES });
   } catch (err) {
     console.error("[send-otp] hata", err);
-    return NextResponse.json({ error: "Doğrulama kodu gönderilemedi, tekrar dene." }, { status: 500 });
+    return NextResponse.json({ error: msg("Doğrulama kodu gönderilemedi, tekrar dene.") }, { status: 500 });
   }
 }

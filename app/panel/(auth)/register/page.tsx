@@ -19,30 +19,32 @@ import { parsePlanIntent, savePlanIntent, type IntentPlan } from "@/lib/plan-int
 import { captureAttribution, trackMarketingEvent } from "@/lib/marketing-events";
 import { OTP_RESEND_SECONDS } from "@/lib/otp-client";
 import { checkSignupPhone } from "@/lib/phone";
-import { newPasswordError } from "@/lib/password";
+import { passwordProblem } from "@/lib/password";
 import { errorMessage } from "@/components/panel/auth-card";
 import { markLogin } from "@/lib/auth-persistence";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import type { Translator } from "@/lib/ui-i18n";
 
-const START_TITLES: Record<IntentPlan, ReactNode> = {
-  premium: (
+function startTitle(intent: IntentPlan, t: Translator): ReactNode {
+  return intent === "premium" ? (
     <>
-      Premium&apos;u
+      {t("Premium'u")}
       <br />
-      başlat
+      {t("başlat")}
     </>
-  ),
-  elite: (
+  ) : (
     <>
-      Elite&apos;i
+      {t("Elite'i")}
       <br />
-      başlat
+      {t("başlat")}
     </>
-  ),
-};
+  );
+}
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t, locale } = useUiLocale();
   const [step, setStep] = useState<"details" | "code">("details");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -84,17 +86,18 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email }),
+        // Doğrulama e-postası arayüz dilinde gönderilir.
+        body: JSON.stringify({ name, email, locale }),
       });
       if (!res.ok) {
-        setError(await errorMessage(res, "Doğrulama kodu gönderilemedi, tekrar dene."));
+        setError(t(await errorMessage(res, "Doğrulama kodu gönderilemedi, tekrar dene.")));
         return;
       }
       setStep("code");
       setCooldown(OTP_RESEND_SECONDS);
-      if (resend) setNotice("Yeni kod gönderildi.");
+      if (resend) setNotice(t("Yeni kod gönderildi."));
     } catch {
-      setError("Bağlantı kurulamadı, tekrar dene.");
+      setError(t("Bağlantı kurulamadı, tekrar dene."));
     } finally {
       setLoading(false);
     }
@@ -106,13 +109,13 @@ export default function RegisterPage() {
 
     const phoneCheck = checkSignupPhone(phone);
     if (!phoneCheck.ok) {
-      setError(phoneCheck.error);
+      setError(t(phoneCheck.error));
       return;
     }
     setPhone(phoneCheck.value);
-    const passwordError = newPasswordError(password, passwordConfirm);
-    if (passwordError) {
-      setError(passwordError);
+    const problem = passwordProblem(password, passwordConfirm);
+    if (problem) {
+      setError(t(problem.message, problem.vars));
       return;
     }
     await requestCode();
@@ -127,10 +130,10 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, phone, password, passwordConfirm, code }),
+        body: JSON.stringify({ name, email, phone, password, passwordConfirm, code, locale }),
       });
       if (!res.ok) {
-        setError(await errorMessage(res, "Kayıt oluşturulamadı, tekrar dene."));
+        setError(t(await errorMessage(res, "Kayıt oluşturulamadı, tekrar dene.")));
         return;
       }
       await pb.collection(BUSINESS_COLLECTION).authWithPassword(email, password);
@@ -139,7 +142,7 @@ export default function RegisterPage() {
       trackMarketingEvent("signup_completed", { plan_intent: intent ?? "freemium" });
       router.replace("/panel");
     } catch {
-      setError("Kayıt tamamlanamadı, giriş ekranından dene.");
+      setError(t("Kayıt tamamlanamadı, giriş ekranından dene."));
     } finally {
       setLoading(false);
     }
@@ -151,21 +154,16 @@ export default function RegisterPage() {
         <AuthHeading
           title={
             <>
-              E-postanı
+              {t("E-postanı")}
               <br />
-              doğrula
+              {t("doğrula")}
             </>
           }
-          description={
-            <>
-              <span className="font-medium text-ink">{email}</span> adresine 6 haneli bir kod gönderdik. Gelen kutunda
-              yoksa spam klasörüne bak.
-            </>
-          }
+          description={t("{email} adresine 6 haneli bir kod gönderdik. Gelen kutunda yoksa spam klasörüne bak.", { email })}
         />
         <form onSubmit={handleCodeSubmit} className="mt-10 space-y-6">
           <div>
-            <AuthLabel htmlFor="code">Doğrulama kodu</AuthLabel>
+            <AuthLabel htmlFor="code">{t("Doğrulama kodu")}</AuthLabel>
             <AuthInput
               id="code"
               required
@@ -181,7 +179,7 @@ export default function RegisterPage() {
           <AuthError>{error}</AuthError>
           <AuthNotice>{notice}</AuthNotice>
           <AuthSubmit loading={loading} disabled={code.length !== 6}>
-            Hesabı oluştur
+            {t("Hesabı oluştur")}
           </AuthSubmit>
         </form>
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 text-[15px]">
@@ -195,7 +193,7 @@ export default function RegisterPage() {
             }}
             className="text-ink-soft hover:text-ink hover:underline"
           >
-            Bilgileri düzenle
+            {t("Bilgileri düzenle")}
           </button>
           <button
             type="button"
@@ -203,7 +201,7 @@ export default function RegisterPage() {
             onClick={() => requestCode(true)}
             className="font-medium text-paprika hover:underline disabled:cursor-not-allowed disabled:text-ink-soft disabled:no-underline"
           >
-            {cooldown > 0 ? `Tekrar gönder (${cooldown})` : "Kodu tekrar gönder"}
+            {cooldown > 0 ? t("Tekrar gönder ({seconds})", { seconds: cooldown }) : t("Kodu tekrar gönder")}
           </button>
         </div>
       </>
@@ -215,29 +213,31 @@ export default function RegisterPage() {
       <AuthHeading
         title={
           intent ? (
-            START_TITLES[intent]
+            startTitle(intent, t)
           ) : (
             <>
-              Ücretsiz
+              {t("Ücretsiz")}
               <br />
-              hesap aç
+              {t("hesap aç")}
             </>
           )
         }
         description={
           intent
-            ? `Önce hesabını aç ve menünü kur; ${PLAN_LABELS[intent]} geçişini panelden tek tıkla başlatırsın. Kredi kartı şimdi istenmez.`
-            : "Kredi kartı gerekmez, 5 dakikada kurulur. Telefon, işletmenin iletişim numarası olarak kaydedilir."
+            ? t("Önce hesabını aç ve menünü kur; {plan} geçişini panelden tek tıkla başlatırsın. Kredi kartı şimdi istenmez.", {
+                plan: PLAN_LABELS[intent],
+              })
+            : t("Kredi kartı gerekmez, 5 dakikada kurulur. Telefon, işletmenin iletişim numarası olarak kaydedilir.")
         }
       />
       <form onSubmit={handleDetailsSubmit} className="mt-7 space-y-4">
         <div>
-          <AuthLabel htmlFor="name">İşletme adı</AuthLabel>
+          <AuthLabel htmlFor="name">{t("İşletme adı")}</AuthLabel>
           <AuthInput
             id="name"
             required
             autoComplete="organization"
-            placeholder="Alpha Cafe"
+            placeholder={t("Alpha Cafe")}
             icon={<UtensilsIcon size={20} />}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -245,20 +245,20 @@ export default function RegisterPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <AuthLabel htmlFor="email">E-posta</AuthLabel>
+          <AuthLabel htmlFor="email">{t("E-posta")}</AuthLabel>
           <AuthInput
             id="email"
             type="email"
             required
             autoComplete="email"
-            placeholder="ornek@isletme.com"
+            placeholder={t("ornek@isletme.com")}
             icon={<MailIcon size={20} />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div>
-          <AuthLabel htmlFor="phone">Telefon</AuthLabel>
+          <AuthLabel htmlFor="phone">{t("Telefon")}</AuthLabel>
           <AuthInput
             id="phone"
             type="tel"
@@ -279,7 +279,7 @@ export default function RegisterPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <AuthLabel htmlFor="password">Şifre</AuthLabel>
+          <AuthLabel htmlFor="password">{t("Şifre")}</AuthLabel>
           <AuthPasswordInput
             id="password"
             required
@@ -289,7 +289,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <AuthLabel htmlFor="passwordConfirm">Şifre tekrar</AuthLabel>
+          <AuthLabel htmlFor="passwordConfirm">{t("Şifre tekrar")}</AuthLabel>
           <AuthPasswordInput
             id="passwordConfirm"
             required
@@ -300,12 +300,12 @@ export default function RegisterPage() {
         </div>
         </div>
         {passwordConfirm.length > 0 && password !== passwordConfirm && (
-          <p className="text-sm text-paprika-deep">Şifreler eşleşmiyor.</p>
+          <p className="text-sm text-paprika-deep">{t("Şifreler eşleşmiyor.")}</p>
         )}
         <AuthError>{error}</AuthError>
-        <AuthSubmit loading={loading}>Doğrulama kodu gönder</AuthSubmit>
+        <AuthSubmit loading={loading}>{t("Doğrulama kodu gönder")}</AuthSubmit>
       </form>
-      <AuthAlternative question="Zaten hesabın var mı?" href="/panel/login" label="Giriş yap" />
+      <AuthAlternative question={t("Zaten hesabın var mı?")} href="/panel/login" label={t("Giriş yap")} />
     </>
   );
 }

@@ -7,7 +7,9 @@ description: buyur'da çevrilebilir bir içerik alanı eklerken, yeni dil deste�
 
 ## Model
 
-- Diller: `tr`, `en`, `ar`, `ru` — `ar` **RTL**
+- Diller: `tr`, `en`, `de`, `ar`, `fr`, `es`, `it`, `ru` — `ar` **RTL**
+- İşletme başına **en fazla 4 dil** (`MAX_MENU_LOCALES`: ana dil + 3 ek dil); dil seçimi
+  her yerde açılır menüdür (yan yana dil butonu yok). Ayrıntı: `docs/localization.md`
 - Ana metin (`name`, `description`) işletmenin **ana dilinde** tutulur
   (`business.main_language`, boşsa `tr`)
 - Diğer diller `translations` JSON alanından okunur
@@ -18,7 +20,7 @@ export type Translations = Partial<Record<Locale, Partial<Record<TranslatableFie
 ```
 
 Çevrilebilir alanlar: `name`, `description`, `campaign_label` (ürün),
-`group_name` (ürün seçeneği), `title` / `message` (popup).
+`group_name` (ürün seçeneği), `title` / `message` (popup), `marquee_text` (kayan yazı).
 
 ## Okuma — tek doğru yol
 
@@ -58,8 +60,15 @@ kullan. Sözleşme: `tests/language-rebase.test.ts`.
 ## Geriye uyum
 
 `main_language` ve `languages` alanlarının **ikisi de tanımsızsa** (eski kayıt)
-tüm diller aktif sayılır. Yeni kod yazarken bu varsayımı koru; eski
-işletmelerin dil seçicisi bir gecede kaybolmamalı.
+eski dört dil (`tr en ar ru`) aktif sayılır; sonradan eklenen diller bu
+işletmelere kendiliğinden açılmaz. `activeLocales()` hiçbir durumda 4 dili aşmaz.
+
+## Yeni dil ekleme
+
+`docs/localization.md` → "Yeni menü dili eklemek" listesi: `lib/i18n.ts` tabloları ve
+`UI_STRINGS`, `lib/labels.ts`, AI dil adı eşlemesi, `scripts/storefront-schema.mjs` +
+`scripts/migrate-storefront-i18n.mjs`. `tests/menu-locales.test.ts` her dilde eksiksiz
+metin ister.
 
 ## RTL
 
@@ -69,7 +78,9 @@ import { isRTLLocale } from "@/lib/i18n";
 
 Arapça seçiliyken kontrol edilecekler: metin yönü, hizalama, ikon yönü, kaydırma
 ve kenar boşlukları. `dir` kararını bileşene gömme — `isRTLLocale` tek karar
-noktasıdır.
+noktasıdır. Menü ve sitede mantıksal sınıflar kullanılır (`ms-/me-`, `ps-/pe-`,
+`start-/end-`, `text-start/end`); `ml-/mr-/left-/right-/text-left/right` yazılmaz.
+Yön bildiren ikonlar `rtl:rotate-180` alır.
 
 ## AI ile çeviri üretimi
 

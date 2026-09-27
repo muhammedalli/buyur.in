@@ -14,6 +14,8 @@ import { ADMIN_BYPASS, BUSINESS_COLLECTION, BUSINESS_RULES } from "./business-sc
 import { ADMIN_ROLE_VALUES, ADMIN_RULES, SUPER_ADMIN } from "./admin-schema.mjs";
 import { AUDIT_LOG_INDEXES, AUDIT_LOG_NEW_FIELDS, AUDIT_LOG_RULES } from "./audit-schema.mjs";
 import { SETTINGS_COLLECTION, SETTINGS_FIELDS, SETTINGS_INDEXES, SETTINGS_RULES, SETTING_SEEDS } from "./settings-schema.mjs";
+import { HIGHLIGHT_VALUES, MENU_EXTRA_LANGUAGES_MAX, MENU_LOCALE_VALUES, STOREFRONT_FIELDS } from "./storefront-schema.mjs";
+import { PAYMENTS_COLLECTION, PAYMENTS_INDEXES, PAYMENTS_RULES, paymentFields } from "./payments-schema.mjs";
 
 const PB_URL = process.env.POCKETBASE_API_URL;
 const PB_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -286,24 +288,8 @@ async function main() {
       text("phone", { max: 30 }),
       text("address", { max: 300 }),
       text("working_hours", { max: 500 }),
-      select(
-        "highlights",
-        [
-          "wifi",
-          "vale",
-          "otopark",
-          "cocuk_oyun_alani",
-          "evcil_hayvan_dostu",
-          "teras",
-          "canli_muzik",
-          "rezervasyon",
-          "kredi_karti",
-          "engelli_erisimi",
-          "sigara_alani",
-          "kahvalti",
-        ],
-        { maxSelect: 3 }
-      ),
+      // Mekân özellikleri — seçim sınırı yok (scripts/storefront-schema.mjs).
+      select("highlights", HIGHLIGHT_VALUES, { maxSelect: HIGHLIGHT_VALUES.length }),
       text("whatsapp", { max: 30 }),
       text("instagram", { max: 150 }),
       text("tiktok", { max: 150 }),
@@ -325,10 +311,11 @@ async function main() {
       // Boşsa lib/analytics/time.ts'teki varsayılan (Europe/Istanbul) kullanılır.
       text("timezone", { max: 40 }),
       boolField("is_active"),
-      // İşletmenin ana (baz) dili — ana metinler bu dilde tutulur.
-      select("main_language", ["tr", "en", "ar", "ru"], { maxSelect: 1 }),
+      // İşletmenin ana (baz) dili — ana metinler bu dilde tutulur. Mevcut
+      // kurulumlarda seçenekleri scripts/migrate-storefront-i18n.mjs genişletir.
+      select("main_language", MENU_LOCALE_VALUES, { maxSelect: 1 }),
       // Ana dil dışındaki aktif ek diller.
-      select("languages", ["tr", "en", "ar", "ru"], { maxSelect: 3 }),
+      select("languages", MENU_LOCALE_VALUES, { maxSelect: MENU_EXTRA_LANGUAGES_MAX }),
       json("translations"),
       // Aktivasyon işaretleri (lib/activation.ts): sektör şablonu, ilk QR
       // indirme, kontrol listesinin tamamlanması. Aktivasyon metriği buradan okunur.
@@ -347,6 +334,8 @@ async function main() {
       // herkese açık yüzeyden kalkar, veri durur ve geri alınabilir.
       dateField("deleted_at"),
       text("deletion_reason", { max: 500 }),
+      // Kayan yazı, web sitesi yayını, panel dili ve kılavuz (scripts/storefront-schema.mjs).
+      ...STOREFRONT_FIELDS,
       ...stamps(),
     ],
     // Kurulumu bitmemiş hesapların slug'ı boş: benzersizlik yalnızca dolu slug'lar için.
@@ -697,6 +686,17 @@ async function main() {
       }
     }
   }
+
+  // 10.2) payments — yönetim panelinin cari hesap kayıtları (borç, alınan ve
+  // verilen ödemeler). Yalnızca yönetim okur, super_admin yazar; tanım
+  // scripts/payments-schema.mjs, uygulama tarafı lib/payments.ts.
+  await getOrCreate({
+    name: PAYMENTS_COLLECTION,
+    type: "base",
+    ...PAYMENTS_RULES,
+    fields: paymentFields(businesses.id),
+    indexes: PAYMENTS_INDEXES,
+  });
 
   // 11) otps — kayıt sırasında e-posta doğrulama kodları ve şifre sıfırlama
   // bağlantıları. Yalnızca servis hesabı okur/yazar; kod/belirteç düz metin

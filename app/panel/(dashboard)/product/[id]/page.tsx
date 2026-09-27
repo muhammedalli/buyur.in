@@ -9,11 +9,13 @@ import { ProductForm } from "@/components/panel/product-form";
 import { ProductOptionsEditor } from "@/components/panel/product-options-editor";
 import { PageHeader } from "@/components/panel/ui";
 import type { Category, Product } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { business, isLoading: businessLoading } = useBusiness();
+  const { t } = useUiLocale();
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function EditProductPage() {
   }
 
   if (businessLoading || loading || !business || !product) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   return (

@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { AdminAccounts, type AdminAccountRow } from "@/components/admin/admin-accounts";
 import { SystemSettings, type PricedPlan, type SettingRow } from "@/components/admin/system-settings";
-import { PageHeader } from "@/components/panel/ui";
+import { NavTabs, PageHeader } from "@/components/panel/ui";
 import { ADMIN_COLLECTION, isServiceAccountEmail, requireAdmin } from "@/lib/admin-auth";
 import { formatAdminDate } from "@/lib/admin-format";
 import { loadLastEvents } from "@/lib/admin-logs";
@@ -44,22 +43,16 @@ export default async function AdminSystemPage({ searchParams }: { searchParams: 
   return (
     <>
       <PageHeader title="Sistem" description="Bütün işletmeleri etkileyen genel değişkenler ve yönetim ekibinin erişimi." />
-      <nav aria-label="Sistem bölümleri" className="mb-6 flex gap-6 overflow-x-auto border-b border-line">
-        {tabs
-          .filter((t) => t.show)
-          .map((t) => (
-            <Link
-              key={t.key}
-              href={t.key === "ayarlar" ? "/admin/system" : `/admin/system?sekme=${t.key}`}
-              aria-current={tab === t.key ? "page" : undefined}
-              className={`relative -mb-px whitespace-nowrap border-b-2 pb-3 pt-1 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-                tab === t.key ? "border-paprika text-paprika" : "border-transparent text-ink-soft hover:text-ink"
-              }`}
-            >
-              {t.label}
-            </Link>
-          ))}
-      </nav>
+      <NavTabs
+        label="Sistem bölümleri"
+        items={tabs
+          .filter((item) => item.show)
+          .map((item) => ({
+            href: item.key === "ayarlar" ? "/admin/system" : `/admin/system?sekme=${item.key}`,
+            label: item.label,
+            active: tab === item.key,
+          }))}
+      />
       {tab === "ayarlar" ? <SettingsTab pb={pb} /> : <TeamTab pb={pb} selfId={admin.id} />}
     </>
   );

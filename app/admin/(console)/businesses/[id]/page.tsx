@@ -12,6 +12,9 @@ import { businessStatus } from "@/lib/admin-business-list";
 import { loadBusinessDetail } from "@/lib/admin-businesses";
 import { formatAdminDate, formatAdminDay, toDateInputValue } from "@/lib/admin-format";
 import { loadLastEvents } from "@/lib/admin-logs";
+import { loadPayments, toPaymentRow } from "@/lib/admin-payments";
+import { NewPaymentButton, PaymentsTable } from "@/components/admin/payments";
+import { formatAmount, formatDay, summarizePayments } from "@/lib/payments";
 import { canPerform } from "@/lib/admin-roles";
 import { aiUsage, freemiumUsage, normalizePlan } from "@/lib/entitlements";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
@@ -38,11 +41,13 @@ const count = (n: number) => n.toLocaleString("tr-TR");
 export default async function AdminBusinessPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ pb, admin }, { id }] = await Promise.all([requireAdmin({ action: "business.view" }), params]);
   // Plan kuralları (süre/kota) canlı katalogdan okunur; giriş geçmişi aynı turda.
-  const [detail, , logins, failures] = await Promise.all([
+  const canViewPayments = canPerform(admin.role, "payments.view");
+  const [detail, , logins, failures, payments] = await Promise.all([
     loadBusinessDetail(id),
     getServicePB().then(ensurePlanCatalog),
     loadLastEvents(pb, "business.login", "business_id", [id]),
     loadLastEvents(pb, "business.login_failed", "business_id", [id]),
+    canViewPayments ? loadPayments(pb, id) : Promise.resolve(null),
   ]);
   if (!detail) notFound();
 
@@ -170,6 +175,14 @@ export default async function AdminBusinessPage({ params }: { params: Promise<{ 
         </div>
       </section>
 
+      {canViewPayments && (
+        <PaymentsSection
+          business={{ id: business.id, name: business.name || business.slug || "Adsız hesap" }}
+          payments={payments}
+          canEdit={canPerform(admin.role, "payments.edit")}
+        />
+      )}
+
       <section className="mt-10">
         <SectionHeader
           title="Etkinlik geçmişi"
@@ -208,5 +221,74 @@ export default async function AdminBusinessPage({ params }: { params: Promise<{ 
         </Card>
       </section>
     </>
+  );
+}
+
+/** İşletmenin cari hesabı: borç, ödenen, kalan borç ve ödeme geçmişi. Bakiye
+ *  her açılışta kayıtlardan hesaplanır (lib/payments.ts). */
+function PaymentsSection({
+  business,
+  payments,
+  canEdit,
+}: {
+  business: { id: string; name: string };
+  payments: Awaited<ReturnType<typeof loadPayments>>;
+  canEdit: boolean;
+}) {
+  const header = (
+    <SectionHeader
+      title="Ödemeler"
+      description="Borç kayıtları, alınan ve verilen ödemeler. Kalan borç = toplam borç − (alınan − verilen)."
+      action={canEdit ? <NewPaymentButton businesses={[business]} fixedBusiness={business} label="Ödeme ekle" /> : undefined}
+    />
+  );
+  if (!payments) {
+    return (
+      <section className="mt-10">
+        {header}
+        <p role="status" className="mt-4 rounded-md border border-paprika/30 bg-paprika/10 px-4 py-3 text-sm text-paprika">
+          Ödeme kayıtları şu anda okunamıyor; sayfayı yenileyip tekrar deneyin.
+        </p>
+      </section>
+    );
+  }
+  const summary = summarizePayments(payments);
+  return (
+    <section className="mt-10">
+      {header}
+      <StatGroup
+        className="mt-4 grid-cols-1 min-[360px]:grid-cols-2"
+        columns={3}
+        size="sm"
+        items={[
+          { label: "Toplam borç", value: formatAmount(summary.totalDebt) },
+          { label: "Toplam ödenen", value: formatAmount(summary.totalPaid), hint: "Alınan − verilen" },
+          {
+            label: "Kalan borç",
+            value: formatAmount(Math.max(0, summary.balance)),
+            hint:
+              summary.balance < 0
+                ? `Fazla ödeme: ${formatAmount(-summary.balance)} (işletme alacaklı)`
+                : summary.pendingIncoming > 0
+                  ? `Bekleyen ödeme: ${formatAmount(summary.pendingIncoming)}`
+                  : summary.balance === 0
+                    ? "Borç yok"
+                    : undefined,
+          },
+          { label: "Toplam alınan", value: formatAmount(summary.totalReceived) },
+          { label: "Toplam verilen", value: formatAmount(summary.totalPaidOut) },
+          { label: "Son ödeme tarihi", value: summary.lastPaymentDay ? formatDay(summary.lastPaymentDay) : "—" },
+        ]}
+      />
+      <div className="mt-4">
+        {payments.length === 0 ? (
+          <Card>
+            <p className="text-sm text-ink-soft">Bu işletme için henüz ödeme kaydı yok.</p>
+          </Card>
+        ) : (
+          <PaymentsTable rows={payments.map(toPaymentRow)} businesses={[business]} fixedBusiness={business} canEdit={canEdit} />
+        )}
+      </div>
+    </section>
   );
 }

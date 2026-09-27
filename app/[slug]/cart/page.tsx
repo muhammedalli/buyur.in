@@ -55,7 +55,7 @@ export default function CartPage() {
                     </button>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className="font-mono text-sm font-medium">{formatPrice(line.unitPrice * line.quantity)}</p>
                   <button
                     onClick={() => removeLine(line.key)}

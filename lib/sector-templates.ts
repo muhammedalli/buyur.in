@@ -1,4 +1,5 @@
 import type { Template } from "@/lib/types";
+import { msg } from "@/lib/ui-i18n";
 
 // İlk girişte örnek veri yerine sektör şablonu: işletme boş bir panelle değil,
 // kendi sektörünün kategori iskeletiyle başlar. Ürün eklenmemiş kategoriler
@@ -8,6 +9,8 @@ export type SectorKey = "kafe" | "restoran" | "pastane" | "bar" | "bos";
 
 export interface SectorTemplate {
   key: SectorKey;
+  /** Kurulum ekranındaki ad/açıklama — panel diline çevrilir (msg). Kategori ve
+   *  ürün adları ise menü içeriğidir, işletmenin ana dilinde (Türkçe) oluşur. */
   label: string;
   description: string;
   /** Menü görünümü: görsel ağırlıklı sektörlerde grid. */
@@ -21,8 +24,8 @@ export interface SectorTemplate {
 export const SECTOR_TEMPLATES: SectorTemplate[] = [
   {
     key: "kafe",
-    label: "Kafe",
-    description: "Kahve, tatlı ve atıştırmalık",
+    label: msg("Kafe"),
+    description: msg("Kahve, tatlı ve atıştırmalık"),
     template: "liste",
     categories: [
       {
@@ -60,8 +63,8 @@ export const SECTOR_TEMPLATES: SectorTemplate[] = [
   },
   {
     key: "restoran",
-    label: "Restoran",
-    description: "Başlangıçtan tatlıya tam menü",
+    label: msg("Restoran"),
+    description: msg("Başlangıçtan tatlıya tam menü"),
     template: "liste",
     categories: [
       {
@@ -96,8 +99,8 @@ export const SECTOR_TEMPLATES: SectorTemplate[] = [
   },
   {
     key: "pastane",
-    label: "Pastane",
-    description: "Görsel ağırlıklı vitrin menüsü",
+    label: msg("Pastane"),
+    description: msg("Görsel ağırlıklı vitrin menüsü"),
     template: "grid",
     categories: [
       {
@@ -120,8 +123,8 @@ export const SECTOR_TEMPLATES: SectorTemplate[] = [
   },
   {
     key: "bos",
-    label: "Boş başla",
-    description: "Kategorileri kendim oluşturacağım",
+    label: msg("Boş başla"),
+    description: msg("Kategorileri kendim oluşturacağım"),
     template: "liste",
     categories: [],
   },

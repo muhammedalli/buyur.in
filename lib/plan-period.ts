@@ -72,7 +72,3 @@ export function trialStatus(
     warn: daysLeft <= TRIAL_WARNING_DAYS,
   };
 }
-
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", year: "numeric" }).format(date);
-}

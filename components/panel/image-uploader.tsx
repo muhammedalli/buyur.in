@@ -4,6 +4,7 @@ import { useState } from "react";
 import { uploadFile, type UploadKind } from "@/lib/upload";
 import { Spinner } from "@/components/panel/ui";
 import { useToast } from "@/components/panel/toast";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Tek görsel yükleyici — her yerde resim tekildir, çoklu ekleme yoktur.
 // Yükleme sırasında loader gösterir; hazır görselin üstünde "değiştir"/"kaldır" sunar.
@@ -28,6 +29,7 @@ export function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(false);
   const { toast } = useToast();
+  const { t } = useUiLocale();
 
   async function handleFile(files: FileList | null) {
     const file = files?.[0];
@@ -37,10 +39,10 @@ export function ImageUploader({
     try {
       const url = await uploadFile(file, businessId, kind, name);
       onChange(url);
-      toast("Görsel yüklendi");
+      toast(t("Görsel yüklendi"));
     } catch {
       setError(true);
-      toast("Görsel yüklenemedi, tekrar dene.", "error");
+      toast(t("Görsel yüklenemedi, tekrar dene."), "error");
     } finally {
       setUploading(false);
     }
@@ -48,7 +50,7 @@ export function ImageUploader({
 
   function handleRemove() {
     onChange("");
-    toast("Görsel kaldırıldı");
+    toast(t("Görsel kaldırıldı"));
   }
 
   return (
@@ -58,7 +60,7 @@ export function ImageUploader({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={value} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-ink-soft">Görsel yok</div>
+          <div className="flex h-full items-center justify-center text-xs text-ink-soft">{t("Görsel yok")}</div>
         )}
 
         {/* Yükleme loader'ı */}
@@ -73,8 +75,8 @@ export function ImageUploader({
           <button
             type="button"
             onClick={handleRemove}
-            aria-label="Görseli kaldır"
-            title="Görseli kaldır"
+            aria-label={t("Görseli kaldır")}
+            title={t("Görseli kaldır")}
             className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-ink/70 text-paper shadow-sm backdrop-blur-sm transition-colors hover:bg-paprika"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -87,7 +89,7 @@ export function ImageUploader({
         {/* Tıklanınca dosya seçtiren katman */}
         {!uploading && (
           <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
-            <span className="font-mono text-[11px] uppercase tracking-wider">{value ? "Değiştir" : "Görsel yükle"}</span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">{value ? t("Değiştir") : t("Görsel yükle")}</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
@@ -98,7 +100,7 @@ export function ImageUploader({
         )}
       </div>
 
-      {error && <p className="mt-1.5 text-xs text-paprika-deep">Yüklenemedi, tekrar dene.</p>}
+      {error && <p className="mt-1.5 text-xs text-paprika-deep">{t("Yüklenemedi, tekrar dene.")}</p>}
     </div>
   );
 }

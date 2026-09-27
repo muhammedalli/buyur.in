@@ -8,6 +8,7 @@ import { ImageUploader } from "@/components/panel/image-uploader";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Business, Popup } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 interface PopupValues {
   title: string;
@@ -52,6 +53,7 @@ export function PopupForm({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState("");
   const { toast } = useToast();
+  const { t } = useUiLocale();
 
   const currentJson = JSON.stringify({ title, message, imageUrl, isActive, translations } satisfies PopupValues);
   const dirty = currentJson !== JSON.stringify(baseline);
@@ -90,11 +92,11 @@ export function PopupForm({
       setIsActive(saved.isActive);
       setTranslations(saved.translations);
       setSavedAt(Date.now());
-      toast(initial ? "Kampanya güncellendi" : "Kampanya eklendi");
+      toast(initial ? t("Kampanya güncellendi") : t("Kampanya eklendi"));
       onSaved(record);
     } catch {
-      setError("Kaydedilemedi, tekrar dene.");
-      toast("Kaydedilemedi, tekrar dene.", "error");
+      setError(t("Kaydedilemedi, tekrar dene."));
+      toast(t("Kaydedilemedi, tekrar dene."), "error");
     } finally {
       setSaving(false);
     }
@@ -108,12 +110,12 @@ export function PopupForm({
         savedAt={savedAt ?? initial?.updated ?? null}
         error={error || undefined}
         onCancel={onCancel}
-        toggle={{ checked: isActive, onChange: setIsActive, label: "Aktif" }}
+        toggle={{ checked: isActive, onChange: setIsActive, label: t("Aktif") }}
       />
       <Card className="space-y-5">
         {/* Üstte solda kare görsel */}
         <div className="w-32">
-          <Label>Görsel (opsiyonel)</Label>
+          <Label>{t("Görsel (opsiyonel)")}</Label>
           <ImageUploader value={imageUrl} onChange={setImageUrl} businessId={business.id} kind="popup" name={title} aspect="aspect-square" />
         </div>
         {/* Başlık ve mesaj dil bazlı — ana dil baz alan, diğerleri çeviri */}
@@ -124,11 +126,11 @@ export function PopupForm({
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
-          title="Başlık ve mesaj"
+          title={t("Başlık ve mesaj")}
           translate={{ business, kind: "popup" }}
           fields={[
-            { key: "title", label: "Başlık", required: true, placeholder: "Bu hafta sonuna özel!" },
-            { key: "message", label: "Mesaj", multiline: true, rows: 3 },
+            { key: "title", label: t("Başlık"), required: true, placeholder: t("Bu hafta sonuna özel!") },
+            { key: "message", label: t("Mesaj"), multiline: true, rows: 3 },
           ]}
         />
       </Card>

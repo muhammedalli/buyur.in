@@ -52,10 +52,10 @@ bun run brand    # marka görsellerini yeniden üret
 
 ```
 app/[slug]/       müşteri menüsü          app/panel/        işletme paneli
-app/site/[slug]/  otomatik işletme sitesi app/api/          track, upload, ai, analytics
-components/       menu/ · panel/ · site/  lib/              iş kuralları ve veri katmanı
-scripts/          şema, göç, tohum        tests/            iş kuralı sözleşmeleri (Vitest)
-docs/             mimari ve ürün notları
+app/site/[slug]/  otomatik işletme sitesi app/admin/        yönetim paneli (admin.buyur.in)
+app/api/          track, upload, ai, admin components/       ui/ · menu/ · panel/ · admin/ · site/
+lib/              iş kuralları ve veri    scripts/          şema, göç, tohum
+tests/            iş kuralı sözleşmeleri  docs/             AI ve geliştirici için kurallar
 ```
 
 ## Bilinmesi gereken kararlar
@@ -65,7 +65,8 @@ docs/             mimari ve ürün notları
 - **Üç ayrı PocketBase istemcisi** vardır (tarayıcı / istek başına sunucu / servis hesabı);
   doğru olanı seçmek bir güvenlik kararıdır.
 - **Menü ziyaretçisi veritabanına doğrudan yazmaz** — tek kapı `/api/track`.
-- **Kullanıcıya görünen tüm metinler Türkçe**; menü içeriği ayrıca `tr / en / ar / ru` çevrilebilir.
+- **Kullanıcıya görünen tüm metinler Türkçe**; menü içeriği 8 dilde (`tr en de ar fr es it ru`), işletme başına en fazla 4 dil.
+- **Hiçbir panel ekranı yatayda kaymaz** — sekme dar ekranda açılır menüye, gezinme yaprağa (Sheet) döner.
 - **Menü mobilde 2 saniyenin altında açılmalı** — trafiğin %95+'ı mobildir.
 
 Gerekçeleriyle tamamı: [`CLAUDE.md`](./CLAUDE.md)
@@ -76,8 +77,13 @@ Gerekçeleriyle tamamı: [`CLAUDE.md`](./CLAUDE.md)
 |---|---|
 | [`CLAUDE.md`](./CLAUDE.md) | mimari kararlar ve kurallar — kod yazmadan önce okunur |
 | [`AGENTS.md`](./AGENTS.md) | kodlama ajanları için kısa giriş |
+| [`docs/architecture.md`](./docs/architecture.md) | yüzler, veri erişimi, iş kurallarının yeri |
+| [`docs/development-rules.md`](./docs/development-rules.md) | bitti tanımı, veri kaybını önleme, şema/göç, güvenlik |
+| [`docs/ui-guidelines.md`](./docs/ui-guidelines.md) | UI kiti (shadcn/ui katmanı), yatay taşma kuralı, gezinme |
+| [`docs/localization.md`](./docs/localization.md) | menü dilleri (8 dil, en fazla 4), RTL, arayüz dili |
+| [`docs/admin-panel.md`](./docs/admin-panel.md) | yönetim paneli güvenlik modeli, yazma akışı, ekranlar |
+| [`docs/payments.md`](./docs/payments.md) | ödemeler (cari hesap) modeli ve hesap kuralları |
 | [`docs/analytics-architecture.md`](./docs/analytics-architecture.md) | analitik mimarisi (koddaki §N atıflarının hedefi) |
-| [`docs/urun-vizyonu.md`](./docs/urun-vizyonu.md) | ürün vizyonu ve özellik anlatımı |
-| [`docs/ai-menu-aktarimi-brief.md`](./docs/ai-menu-aktarimi-brief.md) | AI menü aktarımı özellik brief'i |
+| [`docs/audit-log.md`](./docs/audit-log.md) | merkezi denetim kaydı ve PocketBase hook kurulumu |
 | [`.claude/skills/`](./.claude/skills/) | sık tekrarlanan işlerin adım adım akışları |
 | [`.claude/agents/`](./.claude/agents/) | alan uzmanı ajanlar (frontend, backend, quality) |

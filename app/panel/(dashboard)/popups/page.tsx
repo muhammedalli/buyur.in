@@ -10,10 +10,12 @@ import { Button, buttonClass, Card, EmptyState, FooterNote, PageHeader, UpdatedA
 import { isFeatureAvailable } from "@/lib/entitlements";
 import type { Popup } from "@/lib/types";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function AnnouncementsPage() {
   const { business, isLoading: businessLoading } = useBusiness();
   const { toast } = useToast();
+  const { t } = useUiLocale();
   const [confirm, confirmDialog] = useConfirm();
   const [popups, setPopups] = useState<Popup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,35 +51,35 @@ export default function AnnouncementsPage() {
 
   async function handleDelete(popup: Popup) {
     const ok = await confirm({
-      title: "Kampanya silinsin mi?",
-      description: `“${popup.title}” menüden kaldırılır ve geri alınamaz.`,
-      confirmLabel: "Sil",
+      title: t("Kampanya silinsin mi?"),
+      description: t("“{title}” menüden kaldırılır ve geri alınamaz.", { title: popup.title }),
+      confirmLabel: t("Sil"),
       tone: "danger",
     });
     if (!ok) return;
     try {
       await pb.collection("buyur_popups").delete(popup.id, { requestKey: null });
       setPopups((list) => list.filter((item) => item.id !== popup.id));
-      toast("Kampanya silindi");
+      toast(t("Kampanya silindi"));
     } catch {
-      toast("Kampanya silinemedi, tekrar dene.", "error");
+      toast(t("Kampanya silinemedi, tekrar dene."), "error");
     }
   }
 
   if (businessLoading || loading) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   if (loadFailed) {
     return (
       <div>
-        <PageHeader title="Kampanyalar" description="Müşteri menüyü açtığında gösterilecek kampanya ya da duyuru." />
+        <PageHeader title={t("Kampanyalar")} description={t("Müşteri menüyü açtığında gösterilecek kampanya ya da duyuru.")} />
         <EmptyState
-          title="Kampanyalar yüklenemedi"
-          description="Bağlantıda geçici bir sorun olabilir."
+          title={t("Kampanyalar yüklenemedi")}
+          description={t("Bağlantıda geçici bir sorun olabilir.")}
           action={
             <Button type="button" variant="outline" onClick={load}>
-              Tekrar dene
+              {t("Tekrar dene")}
             </Button>
           }
         />
@@ -91,12 +93,12 @@ export default function AnnouncementsPage() {
   return (
     <div>
       <PageHeader
-        title="Kampanyalar"
-        description="Müşteri menüyü açtığında gösterilecek kampanya ya da duyuru."
+        title={t("Kampanyalar")}
+        description={t("Müşteri menüyü açtığında gösterilecek kampanya ya da duyuru.")}
         action={
           campaignsAllowed && (
             <Link href="/panel/popups/new" className={buttonClass("primary")}>
-              + Yeni kampanya
+              {t("+ Yeni kampanya")}
             </Link>
           )
         }
@@ -105,18 +107,18 @@ export default function AnnouncementsPage() {
       {campaignsAllowed === false && (
         <FeatureLocked
           feature="campaigns"
-          subject="Kampanyalar"
-          description="Menü açıldığında gösterilen kampanya ve duyuru pencereleri."
+          subject={t("Kampanyalar")}
+          description={t("Menü açıldığında gösterilen kampanya ve duyuru pencereleri.")}
         />
       )}
 
       {campaignsAllowed && popups.length === 0 && (
         <EmptyState
-          title="Henüz duyuru yok"
-          description="Menü açıldığında gösterilecek bir kampanya duyurusu oluştur."
+          title={t("Henüz duyuru yok")}
+          description={t("Menü açıldığında gösterilecek bir kampanya duyurusu oluştur.")}
           action={
             <Link href="/panel/popups/new" className={buttonClass("primary")}>
-              + Yeni kampanya
+              {t("+ Yeni kampanya")}
             </Link>
           }
         />
@@ -134,7 +136,7 @@ export default function AnnouncementsPage() {
                 <p className="font-display font-bold">
                   {p.title}{" "}
                   {!p.is_active && (
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">(pasif)</span>
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{t("(pasif)")}</span>
                   )}
                 </p>
                 {p.message && <p className="text-sm text-ink-soft">{p.message}</p>}
@@ -142,10 +144,10 @@ export default function AnnouncementsPage() {
             </div>
             <div className="flex shrink-0 gap-2">
               <Link href={`/panel/popup/${p.id}`} className={buttonClass("outline")}>
-                Düzenle
+                {t("Düzenle")}
               </Link>
               <Button variant="danger" onClick={() => handleDelete(p)}>
-                Sil
+                {t("Sil")}
               </Button>
             </div>
           </Card>

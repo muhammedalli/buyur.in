@@ -7,7 +7,8 @@ import { pb } from "@/lib/pocketbase";
 import { Spinner } from "@/components/panel/ui";
 import { RESET_DONE_PARAM, errorMessage } from "@/components/panel/auth-card";
 import { AuthError, AuthHeading, AuthLabel, AuthPasswordInput, AuthSubmit } from "@/components/panel/auth-form";
-import { MIN_PASSWORD_LENGTH, newPasswordError } from "@/lib/password";
+import { MIN_PASSWORD_LENGTH, passwordProblem } from "@/lib/password";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Şifre sıfırlama bağlantısının açtığı ekran. Belirteç açılışta sunucuya
 // doğrulatılır: geçersiz/süresi dolmuş bağlantıda kullanıcı boşuna şifre
@@ -18,6 +19,7 @@ type Phase = "checking" | "invalid" | "form" | "done";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const { t } = useUiLocale();
   const token = useRef("");
   const [phase, setPhase] = useState<Phase>("checking");
   const [invalidReason, setInvalidReason] = useState("");
@@ -32,7 +34,7 @@ export default function ResetPasswordPage() {
     window.history.replaceState(null, "", window.location.pathname);
 
     if (!token.current) {
-      setInvalidReason("Bağlantı eksik görünüyor. E-postadaki bağlantıyı tam olarak açtığından emin ol.");
+      setInvalidReason(t("Bağlantı eksik görünüyor. E-postadaki bağlantıyı tam olarak açtığından emin ol."));
       setPhase("invalid");
       return;
     }
@@ -49,7 +51,7 @@ export default function ResetPasswordPage() {
           setPhase("form");
           return;
         }
-        setInvalidReason(await errorMessage(res, "Bu bağlantı geçersiz ya da süresi dolmuş."));
+        setInvalidReason(t(await errorMessage(res, "Bu bağlantı geçersiz ya da süresi dolmuş.")));
         setPhase("invalid");
       })
       .catch(() => {
@@ -60,14 +62,15 @@ export default function ResetPasswordPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    const passwordError = newPasswordError(password, passwordConfirm);
-    if (passwordError) {
-      setError(passwordError);
+    const problem = passwordProblem(password, passwordConfirm);
+    if (problem) {
+      setError(t(problem.message, problem.vars));
       return;
     }
 
@@ -80,7 +83,7 @@ export default function ResetPasswordPage() {
       });
       if (!res.ok) {
         const body = (await res.clone().json().catch(() => null)) as { code?: string } | null;
-        const message = await errorMessage(res, "Şifre güncellenemedi, tekrar dene.");
+        const message = t(await errorMessage(res, "Şifre güncellenemedi, tekrar dene."));
         if (body?.code === "invalid_token") {
           setInvalidReason(message);
           setPhase("invalid");
@@ -94,7 +97,7 @@ export default function ResetPasswordPage() {
       setPhase("done");
       setTimeout(() => router.replace(`/panel/login?${RESET_DONE_PARAM}=1`), 2500);
     } catch {
-      setError("Bağlantı kurulamadı, tekrar dene.");
+      setError(t("Bağlantı kurulamadı, tekrar dene."));
     } finally {
       setLoading(false);
     }
@@ -104,7 +107,7 @@ export default function ResetPasswordPage() {
     return (
       <p role="status" className="flex items-center gap-3 text-[15px] text-ink-soft">
         <Spinner className="h-5 w-5 text-paprika" />
-        Bağlantı kontrol ediliyor…
+        {t("Bağlantı kontrol ediliyor…")}
       </p>
     );
   }
@@ -115,19 +118,19 @@ export default function ResetPasswordPage() {
         <AuthHeading
           title={
             <>
-              Bağlantı
+              {t("Bağlantı")}
               <br />
-              kullanılamıyor
+              {t("kullanılamıyor")}
             </>
           }
           description={invalidReason}
         />
         <div className="mt-10 flex flex-wrap items-center justify-between gap-3 text-[15px]">
           <Link href="/panel/forgot-password" className="font-medium text-paprika hover:underline">
-            Yeni bağlantı iste
+            {t("Yeni bağlantı iste")}
           </Link>
           <Link href="/panel/login" className="text-ink-soft hover:text-ink hover:underline">
-            Giriş ekranına dön
+            {t("Giriş ekranına dön")}
           </Link>
         </div>
       </>
@@ -140,15 +143,15 @@ export default function ResetPasswordPage() {
         <AuthHeading
           title={
             <>
-              Şifren
+              {t("Şifren")}
               <br />
-              güncellendi
+              {t("güncellendi")}
             </>
           }
-          description="Güvenliğin için tüm cihazlardaki oturumların kapatıldı. Giriş ekranına yönlendiriliyorsun…"
+          description={t("Güvenliğin için tüm cihazlardaki oturumların kapatıldı. Giriş ekranına yönlendiriliyorsun…")}
         />
         <Link href={`/panel/login?${RESET_DONE_PARAM}=1`} className="mt-10 inline-block text-[15px] font-medium text-paprika hover:underline">
-          Hemen giriş yap
+          {t("Hemen giriş yap")}
         </Link>
       </div>
     );
@@ -159,16 +162,16 @@ export default function ResetPasswordPage() {
       <AuthHeading
         title={
           <>
-            Yeni şifreni
+            {t("Yeni şifreni")}
             <br />
-            belirle
+            {t("belirle")}
           </>
         }
-        description={`En az ${MIN_PASSWORD_LENGTH} karakter olmalı.`}
+        description={t("En az {min} karakter olmalı.", { min: MIN_PASSWORD_LENGTH })}
       />
       <form onSubmit={handleSubmit} className="mt-10 space-y-6">
         <div>
-          <AuthLabel htmlFor="password">Yeni şifre</AuthLabel>
+          <AuthLabel htmlFor="password">{t("Yeni şifre")}</AuthLabel>
           <AuthPasswordInput
             id="password"
             required
@@ -179,7 +182,7 @@ export default function ResetPasswordPage() {
           />
         </div>
         <div>
-          <AuthLabel htmlFor="passwordConfirm">Yeni şifre tekrar</AuthLabel>
+          <AuthLabel htmlFor="passwordConfirm">{t("Yeni şifre tekrar")}</AuthLabel>
           <AuthPasswordInput
             id="passwordConfirm"
             required
@@ -188,11 +191,11 @@ export default function ResetPasswordPage() {
             onChange={(e) => setPasswordConfirm(e.target.value)}
           />
           {passwordConfirm.length > 0 && password !== passwordConfirm && (
-            <p className="mt-2 text-sm text-paprika-deep">Şifreler eşleşmiyor.</p>
+            <p className="mt-2 text-sm text-paprika-deep">{t("Şifreler eşleşmiyor.")}</p>
           )}
         </div>
         <AuthError>{error}</AuthError>
-        <AuthSubmit loading={loading}>Şifremi güncelle</AuthSubmit>
+        <AuthSubmit loading={loading}>{t("Şifremi güncelle")}</AuthSubmit>
       </form>
     </>
   );

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { EyeIcon, QrCodeIcon, ClockIcon, ShoppingBagIcon } from "@/components/icons";
+import { siteClientTranslator } from "@/lib/ui-messages/site-client";
+import { msg, uiLocaleTags, type Translator, type UiLocale } from "@/lib/ui-i18n";
 
 /* ─── Grafik paleti ────────────────────────────────────────────
    Marka renklerinden türetildi ve kâğıt zemine (#fbf5ea) karşı
@@ -67,7 +69,11 @@ function monotonePath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-const tr = new Intl.NumberFormat("tr-TR");
+/** Bölümün dil bağlamı: çevirmen + sayı biçimi. Alt bileşenlere tek nesneyle geçer. */
+interface Copy {
+  t: Translator;
+  num: (value: number) => string;
+}
 
 // Görünür olunca sayıyı 0'dan hedefe sayar. Hareketi kapatan
 // kullanıcıya son değeri anında verir.
@@ -116,7 +122,7 @@ function useCountUp(target: number, duration = 1400) {
 type Tile = {
   label: string;
   target: number;
-  display: (v: number) => string;
+  display: (v: number, num: (value: number) => string) => string;
   delta: string;
   icon: (p: { size?: number }) => ReactNode;
   spark: number[];
@@ -124,23 +130,23 @@ type Tile = {
 
 const tiles: Tile[] = [
   {
-    label: "Menü görüntülenme",
+    label: msg("Menü görüntülenme"),
     target: 12480,
-    display: (v) => tr.format(v),
+    display: (v, num) => num(v),
     delta: "+%38",
     icon: EyeIcon,
     spark: [22, 30, 26, 38, 44, 40, 52, 58, 55, 68, 79, 92],
   },
   {
-    label: "QR taraması",
+    label: msg("QR taraması"),
     target: 3281,
-    display: (v) => tr.format(v),
+    display: (v, num) => num(v),
     delta: "+%24",
     icon: QrCodeIcon,
     spark: [30, 34, 41, 38, 46, 52, 49, 58, 63, 61, 72, 80],
   },
   {
-    label: "Ortalama inceleme",
+    label: msg("Ortalama inceleme"),
     target: 160,
     display: (v) => `${Math.floor(v / 60)}:${String(v % 60).padStart(2, "0")}`,
     delta: "+%12",
@@ -148,9 +154,9 @@ const tiles: Tile[] = [
     spark: [40, 44, 42, 48, 46, 53, 57, 54, 60, 64, 62, 70],
   },
   {
-    label: "Sepete eklenen ürün",
+    label: msg("Sepete eklenen ürün"),
     target: 894,
-    display: (v) => tr.format(v),
+    display: (v, num) => num(v),
     delta: "+%51",
     icon: ShoppingBagIcon,
     spark: [18, 24, 21, 30, 36, 33, 44, 48, 57, 62, 74, 88],
@@ -198,7 +204,7 @@ function Sparkline({ data }: { data: number[] }) {
   );
 }
 
-function StatTile({ tile, index }: { tile: Tile; index: number }) {
+function StatTile({ tile, index, copy }: { tile: Tile; index: number; copy: Copy }) {
   const { ref, value } = useCountUp(tile.target);
   const Icon = tile.icon;
 
@@ -218,18 +224,18 @@ function StatTile({ tile, index }: { tile: Tile; index: number }) {
       </div>
 
       <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-        {tile.label}
+        {copy.t(tile.label)}
       </p>
 
       <div className="mt-1 flex items-end justify-between gap-3">
         {/* Büyük tek sayı: orantılı rakamlar (tabular-nums burada gevşek durur) */}
         <p ref={ref} className="font-display text-3xl font-extrabold tracking-tight">
-          {tile.display(value)}
+          {tile.display(value, copy.num)}
         </p>
         <Sparkline data={tile.spark} />
       </div>
       <p className="mt-2 font-mono text-[10px] text-ink-soft/70">
-        geçen aya göre
+        {copy.t("geçen aya göre")}
       </p>
     </div>
   );
@@ -237,7 +243,22 @@ function StatTile({ tile, index }: { tile: Tile; index: number }) {
 
 /* ─── 1. Çizgi grafiği: aylık görüntülenme ────────────────── */
 
-const months = ["Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara", "Oca"];
+// Son 12 ay (Şubat → Ocak). Kısaltmalar katalogdan gelir, Intl'den değil:
+// sunucu ile tarayıcının ICU verisi farklıysa ("Şub" / "Şub.") hydration bozulurdu.
+const MONTHS = [
+  msg("Şub"),
+  msg("Mar"),
+  msg("Nis"),
+  msg("May"),
+  msg("Haz"),
+  msg("Tem"),
+  msg("Ağu"),
+  msg("Eyl"),
+  msg("Eki"),
+  msg("Kas"),
+  msg("Ara"),
+  msg("Oca"),
+];
 const views = [820, 940, 880, 1120, 1240, 1180, 1460, 1620, 1540, 1880, 2140, 2380];
 
 const LW = 660;
@@ -254,7 +275,8 @@ const linePts = views.map((v, i) => ({ x: lx(i), y: ly(v) }));
 const lineD = monotonePath(linePts);
 const areaD = `${lineD} L ${lx(views.length - 1)} ${ly(0)} L ${lx(0)} ${ly(0)} Z`;
 
-function ViewsChart() {
+function ViewsChart({ copy, months }: { copy: Copy; months: string[] }) {
+  const { t, num } = copy;
   const pathRef = useRef<SVGPathElement>(null);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -273,38 +295,38 @@ function ViewsChart() {
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h3 className="font-display text-lg font-bold">Menü görüntülenmeleri</h3>
+          <h3 className="font-display text-lg font-bold">{t("Menü görüntülenmeleri")}</h3>
           <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-            Son 12 ay
+            {t("Son 12 ay")}
           </p>
         </div>
-        <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">Örnek veri</p>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{t("Örnek veri")}</p>
       </div>
 
       <div className="relative mt-5">
         <svg viewBox={`0 0 ${LW} ${LH}`} className="w-full" role="img"
-          aria-label="Son 12 ayda menü görüntülenmeleri 820'den 2.380'e yükseldi.">
+          aria-label={t("Son 12 ayda menü görüntülenmeleri {from} seviyesinden {to} seviyesine yükseldi.", { from: num(820), to: num(2380) })}>
           {/* Izgara — kıl payı, düz, zeminden bir ton uzakta */}
-          {yTicks.map((t) => (
+          {yTicks.map((tick) => (
             <line
-              key={t}
+              key={tick}
               x1={LP.l}
               x2={LW - LP.r}
-              y1={ly(t)}
-              y2={ly(t)}
+              y1={ly(tick)}
+              y2={ly(tick)}
               stroke="var(--viz-grid)"
               strokeWidth={1}
             />
           ))}
-          {yTicks.map((t) => (
+          {yTicks.map((tick) => (
             <text
-              key={t}
+              key={tick}
               x={LP.l - 10}
-              y={ly(t) + 4}
+              y={ly(tick) + 4}
               textAnchor="end"
               className="fill-ink-soft font-mono text-[11px] tabular-nums"
             >
-              {tr.format(t)}
+              {num(tick)}
             </text>
           ))}
 
@@ -338,7 +360,7 @@ function ViewsChart() {
               y={ly(views[views.length - 1]) + 4}
               className="fill-ink font-mono text-[12px] font-semibold tabular-nums"
             >
-              {tr.format(views[views.length - 1])}
+              {num(views[views.length - 1])}
             </text>
           </g>
 
@@ -407,7 +429,7 @@ function ViewsChart() {
               {months[hover]}
             </p>
             <p className="font-display text-sm font-bold tabular-nums">
-              {tr.format(views[hover])} görüntülenme
+              {t("{count} görüntülenme", { count: num(views[hover]) })}
             </p>
           </div>
         )}
@@ -415,9 +437,9 @@ function ViewsChart() {
 
       <div className="mt-auto grid grid-cols-3 gap-4 border-t border-line pt-4">
         {[
-          ["En yoğun gün", "Cumartesi"],
-          ["En yoğun saat", "20:00–22:00"],
-          ["Yeni ziyaretçi", "%64"],
+          [t("En yoğun gün"), t("Cumartesi")],
+          [t("En yoğun saat"), "20:00–22:00"],
+          [t("Yeni ziyaretçi"), t("%{n}", { n: 64 })],
         ].map(([k, v]) => (
           <div key={k}>
             <p className="font-mono text-[9px] uppercase tracking-wider text-ink-soft">
@@ -430,18 +452,18 @@ function ViewsChart() {
 
       {/* Grafiğin tablo ikizi — her değer renk gerektirmeden okunabilir */}
       <table className="sr-only">
-        <caption>Aylara göre menü görüntülenmeleri</caption>
+        <caption>{t("Aylara göre menü görüntülenmeleri")}</caption>
         <thead>
           <tr>
-            <th scope="col">Ay</th>
-            <th scope="col">Görüntülenme</th>
+            <th scope="col">{t("Ay")}</th>
+            <th scope="col">{t("Görüntülenme")}</th>
           </tr>
         </thead>
         <tbody>
           {months.map((m, i) => (
             <tr key={m}>
               <th scope="row">{m}</th>
-              <td>{tr.format(views[i])}</td>
+              <td>{num(views[i])}</td>
             </tr>
           ))}
         </tbody>
@@ -453,35 +475,36 @@ function ViewsChart() {
 /* ─── 2. Bar grafiği: en çok görüntülenen ürünler ─────────── */
 
 const topProducts = [
-  { name: "Izgara Köfte", v: 1840 },
-  { name: "San Sebastian", v: 1510 },
-  { name: "Türk Kahvesi", v: 1275 },
-  { name: "Mantarlı Risotto", v: 960 },
-  { name: "Mevsim Salatası", v: 720 },
+  { name: msg("Izgara Köfte"), v: 1840 },
+  { name: msg("San Sebastian"), v: 1510 },
+  { name: msg("Türk Kahvesi"), v: 1275 },
+  { name: msg("Mantarlı Risotto"), v: 960 },
+  { name: msg("Mevsim Salatası"), v: 720 },
 ];
 const pMax = Math.max(...topProducts.map((p) => p.v));
 
 // Adlandırılmış kategoriler — sıraları anlamı değiştirmez, yani tek
 // seri: hepsi aynı rengi giyer. Uzunluk zaten büyüklüğü gösteriyor,
 // rengi de aynı bilgiye harcamanın anlamı yok.
-function TopProductsChart() {
+function TopProductsChart({ copy }: { copy: Copy }) {
+  const { t, num } = copy;
   return (
     <div
       data-reveal
       className="chart flex h-full flex-col rounded-2xl border border-line bg-paper p-5 sm:p-6"
     >
-      <h3 className="font-display text-lg font-bold">En çok bakılan ürünler</h3>
+      <h3 className="font-display text-lg font-bold">{t("En çok bakılan ürünler")}</h3>
       <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-        Bu ay · görüntülenme
+        {t("Bu ay · görüntülenme")}
       </p>
 
       <ul className="mb-6 mt-6 space-y-5">
         {topProducts.map((p, i) => (
           <li key={p.name}>
             <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-sm font-medium">{p.name}</span>
+              <span className="truncate text-sm font-medium">{t(p.name)}</span>
               <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-ink-soft">
-                {tr.format(p.v)}
+                {num(p.v)}
               </span>
             </div>
             <div className="mt-1.5 h-2 w-full rounded-full bg-crema">
@@ -500,8 +523,7 @@ function TopProductsChart() {
       </ul>
 
       <p className="mt-auto border-t border-line pt-4 text-xs leading-relaxed text-ink-soft">
-        Hangi ürün ilgi görüyor, hangisi menüde boşuna duruyor — tahmin
-        etmeyin, görün.
+        {t("Hangi ürün ilgi görüyor, hangisi menüde boşuna duruyor — tahmin etmeyin, görün.")}
       </p>
     </div>
   );
@@ -518,26 +540,26 @@ function TopProductsChart() {
 // mürekkeple (4.46) eşiği geçtiği için onun değeri yalnızca göstergede
 // duruyor. Zaten her değer aşağıdaki göstergede yazılı.
 const sources = [
-  { label: "QR kod", v: 52, slot: "var(--series-1)", inline: true },
+  { label: msg("QR kod"), v: 52, slot: "var(--series-1)", inline: true },
   { label: "Instagram", v: 24, slot: "var(--series-2)", inline: false },
   { label: "Google", v: 15, slot: "var(--series-3)", inline: false },
-  { label: "Direkt link", v: 9, slot: "var(--series-4)", inline: false },
+  { label: msg("Direkt link"), v: 9, slot: "var(--series-4)", inline: false },
 ];
 
-function SourcesChart() {
+function SourcesChart({ copy }: { copy: Copy }) {
+  const { t } = copy;
   return (
     <div
       data-reveal
       className="chart grid gap-7 rounded-2xl border border-line bg-paper p-5 sm:p-6 lg:grid-cols-[0.85fr_1.4fr] lg:items-center lg:gap-10"
     >
       <div>
-        <h3 className="font-display text-lg font-bold">Müşteri menüye nereden geliyor?</h3>
+        <h3 className="font-display text-lg font-bold">{t("Müşteri menüye nereden geliyor?")}</h3>
         <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-          Bu ay · tüm görüntülenmelerin dağılımı
+          {t("Bu ay · tüm görüntülenmelerin dağılımı")}
         </p>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-          QR masada duruyor ama trafiğin yarısı başka yerden geliyor. Menü
-          adresiniz Instagram bio'nuzda da, Google'da da çalışır.
+          {t("QR masada duruyor ama trafiğin yarısı başka yerden geliyor. Menü adresiniz Instagram bio'nuzda da, Google'da da çalışır.")}
         </p>
       </div>
 
@@ -560,7 +582,7 @@ function SourcesChart() {
               />
               {s.inline && (
                 <span className="relative font-mono text-[11px] font-bold text-ink">
-                  %{s.v}
+                  {t("%{n}", { n: s.v })}
                 </span>
               )}
             </div>
@@ -577,9 +599,9 @@ function SourcesChart() {
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ background: s.slot }}
               />
-              <span className="min-w-0 truncate text-xs text-ink-soft">{s.label}</span>
+              <span className="min-w-0 truncate text-xs text-ink-soft">{t(s.label)}</span>
               <span className="ml-auto font-mono text-xs font-semibold tabular-nums">
-                %{s.v}
+                {t("%{n}", { n: s.v })}
               </span>
             </li>
           ))}
@@ -591,49 +613,53 @@ function SourcesChart() {
 
 /* ─── Bölüm ───────────────────────────────────────────────── */
 
-export function Analytics() {
+export function Analytics({ locale = "tr" }: { locale?: UiLocale }) {
+  const t = siteClientTranslator(locale);
+  const numberFormat = new Intl.NumberFormat(uiLocaleTags[locale]);
+  const copy: Copy = { t, num: (value) => numberFormat.format(value) };
+  const months = MONTHS.map((month) => t(month));
   return (
     <section id="analiz" className="border-y border-line bg-crema/40" style={vizTokens}>
       <div className="mx-auto max-w-6xl px-5 py-24">
-        <div className="mx-auto max-w-2xl text-center">
+        <div data-reveal className="mx-auto max-w-2xl text-center">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">
-            Analitik ve satış yönlendirme
+            {t("Analitik ve satış yönlendirme")}
           </p>
           <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            Hangi ürünün satıldığını tahmin etmeyin, görün
+            {t("Hangi ürünün satıldığını tahmin etmeyin, görün")}
           </h2>
           <p className="mt-4 text-ink-soft">
-            Kâğıt menü size hiçbir şey söylemez. buyur, müşterinin neye baktığını ve
-            neyi sepete eklediğini gösterir; şefin önerisini, kampanyayı ve fiyatı
-            buna göre ayarlarsınız.
+            {t(
+              "Kâğıt menü size hiçbir şey söylemez. buyur, müşterinin neye baktığını ve neyi sepete eklediğini gösterir; şefin önerisini, kampanyayı ve fiyatı buna göre ayarlarsınız."
+            )}
           </p>
           {/* Aşağıdaki rakamlar bir sonuç iddiası değil, panel ekranının örneği. */}
           <p className="mt-5 inline-flex rounded-full border border-line bg-paper px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-            Örnek panel görünümü · rakamlar temsilidir
+            {t("Örnek panel görünümü · rakamlar temsilidir")}
           </p>
         </div>
 
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {tiles.map((t, i) => (
-            <StatTile key={t.label} tile={t} index={i} />
+          {tiles.map((tile, i) => (
+            <StatTile key={tile.label} tile={tile} index={i} copy={copy} />
           ))}
         </div>
 
         <div className="mt-4 grid gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <ViewsChart />
+            <ViewsChart copy={copy} months={months} />
           </div>
           <div className="lg:col-span-2">
-            <TopProductsChart />
+            <TopProductsChart copy={copy} />
           </div>
         </div>
 
         <div className="mt-4">
-          <SourcesChart />
+          <SourcesChart copy={copy} />
         </div>
 
         <p className="mt-8 text-center font-mono text-[11px] uppercase tracking-wider text-ink-soft/70">
-          Örnek veriler · Panelinizde kendi rakamlarınızı görürsünüz
+          {t("Örnek veriler · Panelinizde kendi rakamlarınızı görürsünüz")}
         </p>
       </div>
     </section>

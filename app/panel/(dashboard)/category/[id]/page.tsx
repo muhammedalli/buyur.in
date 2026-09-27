@@ -8,11 +8,13 @@ import { useBusiness } from "@/components/panel/business-context";
 import { CategoryForm } from "@/components/panel/category-form";
 import { PageHeader } from "@/components/panel/ui";
 import type { Category } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function EditCategoryPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { business, isLoading: businessLoading } = useBusiness();
+  const { t } = useUiLocale();
   const [category, setCategory] = useState<Category | null>(null);
   const [loading, setLoading] = useState(true);
   const businessId = business?.id;
@@ -35,7 +37,7 @@ export default function EditCategoryPage() {
   }, [businessId, id, router]);
 
   if (businessLoading || loading || !business || !category) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   return (

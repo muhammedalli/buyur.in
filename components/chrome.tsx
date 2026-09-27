@@ -1,81 +1,70 @@
-import Image from "next/image";
 import Link from "next/link";
 import { whatsappLink } from "@/lib/site";
 import { LEGAL_DOCS, legalPath } from "@/lib/legal";
 import { RELEASE_NOTES_SLUG, docPath } from "@/lib/docs";
 import { WhatsappIcon } from "@/components/icons";
+import { siteTranslator } from "@/lib/ui-messages/site";
+import { siteLocalePath, type Translator, type UiLocale } from "@/lib/ui-i18n";
 
-/**
- * Marka kelime logosu. Kaynak dosyalar kare tuvalde bol boşlukla geldiği için
- * scripts/build-brand-assets.mjs bunları kırpıp public/assets/ altına yazar.
- *
- * `light` koyu zeminler (footer, panel girişi) içindir.
- */
-export function Logo({
-  light = false,
-  className = "h-8 sm:h-9",
-}: {
-  light?: boolean;
-  className?: string;
-}) {
-  return (
-    <Image
-      src={light ? "/assets/wordmark-light.png" : "/assets/wordmark-dark.png"}
-      alt="buyur"
-      width={468}
-      height={200}
-      priority={!light}
-      className={`w-auto ${className}`}
-    />
-  );
+// Logo ayrı dosyada: panel ve yönetim (istemci) Logo'yu oradan alır, footer'ın
+// site kataloğu istemci paketine girmez.
+export { Logo } from "@/components/logo";
+import { Logo } from "@/components/logo";
+
+/** Footer sütunları arayüz dilinde. Yardım merkezi ve yasal metinler yalnızca
+ *  Türkçedir; İngilizce sayfada bağlantı adının yanında bu söylenir. */
+function footerNav(t: Translator, locale: UiLocale) {
+  const home = siteLocalePath(locale);
+  const trOnly = locale === "tr" ? "" : ` (${t("Türkçe")})`;
+  return [
+    {
+      title: t("Ürün"),
+      links: [
+        { label: t("Platform"), href: `${home}#platform` },
+        { label: t("Özellikler"), href: `${home}#ozellikler` },
+        { label: t("Canlı demo"), href: `${home}#canli-menu` },
+        { label: t("Nasıl çalışır"), href: `${home}#nasil` },
+        { label: t("Fiyatlar"), href: `${home}#fiyat` },
+      ],
+    },
+    {
+      title: t("Yardım"),
+      links: [
+        { label: `${t("Yardım merkezi")}${trOnly}`, href: "/docs" },
+        { label: t("Hızlı başlangıç"), href: docPath("hizli-baslangic") },
+        { label: t("Çoklu dil ve AI çeviri"), href: docPath("coklu-dil") },
+        { label: t("Sürüm notları"), href: docPath(RELEASE_NOTES_SLUG) },
+      ],
+    },
+    {
+      title: t("Hesap"),
+      links: [
+        { label: t("Ücretsiz başla"), href: "/panel/register" },
+        { label: t("Giriş yap"), href: "/panel/login" },
+        { label: t("Panel"), href: "/panel" },
+      ],
+    },
+    {
+      title: t("İletişim"),
+      links: [
+        { label: "merhaba@buyur.in", href: "mailto:merhaba@buyur.in" },
+        {
+          label: t("WhatsApp destek"),
+          href: whatsappLink(t("Merhaba, buyur hakkında bilgi almak istiyorum.")),
+        },
+      ],
+    },
+    {
+      // Yasal metinlerin listesi lib/legal.ts'ten geliyor: yeni bir metin
+      // eklendiğinde footer kendiliğinden güncellenir.
+      title: `${t("Yasal")}${trOnly}`,
+      links: LEGAL_DOCS.map((doc) => ({ label: doc.navLabel, href: legalPath(doc.slug) })),
+    },
+  ];
 }
 
-const footerNav = [
-  {
-    title: "Ürün",
-    links: [
-      { label: "Neden buyur", href: "/#neden" },
-      { label: "Canlı demo", href: "/#canli-menu" },
-      { label: "Nasıl çalışır", href: "/#nasil" },
-      { label: "Fiyatlar", href: "/#fiyat" },
-    ],
-  },
-  {
-    title: "Yardım",
-    links: [
-      { label: "Yardım merkezi", href: "/docs" },
-      { label: "Hızlı başlangıç", href: docPath("hizli-baslangic") },
-      { label: "Çoklu dil ve AI çeviri", href: docPath("coklu-dil") },
-      { label: "Sürüm notları", href: docPath(RELEASE_NOTES_SLUG) },
-    ],
-  },
-  {
-    title: "Hesap",
-    links: [
-      { label: "Ücretsiz başla", href: "/panel/register" },
-      { label: "Giriş yap", href: "/panel/login" },
-      { label: "Panel", href: "/panel" },
-    ],
-  },
-  {
-    title: "İletişim",
-    links: [
-      { label: "merhaba@buyur.in", href: "mailto:merhaba@buyur.in" },
-      {
-        label: "WhatsApp destek",
-        href: whatsappLink("Merhaba, buyur hakkında bilgi almak istiyorum."),
-      },
-    ],
-  },
-  {
-    // Yasal metinlerin listesi lib/legal.ts'ten geliyor: yeni bir metin
-    // eklendiğinde footer kendiliğinden güncellenir.
-    title: "Yasal",
-    links: LEGAL_DOCS.map((doc) => ({ label: doc.navLabel, href: legalPath(doc.slug) })),
-  },
-];
-
-export function Footer() {
+export function Footer({ locale = "tr" }: { locale?: UiLocale }) {
+  const t = siteTranslator(locale);
   const year = new Date().getFullYear();
 
   return (
@@ -110,22 +99,23 @@ export function Footer() {
           <div className="max-w-sm space-y-5">
             <Logo light className="h-10 sm:h-11" />
             <p className="text-sm leading-relaxed">
-              Restoranlar ve kafeler için dijital QR menü platformu. Menünü bir
-              kez kur, her masada güncel kalsın.
+              {t(
+                "Restoranlar ve kafeler için dijital vitrin ve QR menü platformu. Menünü bir kez kur; vitrinde, sitende ve her masada güncel kalsın."
+              )}
             </p>
             <a
-              href={whatsappLink("Merhaba, buyur hakkında bilgi almak istiyorum.")}
+              href={whatsappLink(t("Merhaba, buyur hakkında bilgi almak istiyorum."))}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-md border border-paper/20 px-4 py-2.5 font-mono text-[12px] uppercase tracking-wider text-paper/80 transition-colors hover:border-paprika hover:bg-paprika hover:text-paper"
             >
               <WhatsappIcon size={15} />
-              Bize yazın
+              {t("Bize yazın")}
             </a>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
-            {footerNav.map((col) => (
+            {footerNav(t, locale).map((col) => (
               <div key={col.title} className="flex flex-col gap-3">
                 <span className="font-mono text-[12px] uppercase tracking-wider text-paper">
                   {col.title}
@@ -159,11 +149,10 @@ export function Footer() {
 
       <div className="relative border-t border-paper/15 bg-ink/40 backdrop-blur-[2px]">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-5 py-6 text-center font-mono text-xs text-paper/55 sm:flex-row sm:justify-between sm:text-left">
-          <p>© {year} buyur · Tüm hakları saklıdır.</p>
+          <p>{t("© {year} buyur · Tüm hakları saklıdır.", { year })}</p>
           <p className="flex items-center gap-1.5">
             <Link href="https://www.harbidigital.com" target="_blank" rel="noopener noreferrer">
-              <span className="font-semibold text-paper/70">Harbi</span>{" "}
-              tarafından tasarlandı ve geliştirildi
+              {t("{brand} tarafından tasarlandı ve geliştirildi", { brand: "Harbi" })}
             </Link>
           </p>
         </div>

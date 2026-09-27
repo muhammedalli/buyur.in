@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { authenticateBusiness, isBusinessSetUp } from "@/lib/business-auth";
 import { isEmailConfigured, sendWelcomeEmail } from "@/lib/email";
+import { msg } from "@/lib/ui-i18n";
 
 // İşletme kurulduktan sonra tetiklenen karşılama maili. Alıcı adresi istemciden
 // alınmaz; oturumun kendi kaydından (işletme hesabı) okunur — aksi halde uç,
@@ -11,16 +12,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   if (!isEmailConfigured()) {
-    return NextResponse.json({ error: "E-posta servisi yapılandırılmamış." }, { status: 503 });
+    return NextResponse.json({ error: msg("E-posta servisi yapılandırılmamış.") }, { status: 503 });
   }
 
   const session = await authenticateBusiness(req.headers.get("authorization"));
   if (!session) {
-    return NextResponse.json({ error: "Giriş yapmalısınız." }, { status: 401 });
+    return NextResponse.json({ error: msg("Giriş yapmalısınız.") }, { status: 401 });
   }
   const { business } = session;
   if (!isBusinessSetUp(business) || !business.email) {
-    return NextResponse.json({ error: "İşletme kurulumu tamamlanmamış." }, { status: 409 });
+    return NextResponse.json({ error: msg("İşletme kurulumu tamamlanmamış.") }, { status: 409 });
   }
 
   try {
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     // Mail gitmemesi kurulumu bozmaz; kullanıcı zaten panelde.
     console.error("[welcome] mail gönderilemedi", business.id, err);
-    return NextResponse.json({ error: "Karşılama e-postası gönderilemedi." }, { status: 502 });
+    return NextResponse.json({ error: msg("Karşılama e-postası gönderilemedi.") }, { status: 502 });
   }
 
   return NextResponse.json({ ok: true });

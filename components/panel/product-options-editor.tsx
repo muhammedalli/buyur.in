@@ -8,6 +8,7 @@ import { Button, Card, Input, Label } from "@/components/panel/ui";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { activeLocales, mainLocale, tField, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Business, ProductOption } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 const emptyForm = { groupName: "", name: "", priceDelta: "", translations: {} as Translations };
 
@@ -18,6 +19,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { t } = useUiLocale();
   const [confirm, confirmDialog] = useConfirm();
 
   const main = mainLocale(business);
@@ -38,7 +40,7 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
       });
       setOptions(list);
     } catch {
-      toast("Seçenekler yüklenemedi, sayfayı yenile.", "error");
+      toast(t("Seçenekler yüklenemedi, sayfayı yenile."), "error");
     } finally {
       setLoading(false);
     }
@@ -83,9 +85,9 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
       setEditingId(null);
       setForm(emptyForm);
       await load();
-      toast(editing ? "Seçenek güncellendi" : "Seçenek eklendi");
+      toast(editing ? t("Seçenek güncellendi") : t("Seçenek eklendi"));
     } catch {
-      toast("Seçenek kaydedilemedi, tekrar dene.", "error");
+      toast(t("Seçenek kaydedilemedi, tekrar dene."), "error");
     } finally {
       setSaving(false);
     }
@@ -93,18 +95,18 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
 
   async function handleDelete(option: ProductOption) {
     const ok = await confirm({
-      title: "Seçenek silinsin mi?",
-      description: `“${option.group_name}: ${option.name}” menüden kaldırılır.`,
-      confirmLabel: "Sil",
+      title: t("Seçenek silinsin mi?"),
+      description: t("“{option}” menüden kaldırılır.", { option: `${option.group_name}: ${option.name}` }),
+      confirmLabel: t("Sil"),
       tone: "danger",
     });
     if (!ok) return;
     try {
       await pb.collection("buyur_product_options").delete(option.id, { requestKey: null });
       setOptions((list) => list.filter((item) => item.id !== option.id));
-      toast("Seçenek silindi");
+      toast(t("Seçenek silindi"));
     } catch {
-      toast("Seçenek silinemedi, tekrar dene.", "error");
+      toast(t("Seçenek silinemedi, tekrar dene."), "error");
     }
   }
 
@@ -112,20 +114,20 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
     <Card className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Seçenekler / Varyantlar</p>
-          <p className="mt-1 text-xs text-ink-soft">Boy, ekstra malzeme gibi fiyat farkı yaratan opsiyonlar.</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Seçenekler / Varyantlar")}</p>
+          <p className="mt-1 text-xs text-ink-soft">{t("Boy, ekstra malzeme gibi fiyat farkı yaratan opsiyonlar.")}</p>
         </div>
         {editingId === null && (
           <Button type="button" variant="outline" size="sm" onClick={startAdd}>
-            + Ekle
+            {t("+ Ekle")}
           </Button>
         )}
       </div>
 
-      {loading && <p className="text-sm text-ink-soft">Yükleniyor…</p>}
+      {loading && <p className="text-sm text-ink-soft">{t("Yükleniyor…")}</p>}
 
       {!loading && options.length === 0 && editingId === null && (
-        <p className="text-sm text-ink-soft">Henüz seçenek eklenmedi. Örn: &quot;Boy&quot; grubunda &quot;Büyük +25₺&quot;.</p>
+        <p className="text-sm text-ink-soft">{t("Henüz seçenek eklenmedi. Örn: “Boy” grubunda “Büyük +25₺”.")}</p>
       )}
 
       <div className="space-y-2">
@@ -145,10 +147,10 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => startEdit(opt)} className="text-xs text-ink-soft hover:text-paprika">
-                Düzenle
+                {t("Düzenle")}
               </button>
               <button type="button" onClick={() => handleDelete(opt)} className="text-xs text-ink-soft hover:text-paprika">
-                Sil
+                {t("Sil")}
               </button>
             </div>
           </div>
@@ -167,12 +169,12 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
             onTranslationsChange={(next) => setForm((f) => ({ ...f, translations: next }))}
             translate={{ business, kind: "option" }}
             fields={[
-              { key: "group_name", label: "Grup", required: true, placeholder: "Boy" },
-              { key: "name", label: "Seçenek", required: true, placeholder: "Büyük" },
+              { key: "group_name", label: t("Grup"), required: true, placeholder: t("Boy") },
+              { key: "name", label: t("Seçenek"), required: true, placeholder: t("Büyük") },
             ]}
           />
           <div className="sm:max-w-[12rem]">
-            <Label htmlFor="opt-price">Fiyat farkı (₺)</Label>
+            <Label htmlFor="opt-price">{t("Fiyat farkı (₺)")}</Label>
             <Input
               id="opt-price"
               type="number"
@@ -184,10 +186,10 @@ export function ProductOptionsEditor({ business, productId }: { business: Busine
           </div>
           <div className="flex gap-3">
             <Button type="submit" loading={saving}>
-              Kaydet
+              {t("Kaydet")}
             </Button>
             <Button type="button" variant="ghost" onClick={() => setEditingId(null)}>
-              Vazgeç
+              {t("Vazgeç")}
             </Button>
           </div>
         </form>

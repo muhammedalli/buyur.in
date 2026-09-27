@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { RESERVED_SLUGS } from "@/lib/slug";
 import { ADMIN_COOKIE_NAME } from "@/lib/admin-cookie";
+import { isTableScan } from "@/lib/storefront-route";
+import { UI_LOCALE_COOKIE } from "@/lib/ui-locales";
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "buyur.in";
 
@@ -35,6 +37,14 @@ export function middleware(req: NextRequest) {
     if (process.env.NODE_ENV === "production" && (pathname === "/admin" || pathname.startsWith("/admin/"))) {
       const url = req.nextUrl.clone();
       url.host = `admin.${ROOT_DOMAIN}`;
+      return NextResponse.redirect(url);
+    }
+    // Pazarlama sitesinde İngilizce'yi seçmiş ziyaretçi ana sayfaya döndüğünde
+    // kendi dilinde karşılanır. Çerezi olmayan (arama motoru dahil) herkes
+    // Türkçe kökü görür; dil seçici çerezi değiştirdiği için döngü oluşmaz.
+    if (pathname === "/" && req.cookies.get(UI_LOCALE_COOKIE)?.value === "en") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/en";
       return NextResponse.redirect(url);
     }
     return NextResponse.next();
@@ -86,9 +96,12 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Otomatik web sitesi ayrı bir rota ağacında yaşar (menü kabuğunu miras
-  // almasın diye): {slug}.buyur.in/site → /site/{slug}
-  if (url.pathname === "/site" || url.pathname.startsWith("/site/")) {
+  // Kök = işletmenin vitrini (lib/storefront.ts): web sitesi yayındaysa site,
+  // değilse otomatik karşılama sayfası. Vitrin menü kabuğunu miras almasın diye
+  // ayrı rota ağacında yaşar: /site/{slug}. Eski /site bağlantıları da buraya.
+  // Masadaki QR'dan gelen tarama (?qr=… / ?src=qr) vitrine uğramadan menüye gider.
+  const tableScan = url.pathname === "/" && isTableScan(url.searchParams);
+  if (!tableScan && (url.pathname === "/" || url.pathname === "/site" || url.pathname.startsWith("/site/"))) {
     url.pathname = `/site/${sub}`;
     return NextResponse.rewrite(url);
   }

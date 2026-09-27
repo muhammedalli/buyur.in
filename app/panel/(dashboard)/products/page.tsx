@@ -8,10 +8,12 @@ import { useToast } from "@/components/panel/toast";
 import { useConfirm } from "@/components/panel/confirm-dialog";
 import { AiButton, Button, buttonClass, Card, EmptyState, FooterNote, PageHeader, UpdatedAt } from "@/components/panel/ui";
 import type { Category, Product } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function ProductsPage() {
   const { business, isLoading: businessLoading } = useBusiness();
   const { toast } = useToast();
+  const { t } = useUiLocale();
   const [confirm, confirmDialog] = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,7 +46,7 @@ export default function ProductsPage() {
       setCategories(cats);
       setProducts(prods);
     } catch {
-      toast("Ürünler yüklenemedi. Sayfayı yenileyip tekrar dene.", "error");
+      toast(t("Ürünler yüklenemedi. Sayfayı yenileyip tekrar dene."), "error");
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function ProductsPage() {
     const next = !product.is_available;
     setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, is_available: next } : p)));
     await pb.collection("buyur_products").update(product.id, { is_available: next });
-    toast(next ? "Ürün satışa açıldı" : "Ürün satıştan kaldırıldı");
+    toast(next ? t("Ürün satışa açıldı") : t("Ürün satıştan kaldırıldı"));
   }
 
   async function handleDelete(product: Product) {
@@ -72,17 +74,17 @@ export default function ProductsPage() {
     }
 
     const ok = await confirm({
-      title: `“${product.name}” silinsin mi?`,
+      title: t("“{name}” silinsin mi?", { name: product.name }),
       tone: "danger",
-      confirmLabel: "Ürünü sil",
+      confirmLabel: t("Ürünü sil"),
       description: product.is_available
-        ? "Geçici olarak kaldırmak istiyorsan silmek yerine “Satışta” anahtarını kapat; ürün menüden kalkar ama bilgileri durur."
+        ? t("Geçici olarak kaldırmak istiyorsan silmek yerine “Satışta” anahtarını kapat; ürün menüden kalkar ama bilgileri durur.")
         : undefined,
       details: [
-        "Menüden hemen kalkar; bu işlem geri alınamaz.",
-        ...(optionCount > 0 ? [`${optionCount} varyant/seçenek de silinir.`] : []),
-        "Müşterilerin sepetindeki bu ürün bir sonraki açılışta görünmez.",
-        "Geçmiş analiz verileri raporlarda kalır.",
+        t("Menüden hemen kalkar; bu işlem geri alınamaz."),
+        ...(optionCount > 0 ? [t("{count} varyant/seçenek de silinir.", { count: optionCount })] : []),
+        t("Müşterilerin sepetindeki bu ürün bir sonraki açılışta görünmez."),
+        t("Geçmiş analiz verileri raporlarda kalır."),
       ],
     });
     if (!ok) return;
@@ -90,30 +92,30 @@ export default function ProductsPage() {
     try {
       await pb.collection("buyur_products").delete(product.id);
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
-      toast("Ürün silindi");
+      toast(t("Ürün silindi"));
     } catch {
-      toast("Ürün silinemedi", "error");
+      toast(t("Ürün silinemedi"), "error");
     }
   }
 
   if (businessLoading || loading) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   if (categories.length === 0) {
     return (
       <div>
-        <PageHeader title="Ürünler" />
+        <PageHeader title={t("Ürünler")} />
         <EmptyState
-          title="Önce bir kategori oluştur"
-          description="Ürün eklemeden önce en az bir kategori gerekiyor."
+          title={t("Önce bir kategori oluştur")}
+          description={t("Ürün eklemeden önce en az bir kategori gerekiyor.")}
           action={
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" data-guide="products">
               <Link href="/panel/products/import">
                 <AiButton />
               </Link>
               <Link href="/panel/categories" className={buttonClass("primary")}>
-                Kategori oluştur
+                {t("Kategori oluştur")}
               </Link>
             </div>
           }
@@ -128,15 +130,15 @@ export default function ProductsPage() {
   return (
     <div>
       <PageHeader
-        title="Ürünler"
-        description="Fiyat, görsel, rozet ve daha fazlasını yönet."
+        title={t("Ürünler")}
+        description={t("Fiyat, görsel, rozet ve daha fazlasını yönet.")}
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-guide="products">
             <Link href="/panel/products/import">
               <AiButton />
             </Link>
             <Link href="/panel/products/new" className={buttonClass("primary")}>
-              + Yeni ürün
+              {t("+ Yeni ürün")}
             </Link>
           </div>
         }
@@ -144,15 +146,15 @@ export default function ProductsPage() {
 
       {products.length === 0 && (
         <EmptyState
-          title="Henüz ürün yok"
-          description="İlk ürününü ekleyerek menünü canlandır."
+          title={t("Henüz ürün yok")}
+          description={t("İlk ürününü ekleyerek menünü canlandır.")}
           action={
             <div className="flex flex-wrap gap-2">
               <Link href="/panel/products/import">
                 <AiButton />
               </Link>
               <Link href="/panel/products/new" className={buttonClass("primary")}>
-                + Yeni ürün
+                {t("+ Yeni ürün")}
               </Link>
             </div>
           }
@@ -180,7 +182,7 @@ export default function ProductsPage() {
                       <p className="font-mono text-sm text-ink-soft">
                         {product.price}₺
                         {product.discount_percent > 0 && (
-                          <span className="ml-2 text-herb">%{product.discount_percent} indirim</span>
+                          <span className="ml-2 text-herb">{t("%{percent} indirim", { percent: product.discount_percent })}</span>
                         )}
                       </p>
                     </div>
@@ -188,14 +190,14 @@ export default function ProductsPage() {
                     <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:shrink-0 sm:justify-end sm:gap-4">
                       <label className="flex shrink-0 items-center gap-2 text-xs text-ink-soft">
                         <input type="checkbox" checked={product.is_available} onChange={() => toggleAvailable(product)} />
-                        Satışta
+                        {t("Satışta")}
                       </label>
                       <div className="flex shrink-0 gap-2">
                         <Link href={`/panel/product/${product.id}`} className={buttonClass("outline")}>
-                          Düzenle
+                          {t("Düzenle")}
                         </Link>
                         <Button variant="danger" onClick={() => handleDelete(product)}>
-                          Sil
+                          {t("Sil")}
                         </Button>
                       </div>
                     </div>

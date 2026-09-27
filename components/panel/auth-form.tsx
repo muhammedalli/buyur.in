@@ -4,6 +4,7 @@ import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRightIcon, CheckIcon, EyeIcon, EyeOffIcon, LockIcon } from "@/components/icons";
 import { Spinner } from "@/components/panel/ui";
+import { useOptionalUiLocale } from "@/components/ui-locale-provider";
 
 // Giriş, kayıt ve şifre ekranlarının parçaları. Bu ekranlar yönetim panelinin
 // değil, ürünün kapısıdır: tasarımı onaylı görseldeki dili izler (büyük
@@ -53,6 +54,7 @@ export function AuthInput({ icon, className = "", ...rest }: AuthInputProps) {
 
 /** Şifre alanı: kilit ikonu ve göster/gizle düğmesi. */
 export function AuthPasswordInput(props: Omit<AuthInputProps, "type" | "icon">) {
+  const { t } = useOptionalUiLocale();
   const [visible, setVisible] = useState(false);
   return (
     <div className="relative">
@@ -63,7 +65,7 @@ export function AuthPasswordInput(props: Omit<AuthInputProps, "type" | "icon">) 
       <button
         type="button"
         onClick={() => setVisible((value) => !value)}
-        aria-label={visible ? "Şifreyi gizle" : "Şifreyi göster"}
+        aria-label={visible ? t("Şifreyi gizle") : t("Şifreyi göster")}
         aria-pressed={visible}
         className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-ink-soft transition-colors hover:text-ink"
       >

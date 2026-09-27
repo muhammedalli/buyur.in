@@ -31,6 +31,7 @@ const TRANSLATABLE_FIELDS: TranslatableField[] = [
   "group_name",
   "title",
   "message",
+  "marquee_text",
 ];
 
 export const MAX_ENTRIES_PER_REQUEST = 120;
@@ -66,6 +67,23 @@ const LOCALE_NAME_ALIASES: Record<string, Locale> = {
   rusça: "ru",
   rusca: "ru",
   русский: "ru",
+  german: "de",
+  deutsch: "de",
+  almanca: "de",
+  french: "fr",
+  français: "fr",
+  francais: "fr",
+  fransızca: "fr",
+  fransizca: "fr",
+  spanish: "es",
+  español: "es",
+  espanol: "es",
+  ispanyolca: "es",
+  "i̇spanyolca": "es",
+  italian: "it",
+  italiano: "it",
+  italyanca: "it",
+  "i̇talyanca": "it",
 };
 
 /** İstenen hedef dilleri süzer: desteklenmeyenler ve ana dil elenir.
@@ -304,6 +322,7 @@ KURALLAR:
 6. Gönderilen her öğenin "id" değerini yanıtta AYNEN koru.
 7. Her öğede YALNIZCA o öğenin "fields" içinde gönderilen alan adlarını kullan (ör. "title" geldiyse "title" döndür, "name" değil). Gönderilmeyen alanı ekleme.
 8. Dil anahtarları yalnızca şu kodlar olur: ${targetLocales.map((l) => `"${l}"`).join(", ")}.
+9. Birden çok satırdan oluşan metinde (ör. kayan yazı mesajları) satır sayısını ve sırasını koru; her satırı ayrı çevir.
 
 Yanıtı MUTLAKA şu JSON şemasında ver:
 {

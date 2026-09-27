@@ -8,6 +8,7 @@ import { hashResetToken, isValidResetToken } from "@/lib/password-reset";
 import { newPasswordError } from "@/lib/password";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { auditRequestContext, recordSystemAudit } from "@/lib/system-audit";
+import { msg } from "@/lib/ui-i18n";
 
 // Şifremi unuttum — ikinci adım: bağlantıdaki belirteci doğrular ve yeni
 // şifreyi yazar.
@@ -22,22 +23,22 @@ export const dynamic = "force-dynamic";
 
 const withinRateLimit = createRateLimiter(30, 3_600_000);
 
-const INVALID_LINK = "Bu bağlantı geçersiz ya da süresi dolmuş. Yeni bir sıfırlama bağlantısı iste.";
+const INVALID_LINK = msg("Bu bağlantı geçersiz ya da süresi dolmuş. Yeni bir sıfırlama bağlantısı iste.");
 
 export async function POST(req: NextRequest) {
   if (!hasServiceCredentials()) {
-    return NextResponse.json({ error: "Şifre sıfırlama servisi yapılandırılmamış. Yöneticinize başvurun." }, { status: 503 });
+    return NextResponse.json({ error: msg("Şifre sıfırlama servisi yapılandırılmamış. Yöneticinize başvurun.") }, { status: 503 });
   }
 
   let body: { token?: unknown; password?: unknown; passwordConfirm?: unknown };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçersiz istek.") }, { status: 400 });
   }
 
   if (!withinRateLimit(clientIp(req))) {
-    return NextResponse.json({ error: "Çok fazla deneme yapıldı. Biraz sonra tekrar dene." }, { status: 429 });
+    return NextResponse.json({ error: msg("Çok fazla deneme yapıldı. Biraz sonra tekrar dene.") }, { status: 429 });
   }
 
   if (!isValidResetToken(body.token)) {
@@ -88,6 +89,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[reset-password] hata", err);
-    return NextResponse.json({ error: "Şifre güncellenemedi, tekrar dene." }, { status: 500 });
+    return NextResponse.json({ error: msg("Şifre güncellenemedi, tekrar dene.") }, { status: 500 });
   }
 }

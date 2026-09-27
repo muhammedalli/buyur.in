@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
@@ -14,16 +15,48 @@ import { ROOT_DOMAIN } from "@/lib/site";
 import { checkBusinessPhone } from "@/lib/phone";
 import { BUSINESS_COLLECTION, contactEmailPatch, publicContactEmail } from "@/lib/business-account";
 import { highlightLabels } from "@/lib/labels";
-import { HighlightIcon } from "@/components/icons";
-import { Card, FORM_STACK, FormActions, Input, Label, PageHeader, Select, Spinner, Tabs, Textarea } from "@/components/panel/ui";
+import { brandStyle } from "@/lib/brand-style";
+import { MARQUEE_MAX_ITEMS, MARQUEE_MAX_ITEM_LENGTH, parseMarqueeText } from "@/lib/marquee";
+import { guidePatch, isGuideEnabled } from "@/lib/guide";
+import { msg, UI_LOCALES, uiLocaleLabels } from "@/lib/ui-i18n";
+import {
+  HighlightIcon,
+  InfoIcon,
+  LanguagesIcon,
+  MapPinIcon,
+  MarqueeIcon,
+  MonitorIcon,
+  PaletteIcon,
+  ShareIcon,
+  StarIcon,
+} from "@/components/icons";
+import {
+  Button,
+  Card,
+  FORM_STACK,
+  FormActions,
+  Input,
+  Label,
+  PageHeader,
+  SECTION_LAYOUT,
+  SectionNav,
+  Select,
+  Spinner,
+  Switch,
+  Textarea,
+} from "@/components/panel/ui";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { useToast } from "@/components/panel/toast";
-import { StarIcon } from "@/components/icons";
+import { GuideButton } from "@/components/panel/guide";
+import { Marquee } from "@/components/marquee";
+import { useUiLocale } from "@/components/ui-locale-provider";
 import {
   activeNonMainLocales,
+  isSupportedLocale,
   localeCodes,
   localeLabels,
   mainLocale,
+  MAX_MENU_LOCALES,
   SUPPORTED_LOCALES,
   type Locale,
   type Translations,
@@ -38,17 +71,33 @@ import {
 import type { Business, Highlight, Template } from "@/lib/types";
 
 const ALL_HIGHLIGHTS = Object.keys(highlightLabels.tr) as Highlight[];
-const MAX_HIGHLIGHTS = 3;
 
-type SettingsTab = "genel" | "diller" | "tema" | "ozellik" | "iletisim" | "sosyal";
-const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
-  { key: "genel", label: "Genel bilgiler" },
-  { key: "diller", label: "Menü dilleri" },
-  { key: "tema", label: "Tema" },
-  { key: "ozellik", label: "Öne çıkan özellikler" },
-  { key: "iletisim", label: "Adres & iletişim" },
-  { key: "sosyal", label: "Sosyal medya" },
+type SettingsTab = "genel" | "diller" | "tema" | "yazi" | "ozellik" | "iletisim" | "sosyal" | "panel";
+const ICON = { size: 17 } as const;
+const SETTINGS_TABS: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
+  { key: "genel", label: msg("Genel bilgiler"), icon: <InfoIcon {...ICON} /> },
+  { key: "diller", label: msg("Menü dilleri"), icon: <LanguagesIcon {...ICON} /> },
+  { key: "tema", label: msg("Tema"), icon: <PaletteIcon {...ICON} /> },
+  { key: "yazi", label: msg("Kayan yazı"), icon: <MarqueeIcon {...ICON} /> },
+  { key: "ozellik", label: msg("Mekân özellikleri"), icon: <StarIcon {...ICON} /> },
+  { key: "iletisim", label: msg("Adres & iletişim"), icon: <MapPinIcon {...ICON} /> },
+  { key: "sosyal", label: msg("Sosyal medya"), icon: <ShareIcon {...ICON} /> },
+  { key: "panel", label: msg("Panel"), icon: <MonitorIcon {...ICON} /> },
 ];
+
+const isSettingsTab = (value: string | null): value is SettingsTab =>
+  SETTINGS_TABS.some((tab) => tab.key === value);
+
+/** Adres çubuğundaki ?tab= bölümü açar (kılavuz ve bağlantılar bu yolla bir
+ *  bölüme götürür). useSearchParams Suspense içinde olmalı. */
+function TabFromUrl({ onTab }: { onTab: (tab: SettingsTab) => void }) {
+  const params = useSearchParams();
+  const requested = params.get("tab");
+  useEffect(() => {
+    if (isSettingsTab(requested)) onTab(requested);
+  }, [requested, onTab]);
+  return null;
+}
 
 function ProfileImages({
   businessId,
@@ -63,6 +112,8 @@ function ProfileImages({
   onLogo: (url: string) => void;
   onCover: (url: string) => void;
 }) {
+  const { t } = useUiLocale();
+  const { toast } = useToast();
   const [logoBusy, setLogoBusy] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
 
@@ -77,6 +128,8 @@ function ProfileImages({
     setBusy(true);
     try {
       onChange(await uploadFile(file, businessId, kind));
+    } catch (err) {
+      toast(err instanceof Error ? t(err.message) : t("Görsel yüklenemedi, tekrar dene."), "error");
     } finally {
       setBusy(false);
     }
@@ -88,9 +141,9 @@ function ProfileImages({
       <div className="relative h-36 w-full overflow-hidden rounded-md border border-line bg-crema/40 sm:h-44">
         {coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverUrl} alt="Kapak" className="h-full w-full object-cover" />
+          <img src={coverUrl} alt={t("Kapak")} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs text-ink-soft">Kapak görseli yok</div>
+          <div className="flex h-full items-center justify-center text-xs text-ink-soft">{t("Kapak görseli yok")}</div>
         )}
         {coverBusy && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/40">
@@ -99,7 +152,9 @@ function ProfileImages({
         )}
         {!coverBusy && (
           <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
-            <span className="font-mono text-[11px] uppercase tracking-wider">{coverUrl ? "Kapağı değiştir" : "Kapak yükle"}</span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">
+              {coverUrl ? t("Kapağı değiştir") : t("Kapak yükle")}
+            </span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
@@ -115,9 +170,11 @@ function ProfileImages({
         <div className="relative h-full w-full overflow-hidden rounded-full border-4 border-paper bg-crema shadow-md">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="Logo" className="h-full w-full object-cover" />
+            <img src={logoUrl} alt={t("Logo")} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full items-center justify-center text-center text-[10px] leading-tight text-ink-soft">Logo yok</div>
+            <div className="flex h-full items-center justify-center text-center text-[10px] leading-tight text-ink-soft">
+              {t("Logo yok")}
+            </div>
           )}
           {logoBusy && (
             <div className="absolute inset-0 flex items-center justify-center bg-ink/40">
@@ -126,7 +183,7 @@ function ProfileImages({
           )}
           {!logoBusy && (
             <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/50 hover:text-paper">
-              <span className="font-mono text-[9px] uppercase tracking-wider">Değiştir</span>
+              <span className="font-mono text-[9px] uppercase tracking-wider">{t("Değiştir")}</span>
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
@@ -170,6 +227,8 @@ function settingsValues(business: Business) {
     font: business.font || DEFAULT_FONT,
     logoUrl: business.logo_url,
     coverUrl: business.cover_url,
+    marqueeEnabled: Boolean(business.marquee_enabled),
+    marqueeText: business.marquee_text ?? "",
     mainLang: mainLocale(business),
     // Ana dil dışındaki aktif ek diller.
     languages: activeNonMainLocales(business),
@@ -188,15 +247,104 @@ function comparable(values: SettingsValues): string {
 
 export default function SettingsPage() {
   const { business, isLoading, setBusiness } = useBusiness();
+  const { t } = useUiLocale();
 
   if (isLoading || !business) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   return <SettingsForm business={business} onSaved={setBusiness} />;
 }
 
+/** Panel tercihleri: arayüz dili ve kılavuz. Menüyü değil paneli etkiledikleri
+ *  için formun kaydet akışına girmez, seçildiği an uygulanır ve kaydedilir. */
+function PanelPreferences({ business, onSaved }: { business: Business; onSaved: (b: Business) => void }) {
+  const { t, locale, setLocale } = useUiLocale();
+  const { toast } = useToast();
+  const [guideBusy, setGuideBusy] = useState(false);
+  const guideOn = isGuideEnabled(business);
+
+  async function changeLocale(next: (typeof UI_LOCALES)[number]) {
+    if (next === locale) return;
+    setLocale(next);
+    try {
+      onSaved(await pb.collection(BUSINESS_COLLECTION).update<Business>(business.id, { ui_locale: next }));
+    } catch {
+      /* dil bu cihazda değişti; hesaba yazılamadıysa sonraki seçimde tekrar denenir */
+    }
+  }
+
+  async function toggleGuide(enabled: boolean) {
+    setGuideBusy(true);
+    try {
+      const updated = await pb
+        .collection(BUSINESS_COLLECTION)
+        .update<Business>(business.id, { guide: guidePatch(business, { enabled }) });
+      onSaved(updated);
+      toast(enabled ? t("Kılavuz açıldı") : t("Kılavuz kapatıldı"));
+    } catch {
+      toast(t("Kaydedilemedi, tekrar dene."), "error");
+    } finally {
+      setGuideBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card className="space-y-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Panel dili")}</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            {t("Panelin arayüz dili. Menünüzün dilleri “Menü dilleri” bölümünden ayrı yönetilir.")}
+          </p>
+        </div>
+        <Select
+          aria-label={t("Panel dili")}
+          value={locale}
+          onChange={(e) => {
+            const next = UI_LOCALES.find((option) => option === e.target.value);
+            if (next) void changeLocale(next);
+          }}
+          className="sm:max-w-xs"
+        >
+          {UI_LOCALES.map((option) => (
+            <option key={option} value={option} lang={option}>
+              {uiLocaleLabels[option]}
+            </option>
+          ))}
+        </Select>
+      </Card>
+
+      <Card className="space-y-4">
+        <Switch
+          checked={guideOn}
+          onChange={toggleGuide}
+          label={t("Kılavuz")}
+          description={
+            guideOn
+              ? t("Açık: yeni işletmelerde panel ilk açıldığında adım adım tanıtım başlar; istediğiniz an yeniden başlatabilirsiniz.")
+              : t("Kapalı: kılavuz kendiliğinden gösterilmez. Açtığınızda isterseniz yeniden başlatabilirsiniz.")
+          }
+        />
+        {guideBusy && <Spinner className="h-4 w-4 text-ink-soft" />}
+        {guideOn && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            <p className="text-sm text-ink-soft">
+              {business.guide?.completed_at
+                ? t("Kılavuzu tamamladınız. Tekrar gezmek isterseniz baştan başlatabilirsiniz.")
+                : t("Paneli adım adım gezin: bilgiler, görseller, kategoriler, ürünler, tema, web sitesi ve paylaşım.")}
+            </p>
+            <GuideButton variant="button" />
+          </div>
+        )}
+      </Card>
+      <p className="text-xs text-ink-soft">{t("Bu bölümdeki ayarlar seçildiği an kaydedilir.")}</p>
+    </div>
+  );
+}
+
 function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: Business) => void }) {
+  const { t, locale: uiLocale, tag } = useUiLocale();
   const initial = settingsValues(business);
   const [name, setName] = useState(initial.name);
   const [slug, setSlug] = useState(initial.slug);
@@ -221,6 +369,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
   const template: Template = "liste";
   const [logoUrl, setLogoUrl] = useState(initial.logoUrl);
   const [coverUrl, setCoverUrl] = useState(initial.coverUrl);
+  const [marqueeEnabled, setMarqueeEnabled] = useState(initial.marqueeEnabled);
+  const [marqueeText, setMarqueeText] = useState(initial.marqueeText);
   const [mainLang, setMainLang] = useState<Locale>(initial.mainLang);
   const [languages, setLanguages] = useState<Locale[]>(initial.languages);
   const [translations, setTranslations] = useState<Translations>(initial.translations);
@@ -253,6 +403,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     font,
     logoUrl,
     coverUrl,
+    marqueeEnabled,
+    marqueeText,
     mainLang,
     languages,
     translations,
@@ -290,6 +442,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     setFont(values.font);
     setLogoUrl(values.logoUrl);
     setCoverUrl(values.coverUrl);
+    setMarqueeEnabled(values.marqueeEnabled);
+    setMarqueeText(values.marqueeText);
     setMainLang(values.mainLang);
     setLanguages(values.languages);
     setTranslations(values.translations);
@@ -315,23 +469,42 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     });
   }
 
-  function toggleLanguage(l: Locale) {
-    setLanguages((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
+  // Ana dil dahil en fazla MAX_MENU_LOCALES dil açık olabilir.
+  const localeSlotsFull = languages.length + 1 >= MAX_MENU_LOCALES;
+
+  function addLanguage(l: Locale) {
+    setLanguages((prev) => (prev.includes(l) || l === mainLang || prev.length + 1 >= MAX_MENU_LOCALES ? prev : [...prev, l]));
+  }
+
+  function removeLanguage(l: Locale) {
+    setLanguages((prev) => prev.filter((x) => x !== l));
+  }
+
+  /** Ana dil yapılabilir mi? Açık bir dil her zaman olur (yer değiştirir);
+   *  kapalı bir dil ise eski ana dil ek dil olarak kalacağı için bir yer ister. */
+  function canBecomeMain(l: Locale) {
+    return l === mainLang || languages.includes(l) || !localeSlotsFull;
   }
 
   function toggleHighlight(h: Highlight) {
-    setHighlights((prev) => {
-      if (prev.includes(h)) return prev.filter((x) => x !== h);
-      if (prev.length >= MAX_HIGHLIGHTS) return prev;
-      return [...prev, h];
-    });
+    setHighlights((prev) => (prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h]));
+  }
+
+  function selectTab(next: SettingsTab) {
+    setTab(next);
+    // Bölüm adres çubuğunda dursun (paylaşılabilir, yenilenince aynı bölüm
+    // açılır). history.replaceState sayfayı yeniden yüklemez; açık form korunur.
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.replaceState(window.history.state, "", url);
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     if (isReservedSlug(slugify(slug))) {
-      setError("Bu menü adresi sisteme ayrılmış, başka bir tane seç.");
+      setError(t("Bu menü adresi sisteme ayrılmış, başka bir tane seç."));
       return;
     }
     // Numaralar tek biçimde saklanır ki menüdeki arama/WhatsApp bağlantıları kırılmasın.
@@ -339,9 +512,16 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     const whatsappCheck = checkBusinessPhone(whatsapp);
     if (!phoneCheck.ok || !whatsappCheck.ok) {
       const message = !phoneCheck.ok
-        ? `Telefon: ${phoneCheck.error}`
-        : `WhatsApp: ${!whatsappCheck.ok ? whatsappCheck.error : ""}`;
-      setTab(!phoneCheck.ok ? "genel" : "sosyal");
+        ? t("Telefon: {error}", { error: t(phoneCheck.error) })
+        : t("WhatsApp: {error}", { error: !whatsappCheck.ok ? t(whatsappCheck.error) : "" });
+      selectTab(!phoneCheck.ok ? "genel" : "sosyal");
+      setError(message);
+      toast(message, "error");
+      return;
+    }
+    if (languages.length + 1 > MAX_MENU_LOCALES) {
+      const message = t("Menüde en fazla {max} dil açık olabilir.", { max: MAX_MENU_LOCALES });
+      selectTab("diller");
       setError(message);
       toast(message, "error");
       return;
@@ -352,6 +532,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
       // baz dile taşınır; ancak hepsi başarılı olursa main_language yazılır.
       // Böylece taşıma yarıda kalırsa kayıtlar eski ana dille tutarlı kalır.
       let baseDescription = description;
+      let baseMarquee = marqueeText;
       let baseTranslations = translations;
 
       if (mainLangChanged) {
@@ -364,15 +545,23 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         const failed = await applyRebasePatches(pb, patches);
         if (failed.length > 0) {
           pendingRebase.current = { from: savedMainLang, to: mainLang, patches: failed };
-          const message = `${failed.length} kayıt yeni ana dile taşınamadı. Ana dil değişmedi; tekrar kaydet.`;
+          const message = t("{count} kayıt yeni ana dile taşınamadı. Ana dil değişmedi; tekrar kaydet.", {
+            count: failed.length,
+          });
           setError(message);
           toast(message, "error");
           return;
         }
         pendingRebase.current = null;
 
-        const rebased = rebaseEntity({ description, translations }, BUSINESS_REBASE_FIELDS, savedMainLang, mainLang);
+        const rebased = rebaseEntity(
+          { description, marquee_text: marqueeText, translations },
+          BUSINESS_REBASE_FIELDS,
+          savedMainLang,
+          mainLang
+        );
         baseDescription = rebased.base.description ?? "";
+        baseMarquee = rebased.base.marquee_text ?? "";
         baseTranslations = rebased.translations;
       }
 
@@ -400,6 +589,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         template,
         logo_url: logoUrl,
         cover_url: coverUrl,
+        marquee_enabled: marqueeEnabled,
+        marquee_text: baseMarquee,
         main_language: mainLang,
         languages,
         translations: baseTranslations,
@@ -409,14 +600,14 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
       applyValues(settingsValues(updated));
       onSaved(updated);
       setSavedAt(Date.now());
-      toast(mainLangChanged ? "Ayarlar kaydedildi, içerik yeni ana dile taşındı" : "Ayarlar kaydedildi");
+      toast(mainLangChanged ? t("Ayarlar kaydedildi, içerik yeni ana dile taşındı") : t("Ayarlar kaydedildi"));
     } catch (err) {
       if (err instanceof ClientResponseError && err.response?.data?.slug) {
-        setError("Bu adres başka bir işletme tarafından kullanılıyor.");
-        toast("Bu adres başka bir işletme tarafından kullanılıyor.", "error");
+        setError(t("Bu adres başka bir işletme tarafından kullanılıyor."));
+        toast(t("Bu adres başka bir işletme tarafından kullanılıyor."), "error");
       } else {
-        setError("Kaydedilemedi, tekrar dene.");
-        toast("Kaydedilemedi, tekrar dene.", "error");
+        setError(t("Kaydedilemedi, tekrar dene."));
+        toast(t("Kaydedilemedi, tekrar dene."), "error");
       }
     } finally {
       setSaving(false);
@@ -428,24 +619,45 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
   const brandPreview = brandIsCustom ? themeColor : themes[theme as keyof typeof themes]?.color ?? themes.paprika.color;
   const surfacePreview = surfaces[menuBg as keyof typeof surfaces] ?? surfaces[DEFAULT_SURFACE];
 
-  const registeredAt = new Date(business.created).toLocaleDateString("tr-TR", {
+  const registeredAt = new Date(business.created).toLocaleDateString(tag, {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 
+  // Çeviri girilen diller: kayıtlı ana dil ilk sırada (bkz. MultiLangFields notu).
+  const editLocales = [
+    savedMainLang,
+    ...SUPPORTED_LOCALES.filter((l) => l !== savedMainLang && (l === mainLang || languages.includes(l))),
+  ];
+
+  // Kayan yazı önizlemesi: ana dildeki metinden, işletmenin marka rengiyle.
+  const marqueeItems = parseMarqueeText(marqueeText);
+  const marqueeLines = marqueeText.split(/\r?\n/).filter((line) => line.trim()).length;
+
   return (
     <div>
-      <PageHeader title="İşletme ayarları" description="Menünün görünümünü ve bilgilerini düzenle." />
+      <Suspense fallback={null}>
+        <TabFromUrl onTab={setTab} />
+      </Suspense>
+      <PageHeader title={t("İşletme ayarları")} description={t("Menünün görünümünü ve bilgilerini düzenle.")} />
+      <div className={SECTION_LAYOUT}>
+      <SectionNav
+        items={SETTINGS_TABS.map((item) => ({ key: item.key, label: t(item.label), icon: item.icon }))}
+        active={tab}
+        onChange={selectTab}
+        label={t("Ayar bölümleri")}
+      />
+      <div className="min-w-0">
       <form onSubmit={handleSubmit} className={FORM_STACK}>
-        <FormActions saving={saving} dirty={dirty} savedAt={savedAt ?? business.updated ?? null} error={error || undefined} />
-
-        <Tabs tabs={SETTINGS_TABS} active={tab} onChange={setTab} className="" />
+        {tab !== "panel" && (
+          <FormActions saving={saving} dirty={dirty} savedAt={savedAt ?? business.updated ?? null} error={error || undefined} />
+        )}
 
         {tab === "genel" && (
           <div className="space-y-8">
             {/* Kapak + logo başlığı */}
-            <Card className="space-y-4">
+            <Card className="space-y-4" data-guide="settings-images">
               <ProfileImages
                 businessId={business.id}
                 logoUrl={logoUrl}
@@ -456,15 +668,17 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             </Card>
 
             {/* Genel bilgiler */}
-            <Card className="space-y-4">
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Kayıt tarihi: {registeredAt}</p>
+            <Card className="space-y-4" data-guide="settings-info">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+                {t("Kayıt tarihi: {date}", { date: registeredAt })}
+              </p>
               <div>
-                <Label htmlFor="b-name">İşletme adı</Label>
+                <Label htmlFor="b-name">{t("İşletme adı")}</Label>
                 <Input id="b-name" required value={name} onChange={(e) => setName(e.target.value)} />
-                <p className="mt-1.5 text-xs text-ink-soft">İşletme adı tekildir, tüm dillerde aynı görünür.</p>
+                <p className="mt-1.5 text-xs text-ink-soft">{t("İşletme adı tekildir, tüm dillerde aynı görünür.")}</p>
               </div>
               <div>
-                <Label htmlFor="b-slug">Menü adresi</Label>
+                <Label htmlFor="b-slug">{t("Menü adresi")}</Label>
                 <div className="flex items-center gap-1 rounded-md border border-line bg-crema/40 px-4 py-2.5 text-sm">
                   <input
                     id="b-slug"
@@ -475,30 +689,38 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                   />
                   <span className="shrink-0 text-ink-soft">.{ROOT_DOMAIN}</span>
                 </div>
-                <p className="mt-1.5 text-xs text-ink-soft">Adresi değiştirirsen eski QR kodların çalışmaz, yeniden bastırman gerekir.</p>
+                <p className="mt-1.5 text-xs text-ink-soft">
+                  {t("Adresi değiştirirsen eski QR kodların çalışmaz, yeniden bastırman gerekir.")}
+                </p>
               </div>
               {/* Ana dil değişikliği kaydedilene kadar metinler KAYITLI ana dile
                   göre düzenlenir: baz alan hâlâ o dilin metnidir. Yeni ana dili
                   "Ana" diye göstermek, oraya yazılan metni kayıttaki taşımada
                   eski dilin kutusuna gönderirdi (diller birbirini ezerdi). */}
               <MultiLangFields
-                locales={[savedMainLang, ...SUPPORTED_LOCALES.filter((l) => l !== savedMainLang && (l === mainLang || languages.includes(l)))]}
+                locales={editLocales}
                 mainLocale={savedMainLang}
                 base={{ description }}
                 onBaseChange={(_, v) => setDescription(v)}
                 translations={translations}
                 onTranslationsChange={setTranslations}
-                title="İşletme açıklaması"
-                translate={{ business, kind: "business" }}
-                fields={[{ key: "description", label: "Açıklama", multiline: true }]}
+                title={t("İşletme açıklaması")}
+                translate={{ business, kind: "business", fields: { description } }}
+                fields={[{ key: "description", label: t("Açıklama"), multiline: true }]}
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="b-email">Menüde görünen e-posta</Label>
-                  <Input id="b-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="merhaba@isletme.com" />
+                  <Label htmlFor="b-email">{t("Menüde görünen e-posta")}</Label>
+                  <Input
+                    id="b-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="merhaba@isletme.com"
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="b-phone">Telefon</Label>
+                  <Label htmlFor="b-phone">{t("Telefon")}</Label>
                   <Input
                     id="b-phone"
                     type="tel"
@@ -510,101 +732,134 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                 </div>
               </div>
               <p className="text-xs text-ink-soft">
-                Bu bilgiler menüdeki &ldquo;İşletme bilgileri&rdquo; bölümünde müşterilere görünür. E-posta boşsa
-                gösterilmez; giriş e-postanı yazarsan onu gösteririz{business.email ? ` (${business.email})` : ""}.
+                {t(
+                  "Bu bilgiler vitrininizde ve menüdeki “İşletme bilgileri” bölümünde müşterilere görünür. E-posta boşsa gösterilmez; giriş e-postanı yazarsan onu gösteririz."
+                )}
+                {business.email ? ` (${business.email})` : ""}
               </p>
             </Card>
           </div>
         )}
 
         {tab === "diller" && (
-          <Card className="space-y-4">
+          <Card className="space-y-6">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Menü dilleri</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Menü dilleri")}</p>
               <p className="mt-1 text-xs text-ink-soft">
-                Yıldız o dili ana dil yapar (metinlerin girildiği baz dildir); switch dili menüde aktif/pasif eder.
-                Ana dil her zaman aktiftir.
+                {t(
+                  "Ana dil, metinleri girdiğiniz dildir ve her zaman açıktır. Misafirleriniz için ana dil dahil en fazla {max} dil açabilirsiniz.",
+                  { max: MAX_MENU_LOCALES }
+                )}
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {SUPPORTED_LOCALES.map((l) => {
-                const isMain = l === mainLang;
-                const isActive = isMain || languages.includes(l);
-                return (
-                  <div
-                    key={l}
-                    className={`rounded-md border p-4 transition-colors ${isMain ? "border-paprika bg-paprika/5" : "border-line"}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => changeMainLang(l)}
-                        disabled={isMain || !isActive}
-                        title="Ana dil yap"
-                        aria-label={`${localeLabels[l]} dilini ana dil yap`}
-                        className={`transition-colors ${isMain
-                            ? "text-paprika"
-                            : isActive
-                              ? "text-ink-soft/50 hover:text-paprika"
-                              : "cursor-not-allowed text-ink-soft/20"
-                          }`}
-                      >
-                        <StarIcon filled={isMain} size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={isActive}
-                        aria-label={`${localeLabels[l]} aktif`}
-                        disabled={isMain}
-                        onClick={() => toggleLanguage(l)}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${isActive ? "bg-herb" : "bg-ink/20"
-                          }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-paper shadow transition-transform ${isActive ? "translate-x-[1.125rem]" : "translate-x-0.5"
-                            }`}
-                        />
-                      </button>
-                    </div>
-                    <p className="mt-3 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-soft">{localeCodes[l]}</p>
-                    <p className="text-sm font-semibold text-ink">{localeLabels[l]}</p>
-                  </div>
-                );
-              })}
+
+            <div>
+              <Label htmlFor="b-main-lang">{t("Ana dil")}</Label>
+              <Select
+                id="b-main-lang"
+                value={mainLang}
+                onChange={(e) => isSupportedLocale(e.target.value) && changeMainLang(e.target.value)}
+                className="sm:max-w-xs"
+              >
+                {SUPPORTED_LOCALES.map((l) => (
+                  <option key={l} value={l} lang={l} disabled={!canBecomeMain(l)}>
+                    {localeLabels[l]} ({localeCodes[l]})
+                  </option>
+                ))}
+              </Select>
+              {localeSlotsFull && (
+                <p className="mt-1.5 text-xs text-ink-soft">
+                  {t("Kapalı bir dili ana dil yapmak için önce bir ek dili kaldırın.")}
+                </p>
+              )}
             </div>
+
+            <div>
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Açık diller")}</p>
+                <p className="font-mono text-[11px] text-ink-soft">
+                  {t("{count}/{max} dil", { count: languages.length + 1, max: MAX_MENU_LOCALES })}
+                </p>
+              </div>
+              <ul className="divide-y divide-line rounded-md border border-line">
+                {[mainLang, ...languages].map((l) => {
+                  const isMain = l === mainLang;
+                  return (
+                    <li key={l} className="flex items-center gap-3 px-3.5 py-2.5">
+                      <span className="w-7 shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-ink-soft">
+                        {localeCodes[l]}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink" lang={l}>
+                        {localeLabels[l]}
+                      </span>
+                      {isMain ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] uppercase tracking-wider text-paprika">
+                          <StarIcon filled size={13} /> {t("Ana dil")}
+                        </span>
+                      ) : (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeLanguage(l)} aria-label={t("{language} dilini kapat", { language: localeLabels[l] })}>
+                          {t("Kaldır")}
+                        </Button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+
+            <div>
+              <Label htmlFor="b-add-lang">{t("Dil ekle")}</Label>
+              <Select
+                id="b-add-lang"
+                value=""
+                disabled={localeSlotsFull}
+                onChange={(e) => isSupportedLocale(e.target.value) && addLanguage(e.target.value)}
+                className="sm:max-w-xs"
+              >
+                <option value="">{localeSlotsFull ? t("Dil sınırına ulaşıldı") : t("Dil seçin…")}</option>
+                {SUPPORTED_LOCALES.filter((l) => l !== mainLang && !languages.includes(l)).map((l) => (
+                  <option key={l} value={l} lang={l}>
+                    {localeLabels[l]} ({localeCodes[l]})
+                  </option>
+                ))}
+              </Select>
+            </div>
+
             {mainLangChanged && (
               <div className="rounded-md border border-paprika/40 bg-paprika/5 p-4 text-xs text-ink">
-                <p className="font-semibold">Ana dil {localeLabels[savedMainLang]} → {localeLabels[mainLang]} olarak değişecek.</p>
+                <p className="font-semibold">
+                  {t("Ana dil {from} → {to} olarak değişecek.", { from: localeLabels[savedMainLang], to: localeLabels[mainLang] })}
+                </p>
                 <p className="mt-1 text-ink-soft">
-                  Kaydedince menüdeki tüm metinler taşınır: şu anki {localeLabels[savedMainLang]} metinleri{" "}
-                  {localeLabels[savedMainLang]} çevirisi olarak saklanır, girdiğin {localeLabels[mainLang]} çevirileri ana
-                  metin olur. {localeLabels[mainLang]} çevirisi olmayan alanlarda mevcut metin olduğu gibi kalır —
-                  hiçbir içerik silinmez.
+                  {t(
+                    "Kaydedince menüdeki tüm metinler taşınır: şu anki {from} metinleri {from} çevirisi olarak saklanır, girdiğin {to} çevirileri ana metin olur. {to} çevirisi olmayan alanlarda mevcut metin olduğu gibi kalır — hiçbir içerik silinmez.",
+                    { from: localeLabels[savedMainLang], to: localeLabels[mainLang] }
+                  )}
                 </p>
               </div>
             )}
             <p className="text-xs text-ink-soft">
-              Açıklama çevirilerini &ldquo;Genel bilgiler&rdquo; sekmesindeki dil sekmelerinden girebilirsin.
+              {t("Kapattığınız dilin çevirileri silinmez; dili yeniden açtığınızda geri gelir.")}{" "}
+              {t("Açıklama ve kayan yazı çevirilerini ilgili bölümlerdeki dil seçiciden girebilirsin.")}
             </p>
           </Card>
         )}
 
         {tab === "tema" && (
-          <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_20rem]" data-guide="settings-theme">
             <div className="space-y-6">
               {/* Marka rengi */}
               <Card className="space-y-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Marka rengi</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Marka rengi")}</p>
                 <div className="flex flex-wrap gap-2.5">
-                  {Object.entries(themes).map(([key, { name, color }]) => {
+                  {Object.entries(themes).map(([key, { name: themeName, color }]) => {
                     const active = !brandIsCustom && theme === key;
                     return (
                       <button
                         type="button"
                         key={key}
-                        title={name}
-                        aria-label={name}
+                        title={t(themeName)}
+                        aria-label={t(themeName)}
                         onClick={() => {
                           setTheme(key);
                           setThemeColor("");
@@ -621,7 +876,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                     className={`relative h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 shadow-sm ${brandIsCustom ? "border-ink ring-2 ring-ink/20" : "border-white"
                       }`}
                     style={{ backgroundColor: brandIsCustom ? themeColor : "#ffffff" }}
-                    title="Özel renk seç"
+                    title={t("Özel renk seç")}
                   >
                     <input
                       type="color"
@@ -632,7 +887,9 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                     {!brandIsCustom && <span className="absolute inset-0 flex items-center justify-center text-lg text-ink-soft">+</span>}
                   </label>
                   <div className="min-w-0 flex-1">
-                    <Label htmlFor="b-theme-hex" className="mb-1">Özel renk (hex)</Label>
+                    <Label htmlFor="b-theme-hex" className="mb-1">
+                      {t("Özel renk (hex)")}
+                    </Label>
                     <Input
                       id="b-theme-hex"
                       value={themeColor}
@@ -647,7 +904,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                       onClick={() => setThemeColor("")}
                       className="font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-paprika"
                     >
-                      Sıfırla
+                      {t("Sıfırla")}
                     </button>
                   )}
                 </div>
@@ -655,7 +912,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
               {/* Arka plan */}
               <Card className="space-y-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Menü arka planı</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Menü arka planı")}</p>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {Object.entries(surfaces).map(([key, s]) => {
                     const active = menuBg === key;
@@ -673,7 +930,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                         >
                           <span className="h-3.5 w-3.5 rounded-full" style={{ background: s.swatch[2] }} />
                         </span>
-                        <span className="text-sm font-medium">{s.name}</span>
+                        <span className="text-sm font-medium">{t(s.name)}</span>
                       </button>
                     );
                   })}
@@ -682,7 +939,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
               {/* Yazı tipi */}
               <Card className="space-y-3">
-                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Yazı tipi</p>
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Yazı tipi")}</p>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   {Object.entries(fonts).map(([key, f]) => {
                     const active = font === key;
@@ -706,7 +963,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
             {/* Canlı önizleme */}
             <div className="lg:sticky lg:top-[calc(var(--app-header-h,69px)+5rem)] lg:self-start">
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Önizleme</p>
+              <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Önizleme")}</p>
               <div
                 className="overflow-hidden rounded-md border shadow-lg"
                 style={{
@@ -717,26 +974,26 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                 }}
               >
                 <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${surfacePreview.vars.line}` }}>
-                  <span className="text-sm font-bold">{name || "İşletmen"}</span>
+                  <span className="text-sm font-bold">{name || t("İşletmen")}</span>
                   <span
                     className="flex h-7 w-7 items-center justify-center rounded-full font-mono text-[10px] font-bold"
                     style={{ background: brandPreview, color: "#fff" }}
                   >
-                    TR
+                    {localeCodes[savedMainLang]}
                   </span>
                 </div>
                 <div className="space-y-3 p-4">
                   <div>
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-bold">Izgara Köfte</span>
+                      <span className="font-bold">{t("Izgara Köfte")}</span>
                       <span className="font-mono text-sm font-bold" style={{ color: brandPreview }}>285₺</span>
                     </div>
                     <p className="mt-0.5 text-xs" style={{ color: surfacePreview.vars.inkSoft }}>
-                      El yapımı, közlenmiş biber ve pilav ile
+                      {t("El yapımı, közlenmiş biber ve pilav ile")}
                     </p>
                   </div>
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-bold">Sezar Salata</span>
+                    <span className="font-bold">{t("Sezar Salata")}</span>
                     <span className="font-mono text-sm font-bold" style={{ color: brandPreview }}>190₺</span>
                   </div>
                   <button
@@ -744,7 +1001,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
                     className="mt-1 w-full rounded-md py-2.5 text-center font-mono text-[12px] uppercase tracking-wider"
                     style={{ background: brandPreview, color: "#fff" }}
                   >
-                    + Sepete ekle
+                    {t("+ Sepete ekle")}
                   </button>
                 </div>
               </div>
@@ -752,29 +1009,99 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </div>
         )}
 
-        {tab === "ozellik" && (
-          <Card className="space-y-3">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Öne çıkan özellikler</p>
-              <p className="mt-1 text-xs text-ink-soft">En fazla {MAX_HIGHLIGHTS} tane seç — menünde rozet olarak görünür.</p>
+        {tab === "yazi" && (
+          <div className="grid gap-6 lg:grid-cols-[1fr_20rem]" data-guide="settings-marquee">
+            <Card className="space-y-5">
+              <Switch
+                checked={marqueeEnabled}
+                onChange={setMarqueeEnabled}
+                label={t("Kayan yazıyı göster")}
+                description={t("Menünüzün üstünde, vitrin sayfanızda ve web sitenizde sürekli akan kısa duyuru şeridi.")}
+              />
+              <MultiLangFields
+                locales={editLocales}
+                mainLocale={savedMainLang}
+                base={{ marquee_text: marqueeText }}
+                onBaseChange={(_, value) => setMarqueeText(value)}
+                translations={translations}
+                onTranslationsChange={setTranslations}
+                title={t("Mesajlar")}
+                translate={{ business, kind: "business", fields: { marquee_text: marqueeText } }}
+                fields={[
+                  {
+                    key: "marquee_text",
+                    label: t("Her satıra bir mesaj"),
+                    multiline: true,
+                    rows: 5,
+                    placeholder: t("Taze ürünler\nGünün favorileri\nÖzel kampanyalar\nHoş geldiniz"),
+                  },
+                ]}
+              />
+              <p className={`text-xs ${marqueeLines > MARQUEE_MAX_ITEMS ? "text-paprika-deep" : "text-ink-soft"}`}>
+                {t("En fazla {max} mesaj, her biri {length} karaktere kadar. Mesajların arasına ✦ kendiliğinden eklenir.", {
+                  max: MARQUEE_MAX_ITEMS,
+                  length: MARQUEE_MAX_ITEM_LENGTH,
+                })}
+              </p>
+            </Card>
+
+            <div className="lg:sticky lg:top-[calc(var(--app-header-h,69px)+5rem)] lg:self-start">
+              <p className="mb-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Önizleme")}</p>
+              <div
+                className="overflow-hidden rounded-md border border-line bg-paper shadow-lg"
+                style={brandStyle({ theme, theme_color: themeColor, menu_bg: menuBg, font }, { surface: true }) as CSSProperties}
+              >
+                <div className="flex items-center justify-center border-b border-line/60 bg-paper px-4 py-3">
+                  <span className="text-sm font-bold text-ink">{name || t("İşletmen")}</span>
+                </div>
+                {marqueeEnabled && marqueeItems.length > 0 ? (
+                  <Marquee items={marqueeItems} tone="brand" label={t("Kayan yazı önizlemesi")} className="py-2" />
+                ) : (
+                  <p className="px-4 py-3 text-center text-xs text-ink-soft">
+                    {marqueeEnabled ? t("Mesaj yazınca burada akar.") : t("Kayan yazı kapalı.")}
+                  </p>
+                )}
+                <div className="space-y-2 bg-paper p-4">
+                  <div className="h-2.5 w-2/3 rounded-full bg-crema" />
+                  <div className="h-2.5 w-1/2 rounded-full bg-crema" />
+                </div>
+              </div>
+              {uiLocale !== savedMainLang && (
+                <p className="mt-2 text-xs text-ink-soft">{t("Önizleme ana dildeki mesajları gösterir.")}</p>
+              )}
             </div>
-            <div className="flex flex-wrap gap-2">
+          </div>
+        )}
+
+        {tab === "ozellik" && (
+          <Card className="space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Mekân özellikleri")}</p>
+                <p className="mt-1 text-xs text-ink-soft">
+                  {t("İstediğiniz kadar seçin — menünüzde, vitrininizde ve web sitenizde ikonlarıyla görünür.")}
+                </p>
+              </div>
+              <p className="shrink-0 font-mono text-[11px] text-ink-soft">
+                {t("{count} seçili", { count: highlights.length })}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 lg:grid-cols-3">
               {ALL_HIGHLIGHTS.map((h) => {
                 const selected = highlights.includes(h);
-                const disabled = !selected && highlights.length >= MAX_HIGHLIGHTS;
                 return (
                   <button
                     type="button"
                     key={h}
-                    disabled={disabled}
+                    role="checkbox"
+                    aria-checked={selected}
                     onClick={() => toggleHighlight(h)}
-                    className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${selected
-                        ? "border-paprika bg-paprika text-paper"
-                        : "border-line text-ink-soft hover:border-paprika hover:text-paprika disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-line disabled:hover:text-ink-soft"
-                      }`}
+                    className={`flex min-w-0 items-center gap-2.5 rounded-md border px-3 py-2.5 text-left text-sm transition-colors ${
+                      selected ? "border-paprika bg-paprika/10 font-semibold text-paprika" : "border-line text-ink hover:border-paprika/60"
+                    }`}
                   >
-                    <HighlightIcon highlight={h} size={15} strokeWidth={2} />
-                    {highlightLabels.tr[h]}
+                    <HighlightIcon highlight={h} size={17} strokeWidth={selected ? 2.1 : 1.8} className="shrink-0" />
+                    <span className="min-w-0 truncate">{highlightLabels[uiLocale][h]}</span>
                   </button>
                 );
               })}
@@ -784,23 +1111,23 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
 
         {tab === "iletisim" && (
           <Card className="space-y-4">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Adres & iletişim</p>
+            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Adres & iletişim")}</p>
             <div>
-              <Label htmlFor="b-address">Adres</Label>
+              <Label htmlFor="b-address">{t("Adres")}</Label>
               <Input id="b-address" value={address} onChange={(e) => setAddress(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="b-hours">Çalışma saatleri</Label>
+              <Label htmlFor="b-hours">{t("Çalışma saatleri")}</Label>
               <Textarea
                 id="b-hours"
                 rows={3}
                 value={workingHours}
                 onChange={(e) => setWorkingHours(e.target.value)}
-                placeholder={"Pazartesi - Cuma: 09:00 - 22:00\nHafta sonu: 10:00 - 23:00"}
+                placeholder={t("Pazartesi - Cuma: 09:00 - 22:00\nHafta sonu: 10:00 - 23:00")}
               />
             </div>
             <div>
-              <Label htmlFor="b-maps">Google Maps linki</Label>
+              <Label htmlFor="b-maps">{t("Google Maps linki")}</Label>
               <Input
                 id="b-maps"
                 value={googleMapsUrl}
@@ -809,28 +1136,30 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
               />
             </div>
             <div>
-              <Label htmlFor="b-greview">Google yorum linki</Label>
+              <Label htmlFor="b-greview">{t("Google yorum linki")}</Label>
               <Input
                 id="b-greview"
                 value={googleReviewUrl}
                 onChange={(e) => setGoogleReviewUrl(e.target.value)}
-                placeholder="https://g.page/r/... veya https://search.google.com/local/writereview?placeid=..."
+                placeholder="https://g.page/r/..."
               />
               <p className="mt-1.5 text-xs text-ink-soft">
-                Doluysa değerlendirme gönderen müşteriye &ldquo;Google&apos;da da değerlendir&rdquo; butonu gösterilir.
+                {t("Doluysa değerlendirme gönderen müşteriye “Google'da da değerlendir” butonu gösterilir.")}
               </p>
             </div>
             <div>
-              <Label htmlFor="b-wifi">WiFi şifresi</Label>
+              <Label htmlFor="b-wifi">{t("WiFi şifresi")}</Label>
               <Input id="b-wifi" value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} placeholder="kafe-wifi-2026" />
-              <p className="mt-1.5 text-xs text-ink-soft">Doluysa menünün karşılama sayfasında müşteriye gösterilir.</p>
+              <p className="mt-1.5 text-xs text-ink-soft">
+                {t("Doluysa vitrin sayfanızda ve menünün bilgi bölümünde müşteriye gösterilir.")}
+              </p>
             </div>
           </Card>
         )}
 
         {tab === "sosyal" && (
           <Card className="space-y-4">
-            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sosyal medya</p>
+            <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Sosyal medya")}</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="b-whatsapp">WhatsApp</Label>
@@ -845,25 +1174,38 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
               </div>
               <div>
                 <Label htmlFor="b-instagram">Instagram</Label>
-                <Input id="b-instagram" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="kullaniciadi" />
+                <Input
+                  id="b-instagram"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder={t("kullaniciadi")}
+                />
               </div>
               <div>
                 <Label htmlFor="b-tiktok">TikTok</Label>
-                <Input id="b-tiktok" value={tiktok} onChange={(e) => setTiktok(e.target.value)} placeholder="kullaniciadi" />
+                <Input id="b-tiktok" value={tiktok} onChange={(e) => setTiktok(e.target.value)} placeholder={t("kullaniciadi")} />
               </div>
               <div>
                 <Label htmlFor="b-youtube">YouTube</Label>
-                <Input id="b-youtube" value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder="@kanaladi" />
+                <Input id="b-youtube" value={youtube} onChange={(e) => setYoutube(e.target.value)} placeholder={t("@kanaladi")} />
               </div>
               <div>
                 <Label htmlFor="b-facebook">Facebook</Label>
-                <Input id="b-facebook" value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="kullaniciadi" />
+                <Input
+                  id="b-facebook"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  placeholder={t("kullaniciadi")}
+                />
               </div>
             </div>
           </Card>
         )}
-
       </form>
+
+      {tab === "panel" && <PanelPreferences business={business} onSaved={onSaved} />}
+      </div>
+      </div>
     </div>
   );
 }

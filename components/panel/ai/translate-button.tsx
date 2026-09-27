@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { pb } from "@/lib/pocketbase";
 import { useToast } from "@/components/panel/toast";
 import { AiActionButton } from "@/components/panel/ui";
-import { activeNonMainLocales, localeNamesTr, SUPPORTED_LOCALES } from "@/lib/i18n";
+import { activeNonMainLocales, localeNamesEn, localeNamesTr, SUPPORTED_LOCALES } from "@/lib/i18n";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg, type Translator } from "@/lib/ui-i18n";
 import type { Locale, TranslatableField, Translations } from "@/lib/i18n";
 import { fillMissingTranslations, missingTranslations, unsavedLocales, type TranslationKind } from "@/lib/ai/translate";
 import { isFeatureAvailable } from "@/lib/entitlements";
@@ -41,12 +43,13 @@ const RETRY_DELAY_MS = 1200;
 const TRANSIENT_STATUS = new Set([502, 503, 504]);
 
 const FIELD_NAMES: Record<TranslatableField, string> = {
-  name: "ad",
-  description: "açıklama",
-  campaign_label: "kampanya etiketi",
-  group_name: "grup",
-  title: "başlık",
-  message: "mesaj",
+  name: msg("ad"),
+  description: msg("açıklama"),
+  campaign_label: msg("kampanya etiketi"),
+  group_name: msg("grup"),
+  title: msg("başlık"),
+  message: msg("mesaj"),
+  marquee_text: msg("kayan yazı"),
 };
 
 /** Bu işletmede yapay zekâ çevirisi sunulabilir mi: ek dil açık ve plan izin
@@ -74,18 +77,20 @@ function wait(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/** Türkçe kaynak metin döner; ekrana basılırken çevrilir. */
 function statusMessage(status: number): string {
-  if (status === 401) return "Oturumunuz sona ermiş. Sayfayı yenileyip yeniden giriş yapın.";
-  if (status === 403) return "Bu özellik mevcut planınızda kullanılamıyor.";
-  if (status === 413) return "Metin çok uzun. Kısaltıp tekrar deneyin.";
-  if (status === 429) return "Çok sık denendi. Biraz bekleyip tekrar deneyin.";
-  if (TRANSIENT_STATUS.has(status)) return "Yapay zekâ servisi şu an yanıt vermiyor. Birkaç saniye sonra tekrar deneyin.";
-  return "Çeviri üretilemedi. Tekrar deneyin.";
+  if (status === 401) return msg("Oturumunuz sona ermiş. Sayfayı yenileyip yeniden giriş yapın.");
+  if (status === 403) return msg("Bu özellik mevcut planınızda kullanılamıyor.");
+  if (status === 413) return msg("Metin çok uzun. Kısaltıp tekrar deneyin.");
+  if (status === 429) return msg("Çok sık denendi. Biraz bekleyip tekrar deneyin.");
+  if (TRANSIENT_STATUS.has(status)) return msg("Yapay zekâ servisi şu an yanıt vermiyor. Birkaç saniye sonra tekrar deneyin.");
+  return msg("Çeviri üretilemedi. Tekrar deneyin.");
 }
 
-function listText(items: string[]): string {
+/** "A, B ve C" — bağlaç arayüz dilinde. */
+function listText(items: string[], t: Translator): string {
   if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} ve ${items[items.length - 1]}`;
+  return t("{list} ve {last}", { list: items.slice(0, -1).join(", "), last: items[items.length - 1] });
 }
 
 function isTranslations(value: unknown): value is Translations {
@@ -112,7 +117,7 @@ async function requestTranslation(payload: unknown, signal: AbortSignal): Promis
     });
   } catch (error) {
     if (signal.aborted) throw error;
-    return { ok: false, message: "Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin.", transient: true };
+    return { ok: false, message: msg("Bağlantı kurulamadı. İnternetinizi kontrol edip tekrar deneyin."), transient: true };
   }
 
   const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
@@ -127,7 +132,7 @@ async function requestTranslation(payload: unknown, signal: AbortSignal): Promis
   const items = Array.isArray(data?.items) ? (data.items as { translations?: unknown }[]) : [];
   const translations = items[0]?.translations;
   if (!isTranslations(translations) || Object.keys(translations).length === 0) {
-    return { ok: false, message: "Çeviri sonucu okunamadı. Tekrar deneyin.", transient: false };
+    return { ok: false, message: msg("Çeviri sonucu okunamadı. Tekrar deneyin."), transient: false };
   }
   const missing = Array.isArray(data?.missing) ? (data.missing as Locale[]) : [];
   return { ok: true, translations, missing };
@@ -149,7 +154,7 @@ export function AiTranslateButton({
   onDone,
   onError,
   visibleLocales,
-  label = "AI ile tamamla",
+  label,
 }: {
   business: Business;
   /** Modele bağlam verir; çeviri kalitesini artırır. */
@@ -167,6 +172,8 @@ export function AiTranslateButton({
   label?: string;
 }) {
   const { toast } = useToast();
+  const { t, locale: uiLocale } = useUiLocale();
+  const localeNames = uiLocale === "tr" ? localeNamesTr : localeNamesEn;
   const [loading, setLoading] = useState(false);
   const inFlight = useRef(false);
   const controller = useRef<AbortController | null>(null);
@@ -185,12 +192,16 @@ export function AiTranslateButton({
   const pending = unsavedLocales(business, visibleLocales);
   const pendingNote =
     pending.length > 0
-      ? ` ${listText(pending.map((locale) => localeNamesTr[locale]))} henüz kaydedilmedi; önce ayarları kaydedin, sonra o dil de doldurulur.`
+      ? ` ${t("{languages} henüz kaydedilmedi; önce ayarları kaydedin, sonra o dil de doldurulur.", {
+          languages: listText(pending.map((locale) => localeNames[locale]), t),
+        })}`
       : "";
 
+  /** Mesaj Türkçe kaynak metin olabilir (sunucu/istemci hatası): arayüz diline çevrilir. */
   function fail(message: string) {
-    toast(message, "error");
-    onError?.(message);
+    const text = t(message);
+    toast(text, "error");
+    onError?.(text);
   }
 
   async function handleClick() {
@@ -202,20 +213,20 @@ export function AiTranslateButton({
         .map(([key, value]) => [key, (value as string).trim()])
     ) as Partial<Record<TranslatableField, string>>;
     if (Object.keys(filled).length === 0) {
-      fail("Önce ana dildeki metni yazın; çeviri ondan üretilir.");
+      fail(msg("Önce ana dildeki metni yazın; çeviri ondan üretilir."));
       return;
     }
 
     // "Tamamla": yalnızca boş kalan çeviriler istenir. Dolu bir çeviri (elle
     // yazılmış ya da daha önce onaylanmış) yeniden üretilip ezilmez.
     if (targets.length === 0) {
-      fail(`Çeviri yalnızca kayıtlı menü dillerine yapılır.${pendingNote}`);
+      fail(`${t("Çeviri yalnızca kayıtlı menü dillerine yapılır.")}${pendingNote}`);
       return;
     }
     const missing = missingTranslations(filled, latest.current, targets);
     const locales = targets.filter((locale) => missing[locale]);
     if (locales.length === 0) {
-      fail(`Bütün diller zaten dolu. Bir çeviriyi yeniden üretmek için o alanı boşaltıp tekrar deneyin.${pendingNote}`);
+      fail(`${t("Bütün diller zaten dolu. Bir çeviriyi yeniden üretmek için o alanı boşaltıp tekrar deneyin.")}${pendingNote}`);
       return;
     }
     const wanted = new Set(locales.flatMap((locale) => missing[locale] ?? []));
@@ -248,26 +259,31 @@ export function AiTranslateButton({
       const { merged, applied } = fillMissingTranslations(latest.current, outcome.translations);
       const doneLocales = targets.filter((locale) => applied[locale] && Object.keys(applied[locale] ?? {}).length > 0);
       if (doneLocales.length === 0) {
-        fail("Beklerken bütün alanlar doldurulmuş; değiştirilecek bir şey kalmadı.");
+        fail(msg("Beklerken bütün alanlar doldurulmuş; değiştirilecek bir şey kalmadı."));
         return;
       }
       latest.current = merged;
       onTranslationsChange(merged);
 
       const doneFields = Array.from(new Set(doneLocales.flatMap((locale) => Object.keys(applied[locale] ?? {}))))
-        .map((field) => FIELD_NAMES[field as TranslatableField] ?? field);
-      let summary = `${listText(doneLocales.map((locale) => localeNamesTr[locale]))} için ${listText(doneFields)} dolduruldu.`;
+        .map((field) => t(FIELD_NAMES[field as TranslatableField] ?? field));
+      let summary = t("{languages} için {fields} dolduruldu.", {
+        languages: listText(doneLocales.map((locale) => localeNames[locale]), t),
+        fields: listText(doneFields, t),
+      });
       const notDone = outcome.missing.filter((locale) => locales.includes(locale));
       if (notDone.length > 0) {
-        summary += ` ${listText(notDone.map((locale) => localeNamesTr[locale]))} üretilemedi; tekrar deneyebilirsiniz.`;
+        summary += ` ${t("{languages} üretilemedi; tekrar deneyebilirsiniz.", {
+          languages: listText(notDone.map((locale) => localeNames[locale]), t),
+        })}`;
       }
       summary += pendingNote;
-      toast(`${summary} Kontrol edip kaydedin.`);
+      toast(`${summary} ${t("Kontrol edip kaydedin.")}`);
       onDone?.({ summary, locales: doneLocales });
     } catch {
       // Yalnızca iptal buraya düşer: süre aşımı ya da sayfadan çıkış. Çıkışta
       // kullanıcıya söylenecek bir şey yok.
-      if (timedOut) fail("Çeviri çok uzun sürdü ve durduruldu. Tekrar deneyin.");
+      if (timedOut) fail(msg("Çeviri çok uzun sürdü ve durduruldu. Tekrar deneyin."));
     } finally {
       window.clearTimeout(timer);
       if (controller.current === abort) controller.current = null;
@@ -281,9 +297,9 @@ export function AiTranslateButton({
       type="button"
       onClick={handleClick}
       loading={loading}
-      title="Yapay zekâ ile boş kalan dilleri doldurur; dolu çevirilere dokunmaz"
+      title={t("Yapay zekâ ile boş kalan dilleri doldurur; dolu çevirilere dokunmaz")}
     >
-      {loading ? "Çevriliyor…" : label}
+      {loading ? t("Çevriliyor…") : (label ?? t("AI ile tamamla"))}
     </AiActionButton>
   );
 }

@@ -10,6 +10,7 @@ import { useFormDraft } from "@/lib/use-draft";
 import { categoryNameTaken } from "@/lib/unique-name";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Business, Category } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 interface CategoryDraft {
   name: string;
@@ -57,6 +58,7 @@ export function CategoryForm({
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const { toast } = useToast();
+  const { t } = useUiLocale();
 
   const current: CategoryDraft = { name, description, imageUrl, isActive, translations };
   const draft = useFormDraft(`category:${initial?.id ?? `new:${business.id}`}`, current, baseline, initial?.updated);
@@ -88,8 +90,8 @@ export function CategoryForm({
       // Aynı adda ikinci bir kategori menüde ayırt edilemez — yazmadan önce sorulur.
       const taken = await categoryNameTaken(business.id, name, initial?.id);
       if (taken) {
-        setError(taken);
-        toast(taken, "error");
+        setError(t(taken));
+        toast(t(taken), "error");
         return;
       }
 
@@ -101,11 +103,11 @@ export function CategoryForm({
       // Form kayıtla birebir aynı hâle gelir; "kaydedilmemiş değişiklik" kalmaz.
       applyDraft(toDraft(record));
       setLastSavedAt(Date.now());
-      toast(initial ? "Kategori güncellendi" : "Kategori eklendi");
+      toast(initial ? t("Kategori güncellendi") : t("Kategori eklendi"));
       onSaved(record);
     } catch {
-      setError("Kaydedilemedi, tekrar dene.");
-      toast("Kaydedilemedi, tekrar dene.", "error");
+      setError(t("Kaydedilemedi, tekrar dene."));
+      toast(t("Kaydedilemedi, tekrar dene."), "error");
     } finally {
       setSaving(false);
     }
@@ -120,7 +122,7 @@ export function CategoryForm({
         draftSavedAt={draft.draftSavedAt}
         error={error || undefined}
         onCancel={onCancel}
-        toggle={{ checked: isActive, onChange: setIsActive, label: "Menüde göster" }}
+        toggle={{ checked: isActive, onChange: setIsActive, label: t("Menüde göster") }}
       />
       {draft.restorable && (
         <DraftBanner
@@ -136,7 +138,7 @@ export function CategoryForm({
       <Card className="space-y-6">
         {/* Üstte solda kare görsel */}
         <div className="w-32">
-          <Label>Kategori görseli</Label>
+          <Label>{t("Kategori görseli")}</Label>
           <ImageUploader value={imageUrl} onChange={setImageUrl} businessId={business.id} kind="category" name={name} aspect="aspect-square" />
         </div>
 
@@ -148,11 +150,11 @@ export function CategoryForm({
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
-          title="Ad ve açıklama"
+          title={t("Ad ve açıklama")}
           translate={{ business, kind: "category" }}
           fields={[
-            { key: "name", label: "Kategori adı", required: true, placeholder: "Ana Yemekler" },
-            { key: "description", label: "Açıklama", multiline: true },
+            { key: "name", label: t("Kategori adı"), required: true, placeholder: t("Ana Yemekler") },
+            { key: "description", label: t("Açıklama"), multiline: true },
           ]}
         />
       </Card>

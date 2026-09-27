@@ -8,6 +8,7 @@ import { sendPasswordResetLink } from "@/lib/password-reset-mail";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { auditRequestContext, recordSystemAudit } from "@/lib/system-audit";
+import { msg } from "@/lib/ui-i18n";
 
 // Şifremi unuttum — birinci adım: kayıtlı adrese tek kullanımlık sıfırlama
 // bağlantısı gönderir.
@@ -29,23 +30,23 @@ function accepted() {
 
 export async function POST(req: NextRequest) {
   if (!hasServiceCredentials() || !isEmailConfigured()) {
-    return NextResponse.json({ error: "E-posta servisi yapılandırılmamış. Yöneticinize başvurun." }, { status: 503 });
+    return NextResponse.json({ error: msg("E-posta servisi yapılandırılmamış. Yöneticinize başvurun.") }, { status: 503 });
   }
 
   let body: { email?: unknown };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçersiz istek.") }, { status: 400 });
   }
 
   if (!isValidEmail(body.email)) {
-    return NextResponse.json({ error: "Geçerli bir e-posta adresi gir." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçerli bir e-posta adresi gir.") }, { status: 400 });
   }
   const email = normalizeEmail(body.email);
 
   if (!withinRateLimit(clientIp(req))) {
-    return NextResponse.json({ error: "Çok fazla istek gönderildi. Biraz sonra tekrar dene." }, { status: 429 });
+    return NextResponse.json({ error: msg("Çok fazla istek gönderildi. Biraz sonra tekrar dene.") }, { status: 429 });
   }
 
   try {
@@ -69,12 +70,12 @@ export async function POST(req: NextRequest) {
       }
     } catch (err) {
       console.error("[forgot-password] mail gönderilemedi", user.id, err);
-      return NextResponse.json({ error: "E-posta şu anda gönderilemiyor, biraz sonra tekrar dene." }, { status: 502 });
+      return NextResponse.json({ error: msg("E-posta şu anda gönderilemiyor, biraz sonra tekrar dene.") }, { status: 502 });
     }
 
     return accepted();
   } catch (err) {
     console.error("[forgot-password] hata", err);
-    return NextResponse.json({ error: "İstek işlenemedi, tekrar dene." }, { status: 500 });
+    return NextResponse.json({ error: msg("İstek işlenemedi, tekrar dene.") }, { status: 500 });
   }
 }

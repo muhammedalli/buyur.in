@@ -6,9 +6,11 @@ import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { CategoryForm } from "@/components/panel/category-form";
 import { PageHeader } from "@/components/panel/ui";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function NewCategoryPage() {
   const { business, isLoading } = useBusiness();
+  const { t } = useUiLocale();
   const router = useRouter();
   const [nextOrder, setNextOrder] = useState(0);
   const [loadingCount, setLoadingCount] = useState(true);
@@ -27,12 +29,12 @@ export default function NewCategoryPage() {
   }, [businessId]);
 
   if (isLoading || loadingCount || !business) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   return (
     <div>
-      <PageHeader title="Yeni kategori" />
+      <PageHeader title={t("Yeni kategori")} />
       <CategoryForm
         business={business}
         order={nextOrder}

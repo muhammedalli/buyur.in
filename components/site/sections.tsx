@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { formatPrice } from "@/lib/format";
-import { highlightLabels, badgeLabels } from "@/lib/labels";
+import { badgeLabels } from "@/lib/labels";
+import { HighlightList } from "@/components/highlight-list";
 import type { SiteContent } from "@/lib/site-content";
 import { ClockIcon, MapPinIcon, PhoneIcon, WhatsappIcon } from "@/components/icons";
 import { useSiteLocale } from "@/components/site/site-locale";
@@ -10,6 +10,8 @@ import { ImageCreditList, productsNeedingCredit } from "@/components/menu/image-
 import type { UIKey } from "@/lib/i18n";
 import { PLATFORM_BRANDING, showsPlatformSignature } from "@/lib/branding";
 import { PoweredBy } from "@/components/powered-by";
+import { useMenuHref } from "@/components/site/storefront-links";
+import { ArrowRightIcon } from "@/components/icons";
 
 // Otomatik web sitesinin bölümleri. Metin, seçili dile göre `useSiteLocale()`
 // (tf/t) üzerinden okunur — bkz. components/site/site-locale.tsx. Yalnızca
@@ -17,9 +19,10 @@ import { PoweredBy } from "@/components/powered-by";
 // artık dil değişimi de istemci tarafında olduğu için bu dosyanın tamamı
 // istemci bileşeni. Her bölüm yalnızca verisi varsa çağrılır (bkz. content.sections).
 
-export function SiteHero({ content, rich, menuHref }: { content: SiteContent; rich: boolean; menuHref: string }) {
+export function SiteHero({ content, rich }: { content: SiteContent; rich: boolean }) {
   const { hero, reservation, business } = content;
   const { t, tf } = useSiteLocale();
+  const menuHref = useMenuHref(business.slug);
   const title = tf(business, "name");
   const tagline = tf(business, "description").trim();
 
@@ -31,7 +34,7 @@ export function SiteHero({ content, rich, menuHref }: { content: SiteContent; ri
           <img
             src={hero.image}
             alt=""
-            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            className="welcome-cover absolute inset-0 -z-10 h-full w-full object-cover"
             fetchPriority="high"
           />
           <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/70 via-black/55 to-black/80" />
@@ -39,8 +42,8 @@ export function SiteHero({ content, rich, menuHref }: { content: SiteContent; ri
       )}
 
       <div
-        className={`mx-auto flex max-w-5xl flex-col items-center gap-6 px-6 text-center ${
-          rich ? "py-32 sm:py-44" : "py-24 sm:py-32"
+        className={`mx-auto flex h-full max-w-5xl flex-col items-center justify-center gap-6 px-6 text-center ${
+          rich ? "py-28 sm:py-40" : "py-24 sm:py-32"
         }`}
       >
         {hero.logo && (
@@ -48,11 +51,11 @@ export function SiteHero({ content, rich, menuHref }: { content: SiteContent; ri
           <img
             src={hero.logo}
             alt={title}
-            className="h-20 w-20 rounded-2xl border border-white/20 object-cover shadow-lg"
+            className="rise rise-1 h-20 w-20 rounded-2xl border border-white/20 object-cover shadow-lg"
           />
         )}
 
-        <div className="flex w-full items-center justify-center gap-5">
+        <div className="rise rise-2 flex w-full items-center justify-center gap-5">
           <SectionRule />
           <h1
             className={`font-display font-extrabold uppercase leading-[1.02] tracking-tight ${
@@ -65,18 +68,21 @@ export function SiteHero({ content, rich, menuHref }: { content: SiteContent; ri
         </div>
 
         {tagline && (
-          <p className={`max-w-2xl text-base leading-relaxed sm:text-lg ${hero.image ? "text-paper/85" : "text-ink-soft"}`}>
+          <p
+            className={`rise rise-3 max-w-2xl text-base leading-relaxed sm:text-lg ${hero.image ? "text-paper/85" : "text-ink-soft"}`}
+          >
             {tagline}
           </p>
         )}
 
-        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-          <Link
+        <div className="rise rise-4 mt-2 flex flex-col gap-3 sm:flex-row">
+          <a
             href={menuHref}
-            className="rounded-md bg-[var(--brand)] px-8 py-3.5 font-mono text-[13px] uppercase tracking-wider text-[var(--brand-on)] transition-transform duration-300 hover:-translate-y-0.5"
+            className="group inline-flex items-center justify-center gap-2 rounded-md bg-[var(--brand)] px-8 py-3.5 font-mono text-[13px] uppercase tracking-wider text-[var(--brand-on)] shadow-[0_16px_34px_-14px_rgba(0,0,0,0.55)] transition-transform duration-300 hover:-translate-y-0.5"
           >
-            {t("viewMenu")}
-          </Link>
+            {t("seeMenu")}
+            <ArrowRightIcon size={16} className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+          </a>
           {reservation && (
             <a
               href={reservation.href}
@@ -114,7 +120,7 @@ export function SiteSection({
     <section className={background}>
       <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
         {titleKey && (
-          <div className="mb-8 text-center">
+          <div data-reveal className="mb-8 text-center">
             <div className="flex items-center justify-center gap-5">
               <SectionRule />
               <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{t(titleKey)}</h2>
@@ -146,8 +152,13 @@ export function ProductCards({ products, columns = 4 }: { products: SiteContent[
   const grid = columns === 2 ? "sm:grid-cols-2" : columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4";
   return (
     <div className={`grid gap-5 ${grid}`}>
-      {products.map((product) => (
-        <article key={product.id} className="group overflow-hidden rounded-2xl border border-line bg-paper">
+      {products.map((product, index) => (
+        <article
+          key={product.id}
+          data-reveal
+          style={{ transitionDelay: `${Math.min(index, 6) * 70}ms` }}
+          className="group overflow-hidden rounded-2xl border border-line bg-paper transition-shadow duration-300 hover:shadow-[0_18px_40px_-26px_rgba(35,24,18,0.55)]"
+        >
           {product.images?.[0] && (
             <div className="aspect-[4/3] overflow-hidden bg-crema">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -203,15 +214,7 @@ export function SiteMenuList({ groups }: { groups: SiteContent["groups"] }) {
 
 export function SiteInfo({ content }: { content: SiteContent }) {
   const { locale } = useSiteLocale();
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {content.highlights.map((highlight) => (
-        <div key={highlight} className="rounded-2xl border border-line px-5 py-4 text-center text-sm">
-          {highlightLabels[locale][highlight]}
-        </div>
-      ))}
-    </div>
-  );
+  return <HighlightList highlights={content.highlights} locale={locale} variant="grid" />;
 }
 
 export function SiteHours({ hours }: { hours: string[] }) {
@@ -364,8 +367,9 @@ export function SiteReservationCta({ content }: { content: SiteContent }) {
   );
 }
 
-export function SiteFooter({ content, menuHref }: { content: SiteContent; menuHref: string }) {
+export function SiteFooter({ content }: { content: SiteContent }) {
   const { t, tf, locale } = useSiteLocale();
+  const menuHref = useMenuHref(content.business.slug);
   // Sitede gösterilen tüm ürünler — künye gerektiren görselin atfı, eserin
   // gösterildiği sayfada bulunmak zorunda (CC BY / BY-SA).
   const shownProducts = [...content.featured, ...content.groups.flatMap((group) => group.products)];
@@ -383,12 +387,12 @@ export function SiteFooter({ content, menuHref }: { content: SiteContent; menuHr
       )}
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-3 px-6 py-10 text-center">
         <p className="font-display text-lg font-bold">{tf(content.business, "name")}</p>
-        <Link
+        <a
           href={menuHref}
-          className="font-mono text-[12px] uppercase tracking-wider text-paprika transition-colors hover:text-paprika-deep"
+          className="font-mono text-[12px] uppercase tracking-wider text-[var(--brand-text)] transition-opacity hover:opacity-75"
         >
           {t("openDigitalMenu")}
-        </Link>
+        </a>
         {showsPlatformSignature(content.business) && (
           <PoweredBy label={t("poweredByBuyur", { brand: PLATFORM_BRANDING.name })} />
         )}

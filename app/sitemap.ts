@@ -19,12 +19,23 @@ async function getActiveBusinessUrls(): Promise<MetadataRoute.Sitemap> {
       requestKey: null,
     });
 
-    return businesses.filter((business) => !isSuspended(business)).map((business) => ({
-      url: `https://${menuHost(business.slug)}`,
-      lastModified: business.updated,
-      changeFrequency: "daily",
-      priority: 0.7,
-    }));
+    // Her işletme için vitrin (kök) ve menü (/menu) ayrı sayfalardır.
+    return businesses
+      .filter((business) => !isSuspended(business))
+      .flatMap((business) => [
+        {
+          url: `https://${menuHost(business.slug)}`,
+          lastModified: business.updated,
+          changeFrequency: "daily" as const,
+          priority: 0.7,
+        },
+        {
+          url: `https://${menuHost(business.slug)}/menu`,
+          lastModified: business.updated,
+          changeFrequency: "daily" as const,
+          priority: 0.7,
+        },
+      ]);
   } catch {
     // PocketBase'e ulaşılamıyorsa sitemap yalnızca statik sayfalarla döner.
     return [];
@@ -72,6 +83,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1,
+      // Pazarlama sitesinin dil alternatifleri (hreflang).
+      alternates: { languages: { tr: `https://${ROOT_DOMAIN}`, en: `https://${ROOT_DOMAIN}/en` } },
+    },
+    {
+      url: `https://${ROOT_DOMAIN}/en`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: { languages: { tr: `https://${ROOT_DOMAIN}`, en: `https://${ROOT_DOMAIN}/en` } },
     },
     ...docUrls(),
     ...legalUrls(),

@@ -16,5 +16,5 @@ tutar. Claude ilgili iş geldiğinde bunları kendisi yükler; `/skill-adi` ile 
 | **buyur-yayin-oncesi** | Commit / PR / deploy öncesi doğrulama turu |
 
 Proje geneli kurallar: [`../../CLAUDE.md`](../../CLAUDE.md)
-Analitik mimarisi: [`../../docs/analytics-architecture.md`](../../docs/analytics-architecture.md)
+Alan kuralları: [`../../docs/`](../../docs/) (mimari, UI, dil, yönetim paneli, ödemeler, analitik)
 Uzman ajanlar: [`../agents/`](../agents/)

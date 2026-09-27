@@ -50,9 +50,10 @@ export default function CategoryPage() {
           <p className="py-16 text-center text-ink-soft">{t("noProductsInCategory")}</p>
         ) : (
           <div className={business.template === "grid" ? "grid grid-cols-2 gap-3.5" : "space-y-3"}>
-            {categoryProducts.map((product) => (
+            {categoryProducts.map((product, index) => (
               <ProductCard
                 key={product.id}
+                index={index}
                 product={product}
                 template={business.template}
                 onAdd={addProduct}

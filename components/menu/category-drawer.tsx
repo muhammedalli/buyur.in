@@ -4,20 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMenu } from "@/components/menu/menu-provider";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { useAnimatedClose } from "@/lib/use-animated-close";
 import { ChevronRightIcon, StarIcon } from "@/components/icons";
 import { ProductPlaceholder } from "@/components/menu/placeholder-art";
 
 export function CategoryDrawer({ onClose }: { onClose: () => void }) {
   const { business, base, categories, imageByCategory, productCountByCategory, t, tf } = useMenu();
+  const { closing, close } = useAnimatedClose(onClose);
   // Açıkken arkadaki menü kaymasın.
   useBodyScrollLock(true);
   const pathname = usePathname();
 
   return (
-    <div className="fixed inset-0 z-50 flex" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity" aria-hidden />
+    <div className="fixed inset-0 z-50 flex" onClick={close}>
+      <div className={`absolute inset-0 bg-black/50 backdrop-blur-xs ${closing ? "fade-out" : "fade-in"}`} aria-hidden />
       <div
-        className="relative flex h-full w-80 max-w-[85vw] flex-col overflow-y-auto bg-paper shadow-2xl"
+        className={`relative flex h-full w-80 max-w-[85vw] flex-col overflow-y-auto bg-paper shadow-2xl ${closing ? "fade-out" : "drawer-slide"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-line/40 px-5 py-4">
@@ -32,7 +34,7 @@ export function CategoryDrawer({ onClose }: { onClose: () => void }) {
             <span className="truncate font-display text-base font-bold leading-tight text-ink">{tf(business, "name")}</span>
           </div>
           <button
-            onClick={onClose}
+            onClick={close}
             aria-label={t("close")}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line/40 bg-crema/60 text-ink-soft transition-colors hover:bg-crema hover:text-ink"
           >
@@ -52,7 +54,7 @@ export function CategoryDrawer({ onClose }: { onClose: () => void }) {
               <Link
                 key={cat.id}
                 href={href}
-                onClick={onClose}
+                onClick={close}
                 className="flex items-center gap-3 rounded-2xl p-2.5 transition-all duration-200 hover:bg-crema/70 active:scale-[0.98]"
                 style={active ? { background: "color-mix(in srgb, var(--brand) 12%, transparent)" } : undefined}
               >
@@ -74,7 +76,7 @@ export function CategoryDrawer({ onClose }: { onClose: () => void }) {
                   </span>
                   <span className="block font-sans text-xs text-ink-soft">{t("productCount", { count })}</span>
                 </span>
-                <ChevronRightIcon size={16} className="shrink-0 text-ink-soft/60" />
+                <ChevronRightIcon size={16} className="shrink-0 text-ink-soft/60 rtl:rotate-180" />
               </Link>
             );
           })}
@@ -99,7 +101,7 @@ export function CategoryDrawer({ onClose }: { onClose: () => void }) {
                 <p className="truncate font-sans text-[11px] text-ink-soft">{t("reviewBannerTitle")}</p>
               </div>
             </div>
-            <ChevronRightIcon size={14} className="shrink-0 text-ink-soft/60" />
+            <ChevronRightIcon size={14} className="shrink-0 text-ink-soft/60 rtl:rotate-180" />
           </Link>
         </div>
       </div>

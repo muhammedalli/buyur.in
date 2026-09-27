@@ -1,4 +1,5 @@
 import { pb } from "@/lib/pocketbase";
+import { msg } from "@/lib/ui-i18n";
 
 export type UploadKind = "logo" | "cover" | "product" | "popup" | "category";
 
@@ -19,7 +20,7 @@ export async function uploadFile(file: File, businessId: string, kind: UploadKin
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error ?? "Yükleme başarısız oldu.");
+    throw new Error(data.error ?? msg("Yükleme başarısız oldu."));
   }
   return data.url as string;
 }

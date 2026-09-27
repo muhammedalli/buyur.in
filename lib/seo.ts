@@ -1,4 +1,5 @@
 import { ROOT_DOMAIN, whatsappLink } from "@/lib/site";
+import { msg } from "@/lib/ui-i18n";
 
 /**
  * Site genelinde tek doğru kaynak: adres, marka metinleri, paylaşım görseli ve
@@ -11,15 +12,15 @@ export const SITE_NAME = "buyur";
 export const SITE_EMAIL = "merhaba@buyur.in";
 
 /** 51 karakter — arama sonucunda kırpılmadan görünür. */
-export const SITE_TITLE = "buyur — Restoran ve Kafeler için Dijital QR Menü";
+export const SITE_TITLE = msg("buyur — Restoran ve Kafeler için Dijital QR Menü");
 
 /** ~155 karakter: masaüstü ve mobil snippet sınırının içinde kalır. */
-export const SITE_DESCRIPTION =
-  "Restoran, kafe, pastane ve oteller için QR menü. Menünüzü 5 dakikada kurun, fiyatları anında güncelleyin, ne satıldığını analizlerden görün. Ücretsiz başlayın.";
+export const SITE_DESCRIPTION = msg(
+  "Restoran, kafe, pastane ve oteller için QR menü. Menünüzü 5 dakikada kurun, fiyatları anında güncelleyin, ne satıldığını analizlerden görün. Ücretsiz başlayın."
+);
 
 /** Sosyal kartlarda başlık zaten göründüğü için burada vaadi tekrarlamıyoruz. */
-export const SHARE_DESCRIPTION =
-  "Menünü bir kez kur, her masada güncel kalsın. Kredi kartı yok, 5 dakikada kurulum.";
+export const SHARE_DESCRIPTION = msg("Menünü bir kez kur, her masada güncel kalsın. Kredi kartı yok, 5 dakikada kurulum.");
 
 export const SITE_KEYWORDS = [
   "qr menü",
@@ -40,7 +41,7 @@ export const OG_IMAGE = {
   url: "/assets/og.jpg",
   width: 1200,
   height: 630,
-  alt: "buyur — masada QR menü: telefonda açılmış dijital menü ve masa üstü QR standı",
+  alt: msg("buyur — masada QR menü: telefonda açılmış dijital menü ve masa üstü QR standı"),
 } as const;
 
 /** Kurum logosu: schema.org ve arama sonucu için kare marka ikonu. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type {
   ButtonHTMLAttributes,
   CSSProperties,
@@ -15,12 +15,40 @@ import type {
 import Link from "next/link";
 import { ChevronDownIcon, LockIcon, SparklesIcon } from "@/components/icons";
 import { formatSavedTime } from "@/lib/format";
-import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { cn } from "@/lib/utils";
+import { useOptionalUiLocale } from "@/components/ui-locale-provider";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Panel ve yönetim ekranlarının tek UI kiti. Köşe yarıçapı standardı 6px'tir
-// (`rounded-md`): buton, alan, kart, tablo, pencere ve açılır menü aynı dili
-// konuşur. Hap (pill) biçimi yalnızca anahtar (switch) ve durum noktası gibi
-// gerçekten yuvarlak öğelerde kalır.
+export { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+export { Tooltip } from "@/components/ui/tooltip";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+// Panel ve yönetim ekranlarının tek UI kiti. Pencere, yaprak (Sheet), açılır
+// menü ve tooltip shadcn/ui katmanından (components/ui, Radix) gelir;
+// ekranlar onları buradan alır. Kitin kendi metinleri (Kaydet, Kapat, kayıt
+// durumu…) arayüz dilindedir; yönetim paneli dil sağlayıcısı olmadan
+// kullandığı için useOptionalUiLocale Türkçeye düşer.
+//
+// Köşe yarıçapı standardı 6px'tir (`rounded-md`): buton, alan, kart, tablo,
+// pencere ve açılır menü aynı dili konuşur. Hap (pill) biçimi yalnızca anahtar
+// (switch) ve durum noktası gibi gerçekten yuvarlak öğelerde kalır.
+//
+// Kesin kural: hiçbir bileşen yatayda kaydırılan şerit üretmez. Sığmayan sekme
+// açılır menüye döner (Tabs, NavTabs), bölüm menüsü dar ekranda açılır menüdür
+// (SectionNav), tablo dar ekranda ikincil sütunları gizler.
 
 export function Label(props: LabelHTMLAttributes<HTMLLabelElement>) {
   const { className = "", ...rest } = props;
@@ -62,8 +90,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const BUTTON_BASE =
   "inline-flex shrink-0 items-center justify-center gap-2 rounded-md font-mono uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
-// Boyut ayrı tutulur: className ile dolgu ezmek Tailwind'de sıraya bağlı
-// kaldığı için güvenilir değil.
+// Boyut `size` ile seçilir. Sınıflar cn (tailwind-merge) ile birleştiği için
+// className'deki çakışan sınıf kazanır: ekranlar yalnızca yerleşim ayarı
+// (ör. `w-full sm:w-auto`, `hidden sm:inline-flex`) ekler.
 const BUTTON_SIZES: Record<ButtonSize, string> = {
   md: "px-5 py-2.5 text-[13px]",
   sm: "px-3 py-1.5 text-[11px]",
@@ -80,10 +109,11 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 // sınıfı kullanılmaz; tıklanabilir her şey aynı dili konuşsun diye stil
 // tek yerden, buradan alınır.
 export function buttonClass(variant: ButtonVariant = "primary", className = "", size: ButtonSize = "md") {
-  return `${BUTTON_BASE} ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${className}`;
+  return cn(BUTTON_BASE, BUTTON_SIZES[size], BUTTON_VARIANTS[variant], className);
 }
 
 export function Button({ variant = "primary", size = "md", loading, className = "", disabled, children, ...rest }: ButtonProps) {
+  const { t } = useOptionalUiLocale();
   // Yüklenirken etiket görünmez olur ama yerini korur: buton daralıp
   // yanındakileri kaydırmasın.
   return (
@@ -97,7 +127,7 @@ export function Button({ variant = "primary", size = "md", loading, className = 
       {loading && (
         <span className="absolute inset-0 flex items-center justify-center">
           <Spinner className="h-4 w-4" />
-          <span className="sr-only">İşleniyor</span>
+          <span className="sr-only">{t("İşleniyor")}</span>
         </span>
       )}
     </button>
@@ -106,9 +136,10 @@ export function Button({ variant = "primary", size = "md", loading, className = 
 
 export function AiButton({
   className = "",
-  children = "Yapay Zeka ile Tara",
+  children,
   ...rest
 }: Omit<ButtonProps, "variant" | "size" | "loading">) {
+  const { t } = useOptionalUiLocale();
   return (
     <div className="relative group/aibtn inline-block">
       <style>{`
@@ -134,18 +165,20 @@ export function AiButton({
           <SparklesIcon size={18} />
         </div>
 
-        <span className="relative z-10 font-bold drop-shadow-sm">{children}</span>
+        <span className="relative z-10 font-bold drop-shadow-sm">{children ?? t("Yapay Zeka ile Tara")}</span>
       </button>
 
-      <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-3 hidden w-64 md:block -translate-x-1/2 -translate-y-2 rounded-md border border-line bg-paper p-3 opacity-0 shadow-xl transition-all duration-300 group-hover/aibtn:translate-y-0 group-hover/aibtn:opacity-100">
+      {/* Önizleme butonun sağ kenarına hizalanır: buton her ekranda sağdadır
+          (sayfa başlığı eylemi, kart altı), ortalanınca dar masaüstünde taşıyordu. */}
+      <div className="pointer-events-none absolute top-full right-0 z-50 mt-3 hidden w-64 max-w-[calc(100vw-2rem)] md:block -translate-y-2 rounded-md border border-line bg-paper p-3 opacity-0 shadow-xl transition-all duration-300 group-hover/aibtn:translate-y-0 group-hover/aibtn:opacity-100">
         <p className="mb-2 text-center text-xs font-medium leading-relaxed text-ink">
-          Fiziksel menünüzün fotoğrafını çekin, yapay zeka ürünleri otomatik okuyup listeye eklesin.
+          {t("Fiziksel menünüzün fotoğrafını çekin, yapay zeka ürünleri otomatik okuyup listeye eklesin.")}
         </p>
         <div className="relative aspect-video w-full overflow-hidden rounded-md bg-crema border border-line/50">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/ai-scan.jpg" alt="Yapay zekâ tarama örneği" className="absolute inset-0 h-full w-full object-cover" />
+          <img src="/assets/ai-scan.jpg" alt={t("Yapay zekâ tarama örneği")} className="absolute inset-0 h-full w-full object-cover" />
         </div>
-        <div className="absolute -top-[8px] left-1/2 h-0 w-0 -translate-x-1/2 border-l-[8px] border-r-[8px] border-b-[8px] border-transparent border-b-line">
+        <div className="absolute -top-[8px] right-10 h-0 w-0 border-l-[8px] border-r-[8px] border-b-[8px] border-transparent border-b-line">
           <div className="absolute top-[2px] left-1/2 h-0 w-0 -translate-x-1/2 border-l-[7px] border-r-[7px] border-b-[7px] border-transparent border-b-paper" />
         </div>
       </div>
@@ -248,30 +281,32 @@ export function FooterNote({ children, className = "" }: { children?: ReactNode;
 }
 
 // Kaydın son güncellenme zamanı — sağ alt bilgi satırında kullanılır.
-export function UpdatedAt({ at, label = "Son güncelleme" }: { at?: number | string | null; label?: string }) {
+export function UpdatedAt({ at, label }: { at?: number | string | null; label?: string }) {
+  const { t, tag } = useOptionalUiLocale();
   const ms = typeof at === "string" ? Date.parse(at.replace(" ", "T")) : (at ?? null);
   if (ms === null || !Number.isFinite(ms)) return null;
   return (
     <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-      {label} · {formatSavedTime(ms as number)}
+      {label ?? t("Son güncelleme")} · {formatSavedTime(ms as number, tag)}
     </span>
   );
 }
 
 /** Önceki oturumdan kalmış, kaydedilmemiş taslak bildirimi. */
 export function DraftBanner({ savedAt, onRestore, onDiscard }: { savedAt: number; onRestore: () => void; onDiscard: () => void }) {
+  const { t, tag } = useOptionalUiLocale();
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-paprika/30 bg-paprika/5 px-4 py-3 text-sm">
       <p>
-        <span className="font-semibold">Kaydedilmemiş bir taslağın var</span>
-        <span className="text-ink-soft"> · {formatSavedTime(savedAt)}</span>
+        <span className="font-semibold">{t("Kaydedilmemiş bir taslağın var")}</span>
+        <span className="text-ink-soft"> · {formatSavedTime(savedAt, tag)}</span>
       </p>
       <div className="flex gap-2">
         <Button type="button" variant="ghost" size="sm" onClick={onDiscard}>
-          Sil
+          {t("Sil")}
         </Button>
         <Button type="button" size="sm" onClick={onRestore}>
-          Geri yükle
+          {t("Geri yükle")}
         </Button>
       </div>
     </div>
@@ -321,6 +356,7 @@ function ActionBarStatus({
   draftSavedAt?: number | null;
   error?: ReactNode;
 }) {
+  const { t, tag } = useOptionalUiLocale();
   const savedMs = toMs(savedAt);
   let tone = "text-ink-soft";
   let dot = "";
@@ -328,7 +364,7 @@ function ActionBarStatus({
   let short: ReactNode = null;
 
   if (saving) {
-    long = short = "Kaydediliyor…";
+    long = short = t("Kaydediliyor…");
   } else if (error) {
     tone = "text-paprika-deep";
     dot = "bg-paprika";
@@ -337,14 +373,14 @@ function ActionBarStatus({
     tone = "text-ink";
     dot = "bg-paprika";
     long = draftSavedAt
-      ? `Kaydedilmemiş değişiklikler · taslak ${formatSavedTime(draftSavedAt)}`
-      : "Kaydedilmemiş değişiklikler";
-    short = "Kaydedilmedi";
+      ? t("Kaydedilmemiş değişiklikler · taslak {time}", { time: formatSavedTime(draftSavedAt, tag) })
+      : t("Kaydedilmemiş değişiklikler");
+    short = t("Kaydedilmedi");
   } else if (savedMs !== null) {
     tone = "text-herb";
     dot = "bg-herb";
-    long = `Son kaydedildi · ${formatSavedTime(savedMs)}`;
-    short = "Kaydedildi";
+    long = t("Son kaydedildi · {time}", { time: formatSavedTime(savedMs, tag) });
+    short = t("Kaydedildi");
   }
 
   return (
@@ -363,8 +399,8 @@ export function FormActions({
   draftSavedAt,
   error,
   onCancel,
-  saveLabel = "Kaydet",
-  cancelLabel = "Vazgeç",
+  saveLabel,
+  cancelLabel,
   toggle,
   extra,
 }: {
@@ -386,6 +422,7 @@ export function FormActions({
   extra?: ReactNode;
 }) {
   useActionBarMarker();
+  const { t } = useOptionalUiLocale();
   return (
     <div
       className="sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 order-last lg:bottom-auto lg:top-[calc(var(--app-header-h,69px)+0.75rem)] lg:order-first"
@@ -396,53 +433,279 @@ export function FormActions({
         {toggle && <Switch compact checked={toggle.checked} onChange={toggle.onChange} label={toggle.label} />}
         {onCancel && (
           <Button type="button" variant="ghost" size="sm" onClick={onCancel} className="hidden sm:inline-flex">
-            {cancelLabel}
+            {cancelLabel ?? t("Vazgeç")}
           </Button>
         )}
         <Button type="submit" loading={saving}>
-          {saveLabel}
+          {saveLabel ?? t("Kaydet")}
         </Button>
       </div>
     </div>
   );
 }
 
-// Yatay sekme çubuğu — aktif sekmenin altında vurgu çizgisi.
+/** Sekme şeridi kabın genişliğine sığıyor mu? Görünmez bir ölçüm kopyası
+ *  doğal genişliği verir; sığmıyorsa şerit açılır menüye döner. Boyamadan önce
+ *  ölçülür (useLayoutEffect), dar ekranda şerit bir an bile taşmaz. */
+function useFitsInline() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLDivElement | null>(null);
+  const [fits, setFits] = useState(true);
+
+  const measure = useCallback(() => {
+    const container = containerRef.current;
+    const content = measureRef.current;
+    if (!container || !content) return;
+    setFits(content.scrollWidth <= container.clientWidth + 1);
+  }, []);
+
+  useLayoutEffect(() => {
+    measure();
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    if (measureRef.current) observer.observe(measureRef.current);
+    return () => observer.disconnect();
+  }, [measure]);
+
+  return { containerRef, measureRef, fits };
+}
+
+const TAB_ROW = "flex gap-6 border-b border-line";
+const TAB_ITEM =
+  "relative -mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[13px] font-semibold uppercase tracking-wide transition-colors";
+const TAB_ACTIVE = "border-paprika text-paprika";
+const TAB_IDLE = "border-transparent text-ink-soft hover:text-ink";
+
+/** Dar ekranda sekmelerin yerine geçen açılır menü: seçili sekme görünür,
+ *  diğerleri listede. */
+function TabsDropdown({ label, current, children }: { label: string; current: ReactNode; children: ReactNode }) {
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger
+        aria-label={label}
+        className="group flex w-full items-center justify-between gap-3 rounded-md border border-line bg-paper px-3.5 py-2.5 text-left text-[13px] font-semibold uppercase tracking-wide text-ink transition-colors hover:border-paprika"
+      >
+        <span className="flex min-w-0 items-center gap-1.5 truncate">{current}</span>
+        <ChevronDownIcon size={15} className="shrink-0 text-ink-soft transition-transform group-data-[state=open]:rotate-180" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" aria-label={label} className="w-[var(--radix-dropdown-menu-trigger-width)]">
+        {children}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Sekme şeridi — aktif sekmenin altında vurgu çizgisi. Kaba sığmazsa (dar
+// ekran, uzun etiket) aynı seçenekleri açılır menü olarak gösterir; yatay
+// kaydırma yoktur.
 export function Tabs<T extends string>({
   tabs,
   active,
   onChange,
   className = "mb-6",
+  label,
 }: {
   tabs: { key: T; label: ReactNode; ariaLabel?: string }[];
   active: T;
   onChange: (key: T) => void;
   className?: string;
+  /** Sekme grubunun ekran okuyucu adı. */
+  label?: string;
 }) {
+  const { t } = useOptionalUiLocale();
+  const { containerRef, measureRef, fits } = useFitsInline();
+  const groupLabel = label ?? t("Bölümler");
+  const current = tabs.find((tab) => tab.key === active) ?? tabs[0];
+
+  function onKey(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const index = tabs.findIndex((tab) => tab.key === active);
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : event.key === "ArrowRight"
+            ? (index + 1) % tabs.length
+            : (index - 1 + tabs.length) % tabs.length;
+    const key = tabs[next]?.key;
+    if (key === undefined) return;
+    onChange(key);
+    event.currentTarget.querySelector<HTMLButtonElement>(`[data-tab="${key}"]`)?.focus();
+  }
+
   return (
-    <div
-      role="tablist"
-      className={`flex gap-6 overflow-x-auto overflow-y-hidden border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
-    >
-      {tabs.map((t) => {
-        const isActive = t.key === active;
-        return (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            aria-label={t.ariaLabel}
-            onClick={() => onChange(t.key)}
-            className={`relative -mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 pt-1 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-              isActive ? "border-paprika text-paprika" : "border-transparent text-ink-soft hover:text-ink"
-            }`}
-          >
-            {t.label}
-          </button>
-        );
-      })}
+    <div ref={containerRef} className={cn("relative min-w-0", className)}>
+      <div ref={measureRef} aria-hidden className={cn(TAB_ROW, "pointer-events-none invisible absolute left-0 top-0 w-max")}>
+        {tabs.map((tab) => (
+          <span key={tab.key} className={cn(TAB_ITEM, TAB_IDLE)}>
+            {tab.label}
+          </span>
+        ))}
+      </div>
+      {fits ? (
+        <div role="tablist" aria-label={groupLabel} onKeyDown={onKey} className={cn(TAB_ROW, "overflow-hidden")}>
+          {tabs.map((tab) => {
+            const isActive = tab.key === active;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                data-tab={tab.key}
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                aria-label={tab.ariaLabel}
+                onClick={() => onChange(tab.key)}
+                className={cn(TAB_ITEM, isActive ? TAB_ACTIVE : TAB_IDLE)}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <TabsDropdown label={groupLabel} current={current?.label}>
+          {tabs.map((tab) => (
+            <DropdownMenuItem
+              key={tab.key}
+              aria-label={tab.ariaLabel}
+              onSelect={() => onChange(tab.key)}
+              className={cn("items-center gap-1.5", tab.key === active && "font-semibold text-paprika")}
+            >
+              {tab.label}
+            </DropdownMenuItem>
+          ))}
+        </TabsDropdown>
+      )}
     </div>
+  );
+}
+
+export interface NavTab {
+  href: string;
+  label: string;
+  active: boolean;
+}
+
+// Bağlantı sekmeleri (alt sayfalar arası geçiş: analiz bölümleri, sistem
+// ekranı). Tabs ile aynı görünüm ve aynı kural: sığmazsa açılır menü.
+export function NavTabs({ items, label, className = "mb-6" }: { items: NavTab[]; label: string; className?: string }) {
+  const { containerRef, measureRef, fits } = useFitsInline();
+  const current = items.find((item) => item.active) ?? items[0];
+
+  return (
+    <nav ref={containerRef} aria-label={label} className={cn("relative min-w-0", className)}>
+      <div ref={measureRef} aria-hidden className={cn(TAB_ROW, "pointer-events-none invisible absolute left-0 top-0 w-max")}>
+        {items.map((item) => (
+          <span key={item.href} className={cn(TAB_ITEM, TAB_IDLE)}>
+            {item.label}
+          </span>
+        ))}
+      </div>
+      {fits ? (
+        <div className={cn(TAB_ROW, "overflow-hidden")}>
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              className={cn(TAB_ITEM, item.active ? TAB_ACTIVE : TAB_IDLE)}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <TabsDropdown label={label} current={current?.label}>
+          {items.map((item) => (
+            <DropdownMenuItem key={item.href} asChild className={cn(item.active && "font-semibold text-paprika")}>
+              <Link href={item.href} aria-current={item.active ? "page" : undefined}>
+                {item.label}
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </TabsDropdown>
+      )}
+    </nav>
+  );
+}
+
+export interface SectionNavItem<T extends string> {
+  key: T;
+  label: string;
+  /** Liste öğesinin solundaki ikon (lg ve üstündeki yan menüde). */
+  icon?: ReactNode;
+}
+
+// Çok bölümlü ekranların (ör. işletme ayarları) bölüm menüsü: masaüstünde
+// (lg+) içeriğin solunda yapışkan dikey liste, daha dar ekranda tam genişlik
+// açılır menü. Sayfa bunu `SECTION_LAYOUT` ızgarasının ilk sütununa koyar.
+export const SECTION_LAYOUT = "grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-8";
+
+export function SectionNav<T extends string>({
+  items,
+  active,
+  onChange,
+  label,
+}: {
+  items: SectionNavItem<T>[];
+  active: T;
+  onChange: (key: T) => void;
+  label: string;
+}) {
+  const current = items.find((item) => item.key === active) ?? items[0];
+  return (
+    <>
+      <div className="lg:hidden">
+        <TabsDropdown
+          label={label}
+          current={
+            <>
+              {current?.icon}
+              {current?.label}
+            </>
+          }
+        >
+          {items.map((item) => (
+            <DropdownMenuItem
+              key={item.key}
+              onSelect={() => onChange(item.key)}
+              className={cn("items-center gap-2.5", item.key === active && "font-semibold text-paprika")}
+            >
+              {item.icon}
+              {item.label}
+            </DropdownMenuItem>
+          ))}
+        </TabsDropdown>
+      </div>
+      <nav aria-label={label} className="hidden lg:block">
+        <ul className="sticky top-[calc(var(--app-header-h,69px)+5.5rem)] space-y-0.5">
+          {items.map((item) => {
+            const isActive = item.key === active;
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  aria-current={isActive ? "true" : undefined}
+                  onClick={() => onChange(item.key)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors",
+                    isActive ? "bg-paprika/10 font-semibold text-paprika" : "text-ink-soft hover:bg-crema/70 hover:text-ink"
+                  )}
+                >
+                  {item.icon}
+                  <span className="min-w-0 truncate">{item.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </>
   );
 }
 
@@ -532,29 +795,33 @@ export function EmptyState({ title, description, action }: { title: string; desc
 export function UpgradeNotice({
   title,
   description,
-  ctaLabel = "Planımı yükselt",
+  ctaLabel,
 }: {
   title: string;
   description: string;
+  /** null: yükseltme bağlantısı çizilmez (en üst plan). Verilmezse "Planımı yükselt". */
   ctaLabel?: string | null;
 }) {
+  const { t } = useOptionalUiLocale();
+  const label = ctaLabel === undefined ? t("Planımı yükselt") : ctaLabel;
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-paprika/40 bg-paprika/5 px-6 py-14 text-center sm:py-16">
       <LockIcon size={22} className="text-paprika" />
       <p className="font-display text-lg font-bold">{title}</p>
       <p className="max-w-md text-sm text-ink-soft">{description}</p>
-      {ctaLabel && (
+      {label && (
         <Link href="/panel/plan" className={buttonClass("primary", "mt-1")}>
-          {ctaLabel}
+          {label}
         </Link>
       )}
     </div>
   );
 }
 
-// Panelin tek modal kabuğu. Onay diyaloğundan (confirm-dialog.tsx) farkı:
-// içine serbest içerik alır — görsel ızgarası, uzun liste, form parçası.
-// Mobilde alttan açılan yaprak, masaüstünde ortalanmış pencere olur.
+// Panelin tek modal kabuğu (shadcn/ui Dialog üzerinde). Onay diyaloğundan
+// (confirm-dialog.tsx) farkı: içine serbest içerik alır — görsel ızgarası,
+// uzun liste, form parçası. Mobilde alttan açılan yaprak, masaüstünde
+// ortalanmış pencere olur. Odak tuzağı, Esc ve kaydırma kilidi Radix'ten.
 const MODAL_WIDTHS = {
   sm: "sm:max-w-md",
   md: "sm:max-w-xl",
@@ -582,46 +849,36 @@ export function Modal({
   children: ReactNode;
   dismissable?: boolean;
 }) {
-  // Arkadaki sayfa kaymasın — mobilde modal içi kaydırma karışıyor.
-  useBodyScrollLock(open);
-
-  useEffect(() => {
-    if (!open) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape" && dismissable) onClose();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, dismissable]);
-
-  if (!open) return null;
+  const { t } = useOptionalUiLocale();
+  const block = (event: Event) => {
+    if (!dismissable) event.preventDefault();
+  };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-6"
-      onClick={() => dismissable && onClose()}
-    >
-      <div
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent
+        className={MODAL_WIDTHS[size]}
+        onEscapeKeyDown={block}
+        onInteractOutside={block}
+        // Pencere React ağacında açıldığı yerin içindedir; tıklama oradaki
+        // bir karta/satıra kabarıp onu da tetiklemesin.
         onClick={(event) => event.stopPropagation()}
-        className={`flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-md border border-line bg-paper shadow-2xl shadow-ink/30 sm:rounded-md ${MODAL_WIDTHS[size]}`}
+        {...(description ? {} : { "aria-describedby": undefined })}
       >
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
           <div className="min-w-0">
-            <h2 className="font-display text-lg font-bold leading-tight">{title}</h2>
-            {description && <p className="mt-1 text-sm leading-relaxed text-ink-soft">{description}</p>}
+            <DialogTitle>{title}</DialogTitle>
+            {description && <DialogDescription>{description}</DialogDescription>}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Kapat"
-            className="-mr-1 shrink-0 rounded-md p-1.5 text-ink-soft transition-colors hover:bg-crema hover:text-paprika"
+          <DialogClose
+            aria-label={t("Kapat")}
+            disabled={!dismissable}
+            className="-mr-1 shrink-0 rounded-md p-1.5 text-ink-soft transition-colors hover:bg-crema hover:text-paprika disabled:opacity-40"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
-          </button>
+          </DialogClose>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
@@ -631,15 +888,15 @@ export function Modal({
             {footer}
           </div>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-// Açılır eylem menüsü: sık kullanılmayan ya da ikincil eylemleri tek bir
-// butonun altında toplar (ör. işletme işlemleri, hesap menüsü). Dışarı
-// tıklayınca, Esc'e basınca ve bir öğe seçilince kapanır; ok tuşlarıyla
-// gezilir.
+// Açılır eylem menüsü (shadcn/ui DropdownMenu üzerinde): sık kullanılmayan
+// ya da ikincil eylemleri tek bir butonun altında toplar (ör. işletme
+// işlemleri, hesap menüsü). Klavye, odak ve ekran kenarına göre yerleşim
+// Radix'ten gelir; menü görünür alanın dışına taşmaz.
 export type DropdownEntry =
   | { label: string; onSelect: () => void; tone?: "danger"; disabled?: boolean; description?: string }
   | "separator";
@@ -650,6 +907,7 @@ export function Dropdown({
   align = "end",
   label,
   triggerClassName,
+  chevron = true,
 }: {
   /** Butonun içeriği. */
   trigger: ReactNode;
@@ -658,98 +916,30 @@ export function Dropdown({
   /** Ekran okuyucu için menü adı. */
   label: string;
   triggerClassName?: string;
+  /** false: ikon tetikleyicide (⋯) aşağı ok çizilmez. */
+  chevron?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const menuId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointer(event: MouseEvent | TouchEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onPointer);
-    document.addEventListener("touchstart", onPointer);
-    document.addEventListener("keydown", onKey);
-    // Açılınca ilk öğeye odaklan: klavyeyle hemen gezilebilsin.
-    menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
-    return () => {
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("touchstart", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  function onMenuKey(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    const nodes = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? []);
-    if (nodes.length === 0) return;
-    const index = nodes.indexOf(document.activeElement as HTMLButtonElement);
-    const next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? nodes.length - 1
-          : event.key === "ArrowDown"
-            ? (index + 1) % nodes.length
-            : (index - 1 + nodes.length) % nodes.length;
-    nodes[next]?.focus();
-  }
-
   return (
-    <div ref={rootRef} className="relative inline-flex">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((value) => !value)}
-        className={triggerClassName ?? buttonClass("outline", "", "sm")}
-      >
+    // modal=false: menüden açılan pencere (ör. "Şifreyi değiştir") odak ve
+    // tıklama kilidiyle çakışmasın.
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger className={cn("group", triggerClassName ?? buttonClass("outline", "", "sm"))}>
         {trigger}
-        <ChevronDownIcon size={14} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div
-          ref={menuRef}
-          id={menuId}
-          role="menu"
-          aria-label={label}
-          onKeyDown={onMenuKey}
-          className={`absolute top-full z-50 mt-2 w-max min-w-[13rem] max-w-[calc(100vw-2.5rem)] rounded-md border border-line bg-paper p-1 shadow-xl shadow-ink/15 ${
-            align === "end" ? "right-0" : "left-0"
-          }`}
-        >
-          {items.map((item, index) =>
-            item === "separator" ? (
-              <div key={`sep-${index}`} role="separator" className="my-1 border-t border-line" />
-            ) : (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                disabled={item.disabled}
-                onClick={() => {
-                  setOpen(false);
-                  item.onSelect();
-                }}
-                className={`flex w-full flex-col items-start rounded-md px-3 py-2 text-left text-sm outline-none transition-colors hover:bg-crema focus-visible:bg-crema disabled:cursor-not-allowed disabled:opacity-50 ${
-                  item.tone === "danger" ? "text-paprika-deep" : "text-ink"
-                }`}
-              >
-                <span>{item.label}</span>
-                {item.description && <span className="text-xs text-ink-soft">{item.description}</span>}
-              </button>
-            )
-          )}
-        </div>
-      )}
-    </div>
+        {chevron && <ChevronDownIcon size={14} className="shrink-0 transition-transform group-data-[state=open]:rotate-180" />}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={align} aria-label={label}>
+        {items.map((item, index) =>
+          item === "separator" ? (
+            <DropdownMenuSeparator key={`sep-${index}`} />
+          ) : (
+            <DropdownMenuItem key={item.label} disabled={item.disabled} tone={item.tone} onSelect={item.onSelect} className="flex-col gap-0">
+              <span>{item.label}</span>
+              {item.description && <span className="max-w-full truncate text-xs text-ink-soft">{item.description}</span>}
+            </DropdownMenuItem>
+          )
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -762,26 +952,44 @@ export interface StatItem {
   href?: string;
 }
 
-export function StatGroup({ items, className = "" }: { items: StatItem[]; className?: string }) {
+export function StatGroup({
+  items,
+  className = "",
+  columns,
+  size = "md",
+}: {
+  items: StatItem[];
+  className?: string;
+  /** sm ve üstündeki sütun sayısı; verilmezse her öğe bir sütun. Çok öğeli
+   *  şeritte (ör. 6 para değeri) satır başına 3 vermek değerleri sığdırır. */
+  columns?: number;
+  /** "sm": uzun değerler (para tutarı) için küçük punto. */
+  size?: "md" | "sm";
+}) {
   return (
     <div
-      style={{ "--stat-cols": items.length } as CSSProperties}
-      className={`grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-[repeat(var(--stat-cols),minmax(0,1fr))] [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1 ${className}`}
+      style={{ "--stat-cols": columns ?? items.length } as CSSProperties}
+      className={cn(
+        "grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-[repeat(var(--stat-cols),minmax(0,1fr))] [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1",
+        className
+      )}
     >
       {items.map((item) => {
         const body = (
           <>
             <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{item.label}</p>
-            <p className="mt-1 font-display text-2xl font-bold leading-tight text-ink">{item.value}</p>
+            <p className={cn("mt-1 font-display font-bold leading-tight text-ink", size === "sm" ? "text-lg sm:text-xl" : "text-2xl")}>
+              {item.value}
+            </p>
             {item.hint && <p className="mt-0.5 text-xs text-ink-soft">{item.hint}</p>}
           </>
         );
         return item.href ? (
-          <Link key={item.label} href={item.href} className="block min-w-0 bg-paper px-5 py-4 transition-colors hover:bg-crema/50">
+          <Link key={item.label} href={item.href} className="block min-w-0 bg-paper px-4 py-4 transition-colors hover:bg-crema/50 sm:px-5">
             {body}
           </Link>
         ) : (
-          <div key={item.label} className="min-w-0 bg-paper px-5 py-4">
+          <div key={item.label} className="min-w-0 bg-paper px-4 py-4 sm:px-5">
             {body}
           </div>
         );
@@ -792,12 +1000,15 @@ export function StatGroup({ items, className = "" }: { items: StatItem[]; classN
 
 // Tablo kabuğu. Hücre stilleri burada tek yerden verilir; sayfalar düz
 // <table> işaretlemesi yazar (thead/th/td), görünüm her ekranda aynı olur.
-// Dar ekranda ikincil sütunlar `hidden sm:table-cell` ile gizlenir; sığmayan
-// tablo yatay kaydırılır, sayfa taşmaz.
+// Dar ekranda ikincil sütunlar `hidden sm:table-cell` / `md:table-cell` ile
+// gizlenir, ikincil bilgi ana hücrenin altına iner ve kısaltılacak metnin
+// hücresi `w-full max-w-0` alır (truncate tabloyu genişletmesin, kalan yeri o
+// hücre alsın): tablo 320px'te bile kabına sığacak şekilde yazılır. Kap yine
+// de `overflow-x-auto`'dur — bir şey taşarsa taşan tablonun kendisi olur, sayfa değil.
 export function Table({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div className={`overflow-x-auto rounded-md border border-line bg-paper ${className}`}>
-      <table className="w-full border-collapse text-left text-sm [&_tbody_tr]:border-t [&_tbody_tr]:border-line [&_tbody_tr:hover]:bg-crema/40 [&_td]:px-4 [&_td]:py-3 [&_td]:align-middle [&_th]:whitespace-nowrap [&_th]:px-4 [&_th]:py-2.5 [&_th]:font-mono [&_th]:text-[11px] [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-ink-soft [&_thead]:bg-crema/50">
+      <table className="w-full border-collapse text-left text-sm [&_tbody_tr]:border-t [&_tbody_tr]:border-line [&_tbody_tr:hover]:bg-crema/40 [&_td]:px-3 [&_td]:py-3 [&_td]:align-middle sm:[&_td]:px-4 [&_th]:whitespace-nowrap [&_th]:px-3 [&_th]:py-2.5 sm:[&_th]:px-4 [&_th]:font-mono [&_th]:text-[11px] [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-ink-soft [&_thead]:bg-crema/50">
         {children}
       </table>
     </div>

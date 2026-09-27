@@ -56,7 +56,7 @@ istenmiş olmalı.
 - [ ] Menüde marka rengi yerine sabit `paprika`
 - [ ] Kullanıcıya görünen İngilizce metin
 - [ ] Eksik yükleniyor / boş / hata durumu
-- [ ] Panel formunda eksik `useDraft`, yıkıcı işlemde eksik `useConfirm`
+- [ ] Panel formunda eksik `useFormDraft`, yıkıcı işlemde eksik `useConfirm`
 - [ ] Kilitli özelliğin gizlenmesi (`UpgradeNotice` ile görünür kalmalı)
 - [ ] Plan değişikliğinin üç yüzeyde hizasız olması: landing / panel plan ekranı / uygulama noktası
 

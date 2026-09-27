@@ -5,12 +5,14 @@ import Link from "next/link";
 import { MailIcon } from "@/components/icons";
 import { errorMessage } from "@/components/panel/auth-card";
 import { AuthAlternative, AuthError, AuthHeading, AuthInput, AuthLabel, AuthSubmit } from "@/components/panel/auth-form";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Şifremi unuttum — e-posta adresi alınır, kayıtlıysa sıfırlama bağlantısı
 // gönderilir. Ekran hesabın var olup olmadığını söylemez: sunucu her durumda
 // aynı yanıtı verir, burada da tek bir "gönderdik" mesajı gösterilir.
 
 export default function ForgotPasswordPage() {
+  const { t, locale } = useUiLocale();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,15 +26,15 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), locale }),
       });
       if (!res.ok) {
-        setError(await errorMessage(res, "İstek gönderilemedi, tekrar dene."));
+        setError(t(await errorMessage(res, "İstek gönderilemedi, tekrar dene.")));
         return;
       }
       setSentTo(email.trim());
     } catch {
-      setError("Bağlantı kurulamadı, tekrar dene.");
+      setError(t("Bağlantı kurulamadı, tekrar dene."));
     } finally {
       setLoading(false);
     }
@@ -44,24 +46,22 @@ export default function ForgotPasswordPage() {
         <AuthHeading
           title={
             <>
-              E-postanı
+              {t("E-postanı")}
               <br />
-              kontrol et
+              {t("kontrol et")}
             </>
           }
-          description={
-            <>
-              <span className="font-medium text-ink">{sentTo}</span> adresiyle kayıtlı bir hesap varsa, şifreni sıfırlaman
-              için bir bağlantı gönderdik. Bağlantı 60 dakika geçerli. Gelen kutunda yoksa spam klasörüne bak.
-            </>
-          }
+          description={t(
+            "{email} adresiyle kayıtlı bir hesap varsa, şifreni sıfırlaman için bir bağlantı gönderdik. Bağlantı 60 dakika geçerli. Gelen kutunda yoksa spam klasörüne bak.",
+            { email: sentTo }
+          )}
         />
         <div className="mt-10 flex flex-wrap items-center justify-between gap-3 text-[15px]">
           <Link href="/panel/login" className="font-medium text-paprika hover:underline">
-            Giriş ekranına dön
+            {t("Giriş ekranına dön")}
           </Link>
           <button type="button" onClick={() => setSentTo(null)} className="text-ink-soft hover:text-ink hover:underline">
-            Farklı bir adres dene
+            {t("Farklı bir adres dene")}
           </button>
         </div>
       </>
@@ -73,31 +73,31 @@ export default function ForgotPasswordPage() {
       <AuthHeading
         title={
           <>
-            Şifreni mi
+            {t("Şifreni mi")}
             <br />
-            unuttun?
+            {t("unuttun?")}
           </>
         }
-        description="Hesabının e-posta adresini yaz, yeni şifre belirlemen için bir bağlantı gönderelim."
+        description={t("Hesabının e-posta adresini yaz, yeni şifre belirlemen için bir bağlantı gönderelim.")}
       />
       <form onSubmit={handleSubmit} className="mt-10 space-y-6">
         <div>
-          <AuthLabel htmlFor="email">E-posta</AuthLabel>
+          <AuthLabel htmlFor="email">{t("E-posta")}</AuthLabel>
           <AuthInput
             id="email"
             type="email"
             required
             autoComplete="email"
-            placeholder="ornek@isletme.com"
+            placeholder={t("ornek@isletme.com")}
             icon={<MailIcon size={20} />}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <AuthError>{error}</AuthError>
-        <AuthSubmit loading={loading}>Bağlantı gönder</AuthSubmit>
+        <AuthSubmit loading={loading}>{t("Bağlantı gönder")}</AuthSubmit>
       </form>
-      <AuthAlternative question="Şifreni hatırladın mı?" href="/panel/login" label="Giriş yap" />
+      <AuthAlternative question={t("Şifreni hatırladın mı?")} href="/panel/login" label={t("Giriş yap")} />
     </>
   );
 }

@@ -1,42 +1,38 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnalyticsFilterProvider } from "@/components/panel/analytics/filters";
+import { NavTabs } from "@/components/panel/ui";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
-// Analiz merkezi kabuğu: sekmeler + filtre bağlamı. Filtreler sekmeler arasında
-// korunur (bkz. components/panel/analytics/filters.tsx).
+// Analiz merkezi kabuğu: bölüm sekmeleri + filtre bağlamı. Filtreler sekmeler
+// arasında korunur (bkz. components/panel/analytics/filters.tsx). Sekmeler dar
+// ekranda açılır menüye döner (NavTabs).
 
 const TABS = [
-  { href: "/panel/analytics", label: "Genel bakış" },
-  { href: "/panel/analytics/products", label: "Ürünler" },
-  { href: "/panel/analytics/categories", label: "Kategoriler" },
-  { href: "/panel/analytics/acquisition", label: "Trafik" },
-  { href: "/panel/analytics/activity", label: "Aktivite" },
+  { href: "/panel/analytics", label: msg("Genel bakış") },
+  { href: "/panel/analytics/products", label: msg("Ürünler") },
+  { href: "/panel/analytics/categories", label: msg("Kategoriler") },
+  { href: "/panel/analytics/acquisition", label: msg("Trafik") },
+  { href: "/panel/analytics/activity", label: msg("Aktivite") },
 ];
 
 export default function AnalyticsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useUiLocale();
 
   return (
     <AnalyticsFilterProvider>
       <div>
-        <nav className="mb-6 flex gap-5 overflow-x-auto overflow-y-hidden border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map((tab) => {
-            const active = tab.href === "/panel/analytics" ? pathname === tab.href : pathname.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`relative -mb-px whitespace-nowrap border-b-2 pb-3 pt-1 text-[13px] font-semibold uppercase tracking-wide transition-colors ${
-                  active ? "border-paprika text-paprika" : "border-transparent text-ink-soft hover:text-ink"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </nav>
+        <NavTabs
+          label={t("Analiz bölümleri")}
+          items={TABS.map((tab) => ({
+            href: tab.href,
+            label: t(tab.label),
+            active: tab.href === "/panel/analytics" ? pathname === tab.href : pathname.startsWith(tab.href),
+          }))}
+        />
         {children}
       </div>
     </AnalyticsFilterProvider>

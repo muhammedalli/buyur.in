@@ -14,10 +14,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
-import { isValidHex, pickReadableOn, readableAccent, visibleFill } from "@/lib/color";
-import { getThemeColor } from "@/lib/themes";
-import { getSurface } from "@/lib/surfaces";
-import { getFontStack } from "@/lib/fonts";
+import { brandStyle as businessBrandStyle } from "@/lib/brand-style";
 import { cartCount, lineKey, loadCart, saveCart, unitPriceFor, type CartLine, type CartSelection } from "@/lib/cart";
 import {
   activeLocales,
@@ -79,6 +76,8 @@ interface MenuContextValue {
   productCountByCategory: Map<string, number>;
   /** İşletme bilgileri yaprağını açar (adres, saatler, WiFi, iletişim…). */
   openInfo: () => void;
+  /** İşletmenin web sitesi yayındaysa vitrinin adresi (menü → site geçişi); yoksa null. */
+  websiteHref: string | null;
 }
 
 const MenuContext = createContext<MenuContextValue | null>(null);
@@ -87,6 +86,11 @@ export function useMenu() {
   const ctx = useContext(MenuContext);
   if (!ctx) throw new Error("useMenu, MenuProvider içinde kullanılmalı");
   return ctx;
+}
+
+/** Hem menüde hem vitrinde (site/karşılama) kullanılan parçalar için: menü dışında null. */
+export function useOptionalMenu() {
+  return useContext(MenuContext);
 }
 
 const PAGE_LABELS: Record<string, string> = {
@@ -108,13 +112,15 @@ function TrackPageViews({ business, base, locale }: { business: Business; base: 
     if (!pathname || lastTracked.current === pathname) return;
     lastTracked.current = pathname;
 
-    let kind = "welcome";
+    // Kök ("/"), yalnızca masadaki QR taramasında menü kabuğuna düşer (vitrin
+    // ayrı rotada); bu yüzden kök de menü sayılır.
+    let kind = "menu";
     if (pathname.startsWith(`${base}/categories/`)) kind = "category";
     else if (pathname.startsWith(`${base}/products/`)) kind = "product";
-    else if (pathname.startsWith(`${base}/menu`)) kind = "menu";
     else if (pathname.startsWith(`${base}/search`)) kind = "search";
     else if (pathname.startsWith(`${base}/cart`)) kind = "cart";
     else if (pathname.startsWith(`${base}/review`)) kind = "degerlendir";
+    else if (pathname.startsWith(`${base}/welcome`)) kind = "welcome";
 
     trackEvent(business.slug, { type: "page_view", target: kind, label: PAGE_LABELS[kind] ?? kind, locale });
     // Sepet sayfası funnel'ın son adımı — ayrıca kendi event'iyle sayılır.
@@ -124,6 +130,16 @@ function TrackPageViews({ business, base, locale }: { business: Business; base: 
   }, [pathname, business.slug, base, locale]);
 
   return null;
+}
+
+/** Rota değişince içerik yeniden girer (kategori → kategori geçişi dahil). */
+function PageTransition({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  return (
+    <div key={pathname} className="page-enter">
+      {children}
+    </div>
+  );
 }
 
 function isPopupInWindow(popup: Popup) {
@@ -153,8 +169,23 @@ function MenuHeader({
     else router.push(`${base}/menu`);
   }
 
+  // Sayfa kaydırılınca başlık gölge kazanır: içeriğin başlığın altından aktığı hissedilir.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 4);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-40 border-b border-line/40 bg-paper/90 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-40 border-b border-line/40 bg-paper/90 backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? "menu-header-scrolled" : ""
+      }`}
+    >
       <div className="relative mx-auto flex h-[var(--header-h)] max-w-3xl items-center justify-between px-4">
         {/* Sol alan: alt sayfalarda geri, diğerlerinde işletme bilgileri */}
         <div className="flex w-9 shrink-0 items-center justify-start">
@@ -285,7 +316,7 @@ function BottomNav({ base }: { base: string }) {
                 <item.Icon size={17} strokeWidth={active ? 2.4 : 1.8} />
                 {"badge" in item && item.badge ? (
                   <span
-                    className={`absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-xs ${
+                    className={`absolute -end-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none shadow-xs ${
                       active ? "bg-white text-ink" : "bg-[var(--brand)] text-[var(--brand-on)]"
                     }`}
                   >
@@ -320,7 +351,7 @@ function LanguageSwitcher() {
         {localeCodes[locale]}
       </button>
       {open && (
-        <div className="absolute end-0 top-11 z-50 min-w-[10rem] overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-xl backdrop-blur-md">
+        <div className="pop-in absolute end-0 top-11 z-50 min-w-[10rem] origin-top-right overflow-hidden rtl:origin-top-left rounded-2xl border border-line/60 bg-paper shadow-xl backdrop-blur-md">
           {locales.map((l) => (
             <button
               key={l}
@@ -347,11 +378,14 @@ export function MenuProvider({
   basePath,
   initialCategories,
   initialProducts,
+  hasWebsite = false,
   children,
 }: {
   business: Business;
   popup: Popup | null;
   basePath: string;
+  /** Web sitesi yayında mı (sunucuda lib/storefront.ts ile hesaplanır). */
+  hasWebsite?: boolean;
   /** Sunucuda çekilen menü verisi — ilk boyamada hazır (bkz. app/[slug]/layout.tsx). */
   initialCategories: Category[];
   initialProducts: Product[];
@@ -408,13 +442,15 @@ export function MenuProvider({
   const baseLocale = mainLocale(business);
   const locales = useMemo(() => activeLocales(business), [business]);
 
-  // Ziyaretçinin kayıtlı dili artık aktif değilse (işletme dili kapatmış olabilir)
-  // işletmenin ana diline düş. İlk ziyarette (kayıtlı dil yoksa ve birden çok
-  // aktif dil varsa) dil seçim modalını aç.
+  // Ziyaretçinin kayıtlı dili bu menüde yoksa (başka bir işletmede seçilmiş ya
+  // da işletme dili kapatmış olabilir) ana dile düşülür ve — birden çok dil
+  // varsa — dil seçim modalı yeniden açılır: Almanca seçmiş misafir Almancası
+  // olmayan menüde sessizce Türkçeye düşmesin, kendi seçsin.
   useEffect(() => {
     const stored = getStoredLocale();
-    setLocaleState(locales.includes(stored) ? stored : baseLocale);
-    if (locales.length > 1 && !hasStoredLocale()) setNeedsLangChoice(true);
+    const available = hasStoredLocale() && locales.includes(stored);
+    setLocaleState(available ? stored : baseLocale);
+    if (locales.length > 1 && !available) setNeedsLangChoice(true);
   }, [locales, baseLocale]);
 
   function setLocale(next: Locale) {
@@ -575,28 +611,11 @@ export function MenuProvider({
     persistCart(cart.filter((l) => l.key !== key));
   }
 
-  // Marka rengi: özel renk (theme_color) doluysa onu, değilse preset temayı kullan.
-  const brand = isValidHex(business.theme_color) ? business.theme_color : getThemeColor(business.theme);
-  // Menü arka planı / yüzey tonu — Tailwind renk token'larını menü kökünde ezer.
-  const surface = getSurface(business.menu_bg);
-  const brandFill = visibleFill(brand, surface.vars.paper);
-  // İşletmenin seçtiği font hem gövde hem başlık ailesini değiştirir
-  // (font-display/font-body utility'leri bu değişkenleri okur).
-  const fontStack = getFontStack(business.font);
+  // Marka rengi, yazı tipi ve menü zemini (lib/brand-style.ts): vitrinle aynı
+  // kimlik. Zemin tonu Tailwind renk token'larını menü kapsamında ezer.
   const brandStyle = {
-    "--brand": brandFill,
-    "--brand-on": pickReadableOn(brandFill),
-    "--brand-text": readableAccent(brand, surface.vars.paper),
+    ...businessBrandStyle(business, { surface: true }),
     "--header-h": "4.75rem",
-    "--font-body": fontStack,
-    "--font-display": fontStack,
-    // Seçilen arka plan tonu: temel renk token'larını menü kapsamında değiştirir.
-    "--color-paper": surface.vars.paper,
-    "--color-crema": surface.vars.crema,
-    "--color-ink": surface.vars.ink,
-    "--color-ink-soft": surface.vars.inkSoft,
-    "--color-line": surface.vars.line,
-    fontFamily: fontStack,
   } as CSSProperties;
 
   return (
@@ -620,6 +639,8 @@ export function MenuProvider({
         imageByCategory,
         productCountByCategory,
         openInfo,
+        // Vitrin kökü: alt alan adında "/", kök alan yolunda /site/{slug}.
+        websiteHref: hasWebsite ? (basePath ? `/site/${business.slug}` : "/") : null,
       }}
     >
       <div
@@ -653,7 +674,9 @@ export function MenuProvider({
         <MenuHeader business={business} base={basePath} />
         {drawerOpen && <CategoryDrawer onClose={() => setDrawerOpen(false)} />}
         {infoOpen && <BusinessInfoSheet business={business} onClose={closeInfo} />}
-        <main className="mx-auto max-w-3xl">{children}</main>
+        <main className="mx-auto max-w-3xl">
+          <PageTransition>{children}</PageTransition>
+        </main>
         <MenuFooter base={basePath} products={products} locale={locale} />
 
         <CartBar lines={cart} base={basePath} />

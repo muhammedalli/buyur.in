@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { localeCodes, localeNamesTr, type Locale, type TranslatableField, type Translations } from "@/lib/i18n";
+import { localeCodes, localeNamesEn, localeNamesTr, type Locale, type TranslatableField, type Translations } from "@/lib/i18n";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 import { Input, Label, Tabs, Textarea } from "@/components/panel/ui";
 import { AiTranslateButton, canAiTranslate } from "@/components/panel/ai/translate-button";
 import type { TranslationKind } from "@/lib/ai/translate";
@@ -29,9 +31,9 @@ export interface MultiLangTranslate {
 type Completeness = "full" | "partial" | "empty";
 
 const DOT: Record<Completeness, { className: string; text: string }> = {
-  full: { className: "bg-herb", text: "çeviri tamam" },
-  partial: { className: "bg-paprika/70", text: "eksik çeviri var" },
-  empty: { className: "border border-ink-soft/40", text: "çeviri yok" },
+  full: { className: "bg-herb", text: msg("çeviri tamam") },
+  partial: { className: "bg-paprika/70", text: msg("eksik çeviri var") },
+  empty: { className: "border border-ink-soft/40", text: msg("çeviri yok") },
 };
 
 // Çevrilebilir metin alanlarını (ad, açıklama) dil sekmeleriyle düzenler.
@@ -69,6 +71,9 @@ export function MultiLangFields({
   title?: string;
   translate?: MultiLangTranslate;
 }) {
+  const { t, locale: uiLocale } = useUiLocale();
+  // Dil adları panelin dilinde ("İngilizce" / "English").
+  const localeNames = uiLocale === "tr" ? localeNamesTr : localeNamesEn;
   const [tab, setTab] = useState<Locale>(mainLocale);
   const [aiNote, setAiNote] = useState<{ tone: "done" | "error"; text: string } | null>(null);
   const active = locales.includes(tab) ? tab : mainLocale;
@@ -91,10 +96,10 @@ export function MultiLangFields({
     const state = completeness(l);
     return {
       key: l,
-      ariaLabel: state ? `${localeNamesTr[l]} — ${DOT[state].text}` : undefined,
+      ariaLabel: state ? `${localeNames[l]} — ${t(DOT[state].text)}` : undefined,
       label:
         l === mainLocale ? (
-          `${localeCodes[l]} · Ana`
+          t("{code} · Ana", { code: localeCodes[l] })
         ) : (
           <>
             {localeCodes[l]}
@@ -118,7 +123,7 @@ export function MultiLangFields({
               onTranslationsChange={onTranslationsChange}
               visibleLocales={locales}
               onDone={(result) => {
-                setAiNote({ tone: "done", text: `${result.summary} Kontrol edip kaydedin.` });
+                setAiNote({ tone: "done", text: `${result.summary} ${t("Kontrol edip kaydedin.")}` });
                 // Ana dil sekmesinde kalan kullanıcı dolan alanı görmeden
                 // "boş kaldı" sanmasın: ilk dolan dilin sekmesi açılır.
                 if (isMain && result.locales[0] && locales.includes(result.locales[0])) setTab(result.locales[0]);
@@ -173,7 +178,9 @@ export function MultiLangFields({
           );
         })}
         {!isMain && (
-          <p className="text-xs text-ink-soft">Boş bırakılırsa {localeNamesTr[mainLocale]} (ana dil) gösterilir.</p>
+          <p className="text-xs text-ink-soft">
+            {t("Boş bırakılırsa {language} (ana dil) gösterilir.", { language: localeNames[mainLocale] })}
+          </p>
         )}
       </div>
     </div>

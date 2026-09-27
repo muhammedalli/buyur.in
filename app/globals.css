@@ -124,16 +124,39 @@ body {
   animation: pulse-ring 2s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
 }
 
-/* Sonsuz kayan güven şeridi */
+/* Sonsuz kayan şerit (components/marquee.tsx). Süre içerik uzunluğundan gelir
+   (--marquee-duration); sağdan sola okunan dillerde yön ters döner. */
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+@keyframes marquee-rtl {
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
 .marquee-track {
-  animation: marquee 32s linear infinite;
+  animation: marquee var(--marquee-duration, 32s) linear infinite;
+  will-change: transform;
+}
+[dir="rtl"] .marquee-track {
+  animation-name: marquee-rtl;
 }
 .marquee-mask {
-  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+/* Fare üstündeyken ya da içindeki bir bağlantı odaktayken okunabilsin diye durur. */
+.marquee-pause:hover .marquee-track,
+.marquee-pause:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+/* Mesajların sabit kopyası: normalde yalnızca ekran okuyucu için. */
+.marquee-static {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 /* H1 altındaki fırça darbesi — soldan sağa çizilir */
@@ -289,6 +312,23 @@ body {
   .blob-drift, .marquee-track,
   .stroke-draw, .drawer-in, .drawer-item {
     animation: none;
+  }
+  /* Kayan yazı durur: kayan iz gizlenir, mesajlar sarılarak sabit görünür. */
+  .marquee-track {
+    display: none;
+  }
+  .marquee-static {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 1.25rem;
+    padding-inline: 1rem;
   }
   .pulse-ring::after,
   .shine-on-hover:hover::after {
@@ -621,5 +661,224 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .splash-pop, .animate-cloche-lid, .animate-steam-1, .animate-steam-2, .animate-steam-3, .animate-sparkle, .animate-bar-shimmer {
     animation: none;
+  }
+}
+
+/* ─── Vitrin ve müşteri menüsü hareketleri ─────────────────────────
+   Hepsi yalnızca opacity/transform: compositor'da çalışır, düzeni kaydırmaz.
+   Kısa tutulur (≤ 0.45 sn): menüde amaç süs değil, geçişin nereden nereye
+   olduğunu hissettirmek. */
+
+/* Kapak görseli yerine oturur (karşılama sayfası, site hero'su). */
+@keyframes cover-settle {
+  from { transform: scale(1.06); opacity: 0.6; }
+  to { transform: scale(1); opacity: 1; }
+}
+.welcome-cover {
+  animation: cover-settle 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Rota değişiminde içerik hafifçe yukarı kayarak belirir (kategori geçişi). */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.page-enter {
+  animation: page-enter 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Yatay şeritte kartlar sırayla girer (site menü slider'ı). */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-in-rtl {
+  from { opacity: 0; transform: translateX(-18px); }
+  to { opacity: 1; transform: none; }
+}
+.slide-in {
+  animation: slide-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+[dir="rtl"] .slide-in {
+  animation-name: slide-in-rtl;
+}
+
+/* Pencere ve yapraklar: giriş/çıkış (lib/use-animated-close.ts). */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-out {
+  to { opacity: 0; transform: translateY(6px) scale(0.97); }
+}
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sheet-down {
+  to { opacity: 0; transform: translateY(28px); }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes drawer-slide {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+@keyframes drawer-slide-rtl {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+.pop-in { animation: pop-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.pop-out { animation: pop-out 0.18s ease-in both; }
+.sheet-up { animation: sheet-up 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.sheet-down { animation: sheet-down 0.18s ease-in both; }
+.fade-out { animation: fade-out 0.18s ease-in both; }
+.drawer-slide { animation: drawer-slide 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+[dir="rtl"] .drawer-slide { animation-name: drawer-slide-rtl; }
+
+/* components/ui (Radix) katmanı: açılış/kapanış `data-state` ile yönetilir;
+   kapanış animasyonu bitene kadar öğe DOM'da kalır. */
+@keyframes drawer-slide-out {
+  to { transform: translateX(-100%); }
+}
+@keyframes drawer-slide-end {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+@keyframes drawer-slide-end-out {
+  to { transform: translateX(100%); }
+}
+.ui-overlay[data-state="open"] { animation: fade-in 0.2s ease-out both; }
+.ui-overlay[data-state="closed"] { animation: fade-out 0.16s ease-in both; }
+.ui-pop[data-state="open"],
+.ui-pop[data-state="delayed-open"],
+.ui-pop[data-state="instant-open"] { animation: pop-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.ui-pop[data-state="closed"] { animation: pop-out 0.14s ease-in both; }
+.ui-dialog[data-state="open"] { animation: sheet-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.ui-dialog[data-state="closed"] { animation: sheet-down 0.16s ease-in both; }
+.ui-sheet-start[data-state="open"] { animation: drawer-slide 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.ui-sheet-start[data-state="closed"] { animation: drawer-slide-out 0.2s ease-in both; }
+.ui-sheet-end[data-state="open"] { animation: drawer-slide-end 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.ui-sheet-end[data-state="closed"] { animation: drawer-slide-end-out 0.2s ease-in both; }
+.ui-sheet-bottom[data-state="open"] { animation: sheet-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.ui-sheet-bottom[data-state="closed"] { animation: sheet-down 0.16s ease-in both; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-overlay,
+  .ui-pop,
+  .ui-dialog,
+  .ui-sheet-start,
+  .ui-sheet-end,
+  .ui-sheet-bottom {
+    animation-duration: 1ms !important;
+  }
+}
+
+/* Kategori sekmesi seçilince hafifçe öne çıkar. */
+@keyframes tab-pop {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.tab-pop {
+  animation: tab-pop 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Menü başlığı: sayfa kaydırılınca gölge kazanır. */
+.menu-header-scrolled {
+  box-shadow: 0 10px 28px -18px rgba(35, 24, 18, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-cover,
+  .page-enter,
+  .slide-in,
+  .pop-in,
+  .pop-out,
+  .sheet-up,
+  .sheet-down,
+  .fade-out,
+  .drawer-slide,
+  .tab-pop {
+    animation: none;
+  }
+}
+
+/* ─── Pazarlama sitesi mikro hareketleri ────────────────────────── */
+
+/* Fiyat kartında dönem (aylık/yıllık) değişince rakam yeniden girer. */
+@keyframes billing-swap {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.billing-swap {
+  animation: billing-swap 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* CTA oku: üzerine gelince hafifçe ileri itilir. */
+.cta-nudge .cta-arrow {
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.cta-nudge:hover .cta-arrow,
+.cta-nudge:focus-visible .cta-arrow {
+  transform: translateX(4px);
+}
+
+/* Hero görseli: çok yavaş, belli belirsiz süzülür. */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.hero-float {
+  animation: hero-float 7s ease-in-out 1.2s infinite;
+}
+
+/* Platform bölümündeki akış okları: sırayla nabız atar. */
+@keyframes flow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232, 73, 31, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(232, 73, 31, 0.12); }
+}
+.flow-arrow {
+  animation: flow-pulse 2.8s ease-in-out infinite;
+}
+
+/* SSS cevabı açılırken yumuşakça belirir. */
+@keyframes faq-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.faq-item[open] .faq-answer {
+  animation: faq-open 0.3s ease-out both;
+}
+
+/* Scroll ile görünme yönleri: data-reveal="left|right|scale". */
+[data-reveal="left"] { translate: -24px 0; }
+[data-reveal="right"] { translate: 24px 0; }
+[data-reveal="scale"] { translate: none; scale: 0.96; transition-property: opacity, scale; }
+[data-reveal="scale"].revealed { scale: 1; }
+
+/* Üst menüde bulunulan bölümün bağlantısı. */
+.nav-active {
+  color: var(--color-ink);
+}
+.nav-active > .nav-underline {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .billing-swap,
+  .hero-float,
+  .flow-arrow,
+  .faq-item[open] .faq-answer {
+    animation: none;
+  }
+  .cta-nudge .cta-arrow {
+    transition: none;
+  }
+  [data-reveal="left"],
+  [data-reveal="right"],
+  [data-reveal="scale"] {
+    translate: none;
+    scale: none;
   }
 }

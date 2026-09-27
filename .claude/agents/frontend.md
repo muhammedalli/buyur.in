@@ -56,10 +56,12 @@ const [confirm, confirmDialog] = useConfirm();
 ```
 
 1. **UI kitinden çık, elle yazma.** `Button`, `AiButton`, `Card`, `PageHeader`,
-   `Input`, `Textarea`, `Select`, `Switch`, `Tabs`, `EmptyState`,
-   `UpgradeNotice`, `FormActions`, `StatGroup`, `Table`, `Dropdown`, `DraftBanner`, `Spinner`,
-   `ErrorText` hazır. Yeni varyant gerekiyorsa **kite ekle**, sayfaya gömme.
-2. **Taslak zorunlu.** Form sayfalarında `useDraft()`. Yarım girilmiş bir fiyat
+   `Input`, `Textarea`, `Select`, `Switch`, `Tabs`, `NavTabs`, `SectionNav`, `EmptyState`,
+   `UpgradeNotice`, `FormActions`, `StatGroup`, `Table`, `Dropdown`, `Modal`, `Sheet*`,
+   `Tooltip`, `DraftBanner`, `Spinner`, `ErrorText` hazır (pencere/yaprak/menü shadcn/ui
+   katmanından, `components/ui`). Yeni varyant gerekiyorsa **kite ekle**, sayfaya gömme.
+   **Yatay taşma yok:** her ekran 320–1440 px'te kaymadan sığar (`docs/ui-guidelines.md`).
+2. **Taslak zorunlu.** Form sayfalarında `useFormDraft()`. Yarım girilmiş bir fiyat
    masadaki müşteriye yansımamalı — kaydetmeden canlıya yazma.
 3. **Yıkıcı işlem = onay.** Silme, toplu değiştirme `useConfirm()` ile sorulur.
 4. **Sorgular parametreli:** `pb.filter("business = {:id}", { id: business.id })`,

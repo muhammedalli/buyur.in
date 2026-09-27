@@ -10,9 +10,7 @@
 // yüzey için tekrarlanmalı.
 
 export const CHART_SURFACE = "#fbf5ea";
-export const CHART_SURFACE_MUTED = "#f4ead9";
 export const CHART_GRID = "#e0d3bf";
-export const CHART_INK = "#231812";
 export const CHART_INK_SOFT = "#5c4a3d";
 
 /** Kategorik seri renkleri — sırayla atanır, asla döngüye sokulmaz. */

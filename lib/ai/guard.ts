@@ -12,6 +12,7 @@ import { isFeatureAvailable, type Feature } from "@/lib/entitlements";
 import { ensurePlanCatalog } from "@/lib/plan-catalog-loader";
 import { authenticateBusiness } from "@/lib/business-auth";
 import type { Business } from "@/lib/types";
+import { msg } from "@/lib/ui-i18n";
 
 /** Menü görseli/PDF'i okuyabilen model. Ortamdan değiştirilebilir. */
 export const MENU_MODEL = process.env.OPENAI_MENU_MODEL ?? "gpt-4.1-mini";
@@ -39,23 +40,23 @@ export async function guardAiRequest(
   businessId: unknown,
   feature?: Feature
 ): Promise<GuardSuccess | GuardFailure> {
-  if (!authHeader) return fail("Giriş yapmalısınız.", 401);
+  if (!authHeader) return fail(msg("Giriş yapmalısınız."), 401);
 
   // Oturumun sahibi işletme kaydının kendisidir; ayrı sahiplik sorgusu yok.
   const [session] = await Promise.all([authenticateBusiness(authHeader), ensurePlanCatalog(createServerPB())]);
-  if (!session) return fail("Oturum geçersiz.", 401);
+  if (!session) return fail(msg("Oturum geçersiz."), 401);
 
   if (typeof businessId !== "string" || businessId.trim() === "") {
-    return fail("Geçersiz istek.", 400);
+    return fail(msg("Geçersiz istek."), 400);
   }
   if (businessId !== session.business.id) {
-    return fail("Bu işletmeye erişiminiz yok.", 403);
+    return fail(msg("Bu işletmeye erişiminiz yok."), 403);
   }
   const { business, pb } = session;
   const userId = business.id;
 
   if (feature && !isFeatureAvailable(business, feature)) {
-    return fail("Bu özellik mevcut planınızda kullanılamıyor.", 403);
+    return fail(msg("Bu özellik mevcut planınızda kullanılamıyor."), 403);
   }
 
   return { ok: true, business, userId, pb };
@@ -65,7 +66,7 @@ export async function guardAiRequest(
 export function openaiClient(): OpenAI | GuardFailure {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return fail("Yapay zekâ servisi yapılandırılmamış. Yöneticinize başvurun.", 503);
+    return fail(msg("Yapay zekâ servisi yapılandırılmamış. Yöneticinize başvurun."), 503);
   }
   return new OpenAI({ apiKey });
 }
@@ -83,24 +84,24 @@ export function aiErrorResponse(error: unknown, fallback: string): NextResponse 
   const reply = (message: string, status: number, retryable = false) =>
     NextResponse.json({ error: message, retryable }, { status });
   if (error instanceof OpenAI.APIConnectionTimeoutError) {
-    return reply("Yapay zekâ servisi zamanında yanıt vermedi. Birkaç saniye sonra tekrar deneyin.", 504, true);
+    return reply(msg("Yapay zekâ servisi zamanında yanıt vermedi. Birkaç saniye sonra tekrar deneyin."), 504, true);
   }
   if (error instanceof OpenAI.APIConnectionError) {
-    return reply("Yapay zekâ servisine bağlanılamadı. Birkaç saniye sonra tekrar deneyin.", 502, true);
+    return reply(msg("Yapay zekâ servisine bağlanılamadı. Birkaç saniye sonra tekrar deneyin."), 502, true);
   }
   if (error instanceof OpenAI.RateLimitError) {
     return error.code === "insufficient_quota"
-      ? reply("Yapay zekâ servisinin kullanım kotası dolmuş. Yöneticinize bildirin.", 503)
-      : reply("Yapay zekâ servisi şu an yoğun. Birkaç saniye sonra tekrar deneyin.", 503, true);
+      ? reply(msg("Yapay zekâ servisinin kullanım kotası dolmuş. Yöneticinize bildirin."), 503)
+      : reply(msg("Yapay zekâ servisi şu an yoğun. Birkaç saniye sonra tekrar deneyin."), 503, true);
   }
   if (error instanceof OpenAI.AuthenticationError || error instanceof OpenAI.PermissionDeniedError) {
-    return reply("Yapay zekâ servisinin yapılandırmasında bir sorun var. Yöneticinize bildirin.", 503);
+    return reply(msg("Yapay zekâ servisinin yapılandırmasında bir sorun var. Yöneticinize bildirin."), 503);
   }
   if (error instanceof OpenAI.BadRequestError) {
-    return reply("Bu içerik yapay zekâ tarafından işlenemedi. Metni kontrol edip tekrar deneyin.", 422);
+    return reply(msg("Bu içerik yapay zekâ tarafından işlenemedi. Metni kontrol edip tekrar deneyin."), 422);
   }
   if (error instanceof OpenAI.InternalServerError) {
-    return reply("Yapay zekâ servisi geçici bir hata verdi. Tekrar deneyin.", 502, true);
+    return reply(msg("Yapay zekâ servisi geçici bir hata verdi. Tekrar deneyin."), 502, true);
   }
   return reply(fallback, 500);
 }

@@ -15,7 +15,8 @@ export function CategoryTabs({ activeId }: { activeId?: string }) {
   // zaten görünür olduğu için "nearest" sayfayı dikeyde kaydırmaz.
   useEffect(() => {
     const active = strip.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    active?.scrollIntoView({ inline: "center", block: "nearest" });
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    active?.scrollIntoView({ inline: "center", block: "nearest", behavior: reduced ? "auto" : "smooth" });
   }, [activeId]);
 
   if (categories.length === 0) return null;
@@ -47,9 +48,9 @@ export function CategoryTabs({ activeId }: { activeId?: string }) {
               href={`${base}/categories/${cat.id}`}
               replace
               aria-current={active ? "page" : undefined}
-              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 font-display text-xs sm:text-[13px] transition-all active:scale-95 ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 font-display text-xs sm:text-[13px] transition-all duration-300 active:scale-95 ${
                 active
-                  ? "font-bold shadow-xs"
+                  ? "tab-pop font-bold shadow-xs"
                   : "border border-line/40 bg-crema/60 font-medium text-ink-soft hover:bg-crema hover:text-ink"
               }`}
               style={active ? { background: "var(--brand)", color: "var(--brand-on)" } : undefined}

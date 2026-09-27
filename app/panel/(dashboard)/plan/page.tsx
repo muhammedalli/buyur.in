@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useBusiness } from "@/components/panel/business-context";
 import { buttonClass, PageHeader } from "@/components/panel/ui";
 import { PlanUsageCard } from "@/components/panel/plan-usage";
@@ -11,6 +11,8 @@ import { MONTHS_IN_YEAR, formatTL, planPricing } from "@/lib/pricing";
 import { clearPlanIntent, readPlanIntent, type IntentBilling } from "@/lib/plan-intent";
 import { trackMarketingEvent } from "@/lib/marketing-events";
 import type { Business, Plan } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg, type Translator } from "@/lib/ui-i18n";
 
 // Plan sayfası: mevcut plan, Freemium kullanımı ve planların karşılaştırması.
 // Tablo lib/entitlements.ts'ten geliyor — pazarlama sitesiyle aynı kaynak,
@@ -21,29 +23,32 @@ import type { Business, Plan } from "@/lib/types";
 // bir mesaj açar, ödeme ve aktivasyon o görüşmede tamamlanır.
 
 /** Plan kısa tanıtımı. Freemium cümlesi canlı limitlerden kurulur. */
-function planPitch(plan: Plan): string {
-  if (plan === "freemium") return `${freemiumLimits().summary} — hangisi önce dolarsa. Ürün sınırı yok.`;
+function planPitch(plan: Plan, t: Translator, tag: string): string {
+  if (plan === "freemium") {
+    return t("{summary} — hangisi önce dolarsa. Ürün sınırı yok.", { summary: freemiumLimits(t, tag).summary });
+  }
   return plan === "premium"
-    ? "Süre sınırı yok; kampanyalar, gelişmiş analizler ve markasız menü."
-    : "Web sitesi, rapor merkezi ve dışa aktarma.";
+    ? t("Süre sınırı yok; kampanyalar, gelişmiş analizler ve markasız menü.")
+    : t("Web sitesi, rapor merkezi ve dışa aktarma.");
 }
 
 const START_LABELS: Record<Plan, string> = {
-  freemium: "Freemium'a geç",
-  premium: "Premium'u başlat",
-  elite: "Elite'i başlat",
+  freemium: msg("Freemium'a geç"),
+  premium: msg("Premium'u başlat"),
+  elite: msg("Elite'i başlat"),
 };
 
 function Cell({ value }: { value: boolean | string }) {
+  const { t } = useUiLocale();
   if (typeof value === "string") {
     return <span className="font-mono text-[12px] uppercase tracking-wider">{value}</span>;
   }
   return value ? (
-    <span className="inline-flex text-herb" aria-label="var">
+    <span className="inline-flex text-herb" aria-label={t("var")}>
       <CheckCircleIcon size={16} />
     </span>
   ) : (
-    <span className="text-ink-soft/40" aria-label="yok">
+    <span className="text-ink-soft/40" aria-label={t("yok")}>
       —
     </span>
   );
@@ -60,6 +65,7 @@ function UpgradeCard({
   preferredBilling: IntentBilling;
   onStart: (plan: Plan, billing: IntentBilling) => void;
 }) {
+  const { t, tag } = useUiLocale();
   const [billing, setBilling] = useState<IntentBilling>(preferredBilling);
   // Fiyat canlı `buyur_plans` kaydından gelir; okunamadıysa rakam gösterilmez.
   const pricing = planPricing(plan);
@@ -71,10 +77,10 @@ function UpgradeCard({
   return (
     <div className="flex flex-col rounded-md border border-line bg-paper p-5">
       <p className="font-display text-lg font-bold">{PLAN_LABELS[plan]}</p>
-      <p className="mt-1 text-sm text-ink-soft">{planPitch(plan)}</p>
+      <p className="mt-1 text-sm text-ink-soft">{planPitch(plan, t, tag)}</p>
 
       {pricing ? (
-      <div className="mt-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Ödeme dönemi">
+      <div className="mt-4 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("Ödeme dönemi")}>
         {(["yearly", "monthly"] as const).map((option) => {
           const active = billing === option;
           return (
@@ -88,14 +94,16 @@ function UpgradeCard({
                 }`}
             >
               <span className="block font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-                {option === "yearly" ? "Yıllık" : "Aylık"}
+                {option === "yearly" ? t("Yıllık") : t("Aylık")}
               </span>
               <span className="block font-display text-base font-bold">
                 {formatTL(option === "yearly" ? pricing.yearlyMonthly : pricing.monthly)}
-                <span className="font-mono text-[10px] font-normal text-ink-soft"> / ay</span>
+                <span className="font-mono text-[10px] font-normal text-ink-soft"> {t("/ ay")}</span>
               </span>
               <span className="block text-[11px] text-ink-soft">
-                {option === "yearly" ? `${formatTL(pricing.yearlyMonthly * MONTHS_IN_YEAR)} peşin` : "Taahhüt yok"}
+                {option === "yearly"
+                  ? t("{amount} peşin", { amount: formatTL(pricing.yearlyMonthly * MONTHS_IN_YEAR) })
+                  : t("Taahhüt yok")}
               </span>
             </button>
           );
@@ -103,7 +111,7 @@ function UpgradeCard({
       </div>
       ) : (
         <p className="mt-4 rounded-md border border-line px-3 py-2.5 text-sm text-ink-soft">
-          Güncel fiyat için bize WhatsApp&apos;tan yazın.
+          {t("Güncel fiyat için bize WhatsApp'tan yazın.")}
         </p>
       )}
 
@@ -114,10 +122,10 @@ function UpgradeCard({
         onClick={() => onStart(plan, billing)}
         className={buttonClass("primary", "mt-4 w-full")}
       >
-        <WhatsappIcon size={15} /> {START_LABELS[plan]}
+        <WhatsappIcon size={15} /> {t(START_LABELS[plan])}
       </a>
       <p className="mt-2 text-xs text-ink-soft">
-        WhatsApp üzerinden açılır; ödeme ve aktivasyon adımlarını oradan paylaşırız.
+        {t("WhatsApp üzerinden açılır; ödeme ve aktivasyon adımlarını oradan paylaşırız.")}
       </p>
     </div>
   );
@@ -125,6 +133,7 @@ function UpgradeCard({
 
 export default function PlanPage() {
   const { business } = useBusiness();
+  const { t, tag } = useUiLocale();
   const [preferredBilling, setPreferredBilling] = useState<IntentBilling>("yearly");
 
   useEffect(() => {
@@ -150,17 +159,17 @@ export default function PlanPage() {
   return (
     <div>
       <PageHeader
-        title="Plan ve kullanım"
-        description="Hangi plandasınız, ne kadar kullandınız ve yükseltince ne kazanırsınız"
+        title={t("Plan ve kullanım")}
+        description={t("Hangi plandasınız, ne kadar kullandınız ve yükseltince ne kazanırsınız")}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <PlanUsageCard business={business} />
 
         <div className="rounded-md border border-line bg-paper p-5">
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Planınızda neler var</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Planınızda neler var")}</p>
           <ul className="mt-3 space-y-2 text-sm">
-            {featureMatrix().filter((row) => row.values[current] !== false).map((row) => (
+            {featureMatrix(t, tag).filter((row) => row.values[current] !== false).map((row) => (
               <li key={row.label} className="flex items-start gap-2">
                 <span className="mt-0.5 shrink-0 text-herb" aria-hidden>
                   <CheckCircleIcon size={15} />
@@ -177,8 +186,9 @@ export default function PlanPage() {
 
           {usage.limited && (
             <p className="mt-4 rounded-md bg-crema/70 px-4 py-3 text-xs leading-relaxed text-ink-soft">
-              Freemium&apos;da süre ve menü görüntülenme birlikte izlenir; hangisi önce dolarsa plan sona erer.
-              Verileriniz silinmez — yükselttiğinizde menünüz ve analizleriniz olduğu gibi devam eder.
+              {t(
+                "Freemium'da süre ve menü görüntülenme birlikte izlenir; hangisi önce dolarsa plan sona erer. Verileriniz silinmez — yükselttiğinizde menünüz ve analizleriniz olduğu gibi devam eder."
+              )}
             </p>
           )}
         </div>
@@ -207,11 +217,12 @@ export default function PlanPage() {
             <span className="inline-flex rounded-md bg-paprika/15 p-3 text-paprika">
               <SparkIcon size={22} />
             </span>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-paper/60">En üst seviye</p>
-            <p className="font-display text-xl font-bold sm:text-2xl">Elite plandasınız</p>
+            <p className="font-mono text-[11px] uppercase tracking-wider text-paper/60">{t("En üst seviye")}</p>
+            <p className="font-display text-xl font-bold sm:text-2xl">{t("Elite plandasınız")}</p>
             <p className="max-w-md text-sm leading-relaxed text-paper/70">
-              buyur&apos;nın tüm özellikleri sizde açık: sınırsız kullanım, gelişmiş analizler, otomatik web
-              sitesi, gelişmiş raporlar ve dışa aktarma. Yükseltilecek başka bir plan yok.
+              {t(
+                "buyur'un tüm özellikleri sizde açık: sınırsız kullanım, gelişmiş analizler, otomatik web sitesi, gelişmiş raporlar ve dışa aktarma. Yükseltilecek başka bir plan yok."
+              )}
             </p>
             <a
               href={planWhatsappLink(PLAN_LABELS.elite)}
@@ -222,17 +233,19 @@ export default function PlanPage() {
               // görünmez yapıyordu.
               className={buttonClass("outline", "mt-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paprika")}
             >
-              <WhatsappIcon size={14} /> WhatsApp ile iletişime geç
+              <WhatsappIcon size={14} /> {t("WhatsApp ile iletişime geç")}
             </a>
           </div>
         </div>
       )}
 
+      {/* Dar ekranda özellik adı kendi satırında, altında üç planın değeri durur:
+          dört sütun 320px'e sığmıyordu. sm ve üstünde klasik karşılaştırma tablosu. */}
       <div className="mt-8 overflow-x-auto rounded-md border border-line bg-paper">
-        <table className="w-full text-[13px] sm:min-w-[640px] sm:text-sm">
+        <table className="w-full text-[13px] sm:text-sm">
           <thead>
             <tr className="border-b border-line bg-crema/50 text-left">
-              <th className="px-2.5 py-3 font-mono text-[10px] uppercase tracking-wider text-ink-soft sm:px-5">Özellik</th>
+              <th className="hidden px-5 py-3 font-mono text-[10px] uppercase tracking-wider text-ink-soft sm:table-cell">{t("Özellik")}</th>
               {PLAN_ORDER.map((plan) => (
                 <th key={plan} className="px-1.5 py-3 text-center sm:px-5">
                   <span className={`font-display text-[13px] font-bold sm:text-base ${plan === current ? "text-paprika" : ""}`}>
@@ -240,7 +253,7 @@ export default function PlanPage() {
                   </span>
                   {plan === current && (
                     <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-wider text-paprika">
-                      Mevcut plan
+                      {t("Mevcut plan")}
                     </span>
                   )}
                 </th>
@@ -248,15 +261,22 @@ export default function PlanPage() {
             </tr>
           </thead>
           <tbody>
-            {featureMatrix().map((row) => (
-              <tr key={row.label} className="border-b border-line/60 last:border-0">
-                <td className="px-2.5 py-3 sm:px-5">{row.label}</td>
-                {PLAN_ORDER.map((plan) => (
-                  <td key={plan} className={`px-1.5 py-3 text-center sm:px-5 ${plan === current ? "bg-paprika/5" : ""}`}>
-                    <Cell value={row.values[plan]} />
+            {featureMatrix(t, tag).map((row) => (
+              <Fragment key={row.label}>
+                <tr className="sm:hidden">
+                  <td colSpan={PLAN_ORDER.length} className="px-3 pb-1 pt-3 text-[13px] font-medium">
+                    {row.label}
                   </td>
-                ))}
-              </tr>
+                </tr>
+                <tr className="border-b border-line/60 last:border-0">
+                  <td className="hidden px-5 py-3 sm:table-cell">{row.label}</td>
+                  {PLAN_ORDER.map((plan) => (
+                    <td key={plan} className={`px-1.5 pb-3 pt-1 text-center sm:px-5 sm:py-3 ${plan === current ? "bg-paprika/5" : ""}`}>
+                      <Cell value={row.values[plan]} />
+                    </td>
+                  ))}
+                </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>

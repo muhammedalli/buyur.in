@@ -9,6 +9,7 @@
 
 import { pb } from "@/lib/pocketbase";
 import { normalizeEntryName } from "@/lib/ai/import-plan";
+import { msg } from "@/lib/ui-i18n";
 
 type Collection = "buyur_categories" | "buyur_products";
 
@@ -43,7 +44,7 @@ export async function categoryNameTaken(
 ): Promise<string | null> {
   try {
     const found = await findSameName("buyur_categories", businessId, name, excludeId);
-    return found ? "Bu adda bir kategoriniz zaten var. Farklı bir ad girin." : null;
+    return found ? msg("Bu adda bir kategoriniz zaten var. Farklı bir ad girin.") : null;
   } catch {
     return null;
   }
@@ -59,7 +60,7 @@ export async function productNameTaken(
 ): Promise<string | null> {
   try {
     const found = await findSameName("buyur_products", businessId, name, excludeId);
-    return found ? "Bu adda bir ürününüz zaten var. Farklı bir ad girin." : null;
+    return found ? msg("Bu adda bir ürününüz zaten var. Farklı bir ad girin.") : null;
   } catch {
     return null;
   }

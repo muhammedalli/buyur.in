@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useBusiness } from "@/components/panel/business-context";
 import { markActivation, readActivation } from "@/lib/activation";
-import { menuUrl } from "@/lib/site";
+import { menuPageUrl } from "@/lib/storefront";
 import { CheckCircleIcon } from "@/components/icons";
 import type { Business, BusinessActivation } from "@/lib/types";
 import { buttonClass } from "@/components/panel/ui";
+import { GuideButton } from "@/components/panel/guide";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 // "Menünü yayına hazırla" kontrol listesi. Aktivasyon hunisi:
 // kayıt → ilk ürün → QR indirme → ilk gerçek görüntülenme. Tamamlanma yüzdesi
@@ -42,6 +44,7 @@ export function LaunchChecklist({
   counts: { categories: number; products: number } | null;
 }) {
   const { setBusiness } = useBusiness();
+  const { t } = useUiLocale();
   const [activation, setActivation] = useState<BusinessActivation>(business.activation ?? {});
   const [dismissed, setDismissed] = useState(false);
 
@@ -58,52 +61,52 @@ export function LaunchChecklist({
   const steps: Step[] = [
     {
       key: "logo",
-      title: "Logonu yükle",
-      hint: "Menünün başında ve QR kartlarında görünür.",
+      title: t("Logonu yükle"),
+      hint: t("Menünün başında ve QR kartlarında görünür."),
       done: Boolean(business.logo_url),
-      cta: "Logo yükle",
-      href: "/panel/settings",
+      cta: t("Logo yükle"),
+      href: "/panel/settings?tab=genel",
     },
     {
       key: "info",
-      title: "İşletme bilgilerini tamamla",
-      hint: "Kısa bir açıklama ve telefon ya da adres — müşteri kime baktığını bilsin.",
+      title: t("İşletme bilgilerini tamamla"),
+      hint: t("Kısa bir açıklama ve telefon ya da adres — müşteri kime baktığını bilsin."),
       done: hasBusinessInfo(business),
-      cta: "Bilgileri gir",
-      href: "/panel/settings",
+      cta: t("Bilgileri gir"),
+      href: "/panel/settings?tab=genel",
     },
     {
       key: "category",
-      title: "İlk kategoriyi ekle",
-      hint: "Kahvaltı, Ana Yemekler, İçecekler… Menünün bölümleri.",
+      title: t("İlk kategoriyi ekle"),
+      hint: t("Kahvaltı, Ana Yemekler, İçecekler… Menünün bölümleri."),
       done: (counts?.categories ?? 0) > 0,
-      cta: "Kategori ekle",
+      cta: t("Kategori ekle"),
       href: "/panel/categories/new",
     },
     {
       key: "products",
-      title: `İlk ${FIRST_PRODUCTS_TARGET} ürünü ekle`,
-      hint: "Ad ve fiyat yeterli; görsel, alerjen ve süreyi sonra da girebilirsin.",
+      title: t("İlk {count} ürünü ekle", { count: FIRST_PRODUCTS_TARGET }),
+      hint: t("Ad ve fiyat yeterli; görsel, alerjen ve süreyi sonra da girebilirsin."),
       done: products >= FIRST_PRODUCTS_TARGET,
-      cta: "Ürün ekle",
+      cta: t("Ürün ekle"),
       href: "/panel/products/new",
       progress: `${Math.min(products, FIRST_PRODUCTS_TARGET)}/${FIRST_PRODUCTS_TARGET}`,
     },
     {
       key: "qr",
-      title: "QR kodunu indir",
-      hint: "Tek QR'ı PNG indir ya da masa numaralı QR'ları toplu PDF al.",
+      title: t("QR kodunu indir"),
+      hint: t("Tek QR'ı PNG indir ya da masa numaralı QR'ları toplu PDF al."),
       done: Boolean(activation.qr_downloaded_at),
-      cta: "QR'ı indir",
+      cta: t("QR'ı indir"),
       href: "/panel/qr",
     },
     {
       key: "scan",
-      title: "İlk taramayı yap",
-      hint: "QR'ı telefonunla okut ya da menü linkini paylaş; ilk gerçek görüntülenme burada işaretlenir.",
+      title: t("İlk taramayı yap"),
+      hint: t("QR'ı telefonunla okut ya da menü linkini paylaş; ilk gerçek görüntülenme burada işaretlenir."),
       done: (business.menu_views ?? 0) > 0,
-      cta: "Menüyü aç",
-      href: menuUrl(business.slug),
+      cta: t("Menüyü aç"),
+      href: menuPageUrl(business.slug),
       external: true,
     },
   ];
@@ -132,8 +135,8 @@ export function LaunchChecklist({
             <CheckCircleIcon size={18} />
           </span>
           <span>
-            <span className="font-semibold">Menün yayında.</span>{" "}
-            <span className="text-ink-soft">Tüm hazırlık adımlarını tamamladın.</span>
+            <span className="font-semibold">{t("Menün yayında.")}</span>{" "}
+            <span className="text-ink-soft">{t("Tüm hazırlık adımlarını tamamladın.")}</span>
           </span>
         </p>
         <button
@@ -148,7 +151,7 @@ export function LaunchChecklist({
           }}
           className="font-mono text-[11px] uppercase tracking-wider text-ink-soft transition-colors hover:text-ink"
         >
-          Gizle
+          {t("Gizle")}
         </button>
       </div>
     );
@@ -158,11 +161,12 @@ export function LaunchChecklist({
     <section aria-labelledby="launch-title" className="mb-8 overflow-hidden rounded-md border border-line bg-paper">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-paprika">Menünü yayına hazırla</p>
+          <p className="font-mono text-[11px] uppercase tracking-wider text-paprika">{t("Menünü yayına hazırla")}</p>
           <h2 id="launch-title" className="mt-1 font-display text-xl font-bold">
-            %{percent} tamamlandı
+            {t("%{percent} tamamlandı", { percent })}
           </h2>
         </div>
+        <GuideButton variant="button" className="order-last sm:order-none" />
         <div className="flex w-full items-center gap-3 sm:w-56">
           <div
             className="h-2 flex-1 overflow-hidden rounded-full bg-crema"
@@ -170,7 +174,7 @@ export function LaunchChecklist({
             aria-valuenow={percent}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Hazırlık yüzdesi"
+            aria-label={t("Hazırlık yüzdesi")}
           >
             <div className="h-full rounded-full bg-paprika transition-all duration-500" style={{ width: `${percent}%` }} />
           </div>
@@ -184,7 +188,7 @@ export function LaunchChecklist({
         {next && (
           <div className="flex flex-col justify-between gap-5 bg-crema/40 p-6">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sıradaki adım</p>
+              <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Sıradaki adım")}</p>
               <p className="mt-2 font-display text-2xl font-extrabold leading-tight">{next.title}</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">{next.hint}</p>
             </div>
@@ -214,13 +218,13 @@ export function LaunchChecklist({
             return (
               <li key={step.key} className="flex items-center gap-3 py-3">
                 {step.done ? (
-                  <span className="shrink-0 text-herb" aria-label="tamamlandı">
+                  <span className="shrink-0 text-herb" aria-label={t("tamamlandı")}>
                     <CheckCircleIcon size={18} />
                   </span>
                 ) : (
                   <span
                     className={`h-[18px] w-[18px] shrink-0 rounded-full border-2 ${isNext ? "border-paprika" : "border-line"}`}
-                    aria-label="bekliyor"
+                    aria-label={t("bekliyor")}
                   />
                 )}
                 <span className={`min-w-0 flex-1 text-sm ${step.done ? "text-ink-soft line-through decoration-line" : isNext ? "font-semibold" : ""}`}>

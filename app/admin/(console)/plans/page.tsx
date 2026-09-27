@@ -51,12 +51,12 @@ export default async function AdminPlansPage() {
           <thead>
             <tr>
               <th>Plan</th>
-              <th className="text-right">Aylık fiyat</th>
-              <th className="hidden text-right sm:table-cell">Yıllıkta aylık</th>
-              <th className="hidden md:table-cell">Süre</th>
-              <th className="hidden lg:table-cell">Görüntülenme</th>
-              <th className="hidden lg:table-cell">AI tarama / ay</th>
-              <th className="text-right">İşletme</th>
+              <th className="hidden text-right sm:table-cell">Aylık fiyat</th>
+              <th className="hidden text-right md:table-cell">Yıllıkta aylık</th>
+              <th className="hidden lg:table-cell">Süre</th>
+              <th className="hidden xl:table-cell">Görüntülenme</th>
+              <th className="hidden xl:table-cell">AI tarama / ay</th>
+              <th className="hidden text-right sm:table-cell">İşletme</th>
               <th>
                 <span className="sr-only">İşlem</span>
               </th>
@@ -82,19 +82,22 @@ export default async function AdminPlansPage() {
                         Koddaki yedekten {drift.length} farkı var
                       </p>
                     )}
+                    <p className="mt-1 text-[12px] text-ink-soft sm:hidden">
+                      {paid ? formatTL(values.price_monthly) : "Ücretsiz"} · {counts[normalizePlan(plan.key)].toLocaleString("tr-TR")} işletme
+                    </p>
                   </td>
-                  <td className="whitespace-nowrap text-right font-semibold tabular-nums">{paid ? formatTL(values.price_monthly) : "Ücretsiz"}</td>
-                  <td className="hidden whitespace-nowrap text-right tabular-nums text-ink-soft sm:table-cell">
+                  <td className="hidden whitespace-nowrap text-right font-semibold tabular-nums sm:table-cell">{paid ? formatTL(values.price_monthly) : "Ücretsiz"}</td>
+                  <td className="hidden whitespace-nowrap text-right tabular-nums text-ink-soft md:table-cell">
                     {paid ? formatTL(yearlyMonthlyPrice(values.price_monthly, discount)) : "—"}
                   </td>
-                  <td className="hidden whitespace-nowrap md:table-cell">{values.trial_months === 0 ? "Süresiz" : `${values.trial_months} ay`}</td>
-                  <td className="hidden whitespace-nowrap lg:table-cell">
+                  <td className="hidden whitespace-nowrap lg:table-cell">{values.trial_months === 0 ? "Süresiz" : `${values.trial_months} ay`}</td>
+                  <td className="hidden whitespace-nowrap xl:table-cell">
                     {values.menu_views === null ? "Sınırsız" : values.menu_views.toLocaleString("tr-TR")}
                   </td>
-                  <td className="hidden whitespace-nowrap lg:table-cell">
+                  <td className="hidden whitespace-nowrap xl:table-cell">
                     {values.ai_scans_per_month === null ? "Sınırsız" : values.ai_scans_per_month}
                   </td>
-                  <td className="whitespace-nowrap text-right tabular-nums">
+                  <td className="hidden whitespace-nowrap text-right tabular-nums sm:table-cell">
                     <Link href={`/admin/businesses?plan=${normalizePlan(plan.key)}`} className="hover:text-paprika">
                       {counts[normalizePlan(plan.key)].toLocaleString("tr-TR")}
                     </Link>

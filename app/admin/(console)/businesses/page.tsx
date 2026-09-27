@@ -78,7 +78,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
           <thead>
             <tr>
               <th>İşletme</th>
-              <th>Plan</th>
+              <th className="hidden sm:table-cell">Plan</th>
               <th>Durum</th>
               <th className="hidden md:table-cell">Plan bitişi</th>
               <th className="hidden md:table-cell">Kayıt</th>
@@ -87,7 +87,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
           <tbody>
             {result.items.map((row) => (
               <tr key={row.id}>
-                <td className="max-w-[18rem]">
+                <td className="w-full max-w-0">
                   <Link href={`/admin/businesses/${row.id}`} className="block truncate font-semibold text-ink hover:text-paprika">
                     {row.name || "Adsız hesap"}
                   </Link>
@@ -95,8 +95,11 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
                     {row.slug ? `${row.slug} · ` : ""}
                     {row.email}
                   </p>
+                  <p className="mt-1 sm:hidden">
+                    <PlanBadge plan={row.plan} />
+                  </p>
                 </td>
-                <td>
+                <td className="hidden sm:table-cell">
                   <PlanBadge plan={row.plan} />
                 </td>
                 <td>

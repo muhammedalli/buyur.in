@@ -20,7 +20,8 @@ import {
   buildTranslationPrompt,
   entrySourceFields,
 } from "@/lib/ai/translate";
-import { activeLocales, localeLabels, mainLocale, type TranslatableField } from "@/lib/i18n";
+import { activeLocales, localeAiNames, mainLocale, type TranslatableField } from "@/lib/i18n";
+import { msg } from "@/lib/ui-i18n";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçersiz istek.") }, { status: 400 });
   }
 
   const guard = await guardAiRequest(req.headers.get("authorization"), body.businessId, "ai_translation");
@@ -46,14 +47,14 @@ export async function POST(req: NextRequest) {
   const targetLocales = resolveTargetLocales(body.locales, main, activeLocales(business));
   if (targetLocales.length === 0) {
     return NextResponse.json(
-      { error: "Çeviri için ana dil dışında en az bir menü dili açık olmalı (Ayarlar → Menü dilleri)." },
+      { error: msg("Çeviri için ana dil dışında en az bir menü dili açık olmalı (Ayarlar → Menü dilleri).") },
       { status: 400 }
     );
   }
 
   const entries = sanitizeEntries(body.entries);
   if (entries.length === 0) {
-    return NextResponse.json({ error: "Çevrilecek metin yok. Önce ana dildeki alanları doldurun." }, { status: 400 });
+    return NextResponse.json({ error: msg("Çevrilecek metin yok. Önce ana dildeki alanları doldurun.") }, { status: 400 });
   }
 
   // Şema örneği gönderilen alanlardan kurulur (bkz. buildTranslationPrompt).
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
       {
         model: MENU_MODEL,
         input: [
-          { role: "system", content: buildTranslationPrompt(targetLocales, localeLabels, sentFields) },
+          { role: "system", content: buildTranslationPrompt(targetLocales, localeAiNames, sentFields) },
           {
             role: "user",
             content: JSON.stringify({
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     if (response.status === "incomplete") {
       return NextResponse.json(
-        { error: "Çeviri yarım kaldı; metin çok uzun olabilir. Daha kısa bir metinle tekrar deneyin.", retryable: false },
+        { error: msg("Çeviri yarım kaldı; metin çok uzun olabilir. Daha kısa bir metinle tekrar deneyin."), retryable: false },
         { status: 502 }
       );
     }
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
       raw = JSON.parse(response.output_text || "{}");
     } catch {
       // Model bir sonraki denemede büyük olasılıkla geçerli JSON döner.
-      return NextResponse.json({ error: "Çeviri sonucu okunamadı. Tekrar deneyin.", retryable: true }, { status: 502 });
+      return NextResponse.json({ error: msg("Çeviri sonucu okunamadı. Tekrar deneyin."), retryable: true }, { status: 502 });
     }
 
     const allowedIds = new Set(entries.map((entry) => entry.id));
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     if (normalized.size === 0) {
       return NextResponse.json(
-        { error: "Yapay zekâ bu metin için çeviri üretemedi. Metni kontrol edip tekrar deneyin." },
+        { error: msg("Yapay zekâ bu metin için çeviri üretemedi. Metni kontrol edip tekrar deneyin.") },
         { status: 422 }
       );
     }

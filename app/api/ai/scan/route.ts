@@ -13,6 +13,7 @@ import { aiTokenUsage, recordAiAction } from "@/lib/system-audit";
 import { localeLabels, mainLocale } from "@/lib/i18n";
 import { buildScanPrompt, normalizeScanResult } from "@/lib/ai/menu-scan";
 import { aiUsage, aiPeriodKey } from "@/lib/entitlements";
+import { msg } from "@/lib/ui-i18n";
 
 /** Tek bir sayfanın veri URI üst sınırı (~8MB base64 ≈ 6MB dosya). */
 const MAX_PAGE_BYTES = 8 * 1024 * 1024;
@@ -48,7 +49,7 @@ function rememberScan(key: string, now: number) {
 /** Girdiyi doğrular: yalnızca beklenen veri URI biçimleri ve boyut sınırı. */
 function parsePages(value: unknown, maxPages: number): { pages: Page[] } | { error: string } {
   if (!Array.isArray(value) || value.length === 0) {
-    return { error: "Görsel bulunamadı." };
+    return { error: msg("Görsel bulunamadı.") };
   }
   if (value.length > maxPages) {
     return { error: `Tek seferde en fazla ${maxPages} sayfa menü tarayabilirsiniz.` };
@@ -56,16 +57,16 @@ function parsePages(value: unknown, maxPages: number): { pages: Page[] } | { err
 
   const pages: Page[] = [];
   for (const entry of value) {
-    if (typeof entry !== "string") return { error: "Geçersiz dosya biçimi." };
+    if (typeof entry !== "string") return { error: msg("Geçersiz dosya biçimi.") };
     if (entry.length > MAX_PAGE_BYTES) {
-      return { error: "Dosyalardan biri çok büyük. Her sayfa en fazla 6 MB olmalı." };
+      return { error: msg("Dosyalardan biri çok büyük. Her sayfa en fazla 6 MB olmalı.") };
     }
     if (IMAGE_PREFIX.test(entry)) {
       pages.push({ kind: "image", data: entry });
     } else if (PDF_PREFIX.test(entry)) {
       pages.push({ kind: "pdf", data: entry });
     } else {
-      return { error: "Yalnızca görsel (jpg, png, webp) veya PDF yükleyebilirsiniz." };
+      return { error: msg("Yalnızca görsel (jpg, png, webp) veya PDF yükleyebilirsiniz.") };
     }
   }
 
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    return NextResponse.json({ error: msg("Geçersiz istek.") }, { status: 400 });
   }
 
   const guard = await guardAiRequest(req.headers.get("authorization"), body.businessId, "ai_menu_import");
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
   // Sürmekte olan bir tarama varken ikincisi başlatılmaz.
   if (inFlight.has(business.id)) {
     return NextResponse.json(
-      { error: "Bu işletme için bir menü taraması zaten sürüyor. Bitmesini bekleyin." },
+      { error: msg("Bu işletme için bir menü taraması zaten sürüyor. Bitmesini bekleyin.") },
       { status: 409, headers: { "x-buyur-scan": "in-flight" } }
     );
   }
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
     if (lastAt !== undefined && now - lastAt < REPEAT_WINDOW_MS) {
       return NextResponse.json(
         {
-          error: "Bu menü sayfalarını az önce taradınız. Sonucu panelde kontrol edin.",
+          error: msg("Bu menü sayfalarını az önce taradınız. Sonucu panelde kontrol edin."),
           duplicate: true,
         },
         { status: 409, headers: { "x-buyur-scan": "duplicate" } }
@@ -152,7 +153,7 @@ export async function POST(req: NextRequest) {
       raw = JSON.parse(response.output_text || "{}");
     } catch {
       return NextResponse.json(
-        { error: "Menü okunamadı. Daha net bir fotoğrafla tekrar deneyin." },
+        { error: msg("Menü okunamadı. Daha net bir fotoğrafla tekrar deneyin.") },
         { status: 502 }
       );
     }
@@ -161,7 +162,7 @@ export async function POST(req: NextRequest) {
 
     if (result.categories.length === 0) {
       return NextResponse.json(
-        { error: "Menüde okunabilir ürün bulunamadı. Daha net ve düz çekilmiş bir fotoğrafla tekrar deneyin." },
+        { error: msg("Menüde okunabilir ürün bulunamadı. Daha net ve düz çekilmiş bir fotoğrafla tekrar deneyin.") },
         { status: 422 }
       );
     }
@@ -203,7 +204,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Yapay zekâ menü tarama hatası:", error);
-    return NextResponse.json({ error: "Yapay zekâ tarama yaparken bir hata oluştu." }, { status: 500 });
+    return NextResponse.json({ error: msg("Yapay zekâ tarama yaparken bir hata oluştu.") }, { status: 500 });
   } finally {
     inFlight.delete(business.id);
   }

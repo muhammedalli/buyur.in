@@ -10,10 +10,12 @@ import { AiButton, Button, buttonClass, Card, EmptyState, FooterNote, PageHeader
 import { GripIcon } from "@/components/icons";
 import { runPooled } from "@/lib/pb-retry";
 import type { Category } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function CategoriesPage() {
   const { business, isLoading: businessLoading } = useBusiness();
   const { toast } = useToast();
+  const { t } = useUiLocale();
   const [confirm, confirmDialog] = useConfirm();
   const [categories, setCategories] = useState<Category[]>([]);
   // Kategori başına ürün sayısı: listede gösterilir ve silme onayında
@@ -53,7 +55,7 @@ export default function CategoriesPage() {
       setCategories(list);
       setProductCounts(counts);
     } catch {
-      toast("Kategoriler yüklenemedi. Sayfayı yenileyip tekrar dene.", "error");
+      toast(t("Kategoriler yüklenemedi. Sayfayı yenileyip tekrar dene."), "error");
     } finally {
       setLoading(false);
     }
@@ -62,30 +64,30 @@ export default function CategoriesPage() {
   async function handleDelete(category: Category) {
     const count = productCounts.get(category.id) ?? 0;
     const ok = await confirm({
-      title: `“${category.name}” kategorisi silinsin mi?`,
+      title: t("“{name}” kategorisi silinsin mi?", { name: category.name }),
       tone: "danger",
-      confirmLabel: count > 0 ? `Kategoriyi ve ${count} ürünü sil` : "Kategoriyi sil",
+      confirmLabel: count > 0 ? t("Kategoriyi ve {count} ürünü sil", { count }) : t("Kategoriyi sil"),
       description:
         count > 0
-          ? "Ürünleri korumak istiyorsan önce başka bir kategoriye taşı ya da kategoriyi “Menüde göster” anahtarıyla gizle."
+          ? t("Ürünleri korumak istiyorsan önce başka bir kategoriye taşı ya da kategoriyi “Menüde göster” anahtarıyla gizle.")
           : undefined,
       details:
         count > 0
           ? [
-            `${count} ürün, varyant ve seçenekleriyle birlikte kalıcı olarak silinir.`,
-            "Menüden hemen kalkar; bu işlem geri alınamaz.",
-            "Geçmiş analiz verileri raporlarda kalır.",
+            t("{count} ürün, varyant ve seçenekleriyle birlikte kalıcı olarak silinir.", { count }),
+            t("Menüden hemen kalkar; bu işlem geri alınamaz."),
+            t("Geçmiş analiz verileri raporlarda kalır."),
           ]
-          : ["Kategori boş; hiçbir ürün etkilenmez.", "Bu işlem geri alınamaz."],
+          : [t("Kategori boş; hiçbir ürün etkilenmez."), t("Bu işlem geri alınamaz.")],
     });
     if (!ok) return;
 
     try {
       await pb.collection("buyur_categories").delete(category.id);
       await load();
-      toast(count > 0 ? `Kategori ve ${count} ürün silindi` : "Kategori silindi");
+      toast(count > 0 ? t("Kategori ve {count} ürün silindi", { count }) : t("Kategori silindi"));
     } catch {
-      toast("Kategori silinemedi", "error");
+      toast(t("Kategori silinemedi"), "error");
     }
   }
 
@@ -119,13 +121,13 @@ export default function CategoriesPage() {
       pb.collection("buyur_categories").update(c.id, { order: i })
     );
     if (results.some((result) => result.error)) {
-      toast("Sıralama kaydedilemedi, tekrar deneyin.", "error");
+      toast(t("Sıralama kaydedilemedi, tekrar deneyin."), "error");
       load();
     }
   }
 
   if (businessLoading || loading) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   // Listedeki en yeni kayıt zamanı — sağ alttaki bilgi satırında gösterilir.
@@ -134,15 +136,15 @@ export default function CategoriesPage() {
   return (
     <div>
       <PageHeader
-        title="Kategoriler"
-        description="Menünü kategorilere ayır."
+        title={t("Kategoriler")}
+        description={t("Menünü kategorilere ayır. Sırayı sürükleyerek değiştirebilirsin.")}
         action={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" data-guide="categories">
             <Link href="/panel/products/import">
               <AiButton />
             </Link>
             <Link href="/panel/categories/new" className={buttonClass("primary")}>
-              + Yeni kategori
+              {t("+ Yeni kategori")}
             </Link>
           </div>
         }
@@ -150,15 +152,15 @@ export default function CategoriesPage() {
 
       {categories.length === 0 && (
         <EmptyState
-          title="Henüz kategori yok"
-          description="İlk kategorini oluşturarak menünü kurmaya başla."
+          title={t("Henüz kategori yok")}
+          description={t("İlk kategorini oluşturarak menünü kurmaya başla.")}
           action={
             <div className="flex flex-wrap gap-2">
               <Link href="/panel/products/import">
                 <AiButton />
               </Link>
               <Link href="/panel/categories/new" className={buttonClass("primary")}>
-                + Yeni kategori
+                {t("+ Yeni kategori")}
               </Link>
             </div>
           }
@@ -190,12 +192,12 @@ export default function CategoriesPage() {
                   <p className="font-display text-lg font-bold">
                     {cat.name}
                     {!cat.is_active && (
-                      <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-ink-soft">(gizli)</span>
+                      <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-ink-soft">{t("(gizli)")}</span>
                     )}
                   </p>
                   <p className="text-sm text-ink-soft">
                     <span className={count === 0 ? "text-paprika" : ""}>
-                      {count === 0 ? "Ürün yok · menüde görünmez" : `${count} ürün`}
+                      {count === 0 ? t("Ürün yok · menüde görünmez") : t("{count} ürün", { count })}
                     </span>
                     {cat.description ? ` · ${cat.description}` : ""}
                   </p>
@@ -203,10 +205,10 @@ export default function CategoriesPage() {
               </div>
               <div className="flex shrink-0 gap-2">
                 <Link href={`/panel/category/${cat.id}`} className={buttonClass("outline")}>
-                  Düzenle
+                  {t("Düzenle")}
                 </Link>
                 <Button variant="danger" onClick={() => handleDelete(cat)}>
-                  Sil
+                  {t("Sil")}
                 </Button>
               </div>
             </Card>

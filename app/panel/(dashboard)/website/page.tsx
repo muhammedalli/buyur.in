@@ -2,150 +2,215 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { useToast } from "@/components/panel/toast";
-import { buttonClass, Card, PageHeader } from "@/components/panel/ui";
-import { CheckCircleIcon, ExternalLinkIcon, GlobeIcon } from "@/components/icons";
+import { buttonClass, Card, PageHeader, SectionHeader, Switch } from "@/components/panel/ui";
+import { CheckCircleIcon, ExternalLinkIcon, GlobeIcon, MonitorIcon } from "@/components/icons";
 import { menuUrl } from "@/lib/site";
 import { isFeatureAvailable } from "@/lib/entitlements";
+import { hasActiveWebsite } from "@/lib/storefront";
+import { BUSINESS_COLLECTION } from "@/lib/business-account";
 import { FeatureLocked } from "@/components/panel/plan-gate";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
+import type { Business } from "@/lib/types";
 
-// Web sitesi sayfası. Burada düzenlenecek bir şey yok — ve bu bilinçli:
-// site, panelde girilen bilgilerden otomatik üretiliyor. Sayfanın işi adresi
-// vermek, neyin siteye yansıdığını göstermek ve eksik bilgiyi hatırlatmak.
+// Web sitesi ve vitrin sayfası. Düzenlenecek içerik yok — bilinçli olarak:
+// vitrin (isletme.buyur.in) panelde girilen bilgilerden otomatik üretilir.
+//   · Web sitesi (Elite) yayındaysa vitrin = restoran sitesi
+//   · Değilse vitrin = otomatik karşılama sayfası ("Menüyü gör")
+// Sayfanın işi adresi vermek, vitrinde neyin göründüğünü göstermek, siteyi
+// yayına alıp kaldırmak ve eksik bilgiyi hatırlatmak.
+
+const SITE_CONTENT = [
+  msg("İşletme adı, logo ve kapak görseli"),
+  msg("Açıklamanız ve mekân özellikleriniz"),
+  msg("Menüden öne çıkan ürünler ve kategoriler"),
+  msg("Ürün görsellerinden otomatik galeri"),
+  msg("Animasyonlu tanıtım, menü slider'ı ve kayan yazı"),
+  msg("Çalışma saatleri, konum ve yol tarifi"),
+  msg("Telefon, WhatsApp, e-posta ve sosyal medya"),
+];
+
+const WELCOME_CONTENT = [
+  msg("Logo, kapak görseli, işletme adı ve açıklama"),
+  msg("Büyük “Menüyü gör” butonu"),
+  msg("Kayan yazı (açıksa)"),
+  msg("Adres, çalışma saatleri, telefon ve Wi-Fi"),
+  msg("Rezervasyon (WhatsApp/telefon) ve sosyal medya"),
+];
+
+function missingFields(business: Business) {
+  return [
+    { key: "cover_url", label: msg("Kapak görseli"), filled: Boolean(business.cover_url) },
+    { key: "logo_url", label: msg("Logo"), filled: Boolean(business.logo_url) },
+    { key: "description", label: msg("İşletme açıklaması"), filled: Boolean(business.description) },
+    { key: "working_hours", label: msg("Çalışma saatleri"), filled: Boolean(business.working_hours) },
+    { key: "address", label: msg("Adres"), filled: Boolean(business.address) },
+    { key: "phone", label: msg("Telefon"), filled: Boolean(business.phone) },
+    { key: "whatsapp", label: msg("WhatsApp (rezervasyon için)"), filled: Boolean(business.whatsapp) },
+    { key: "google_maps_url", label: msg("Harita bağlantısı"), filled: Boolean(business.google_maps_url) },
+  ];
+}
 
 export default function WebsitePage() {
-  const { business } = useBusiness();
+  const { business, setBusiness } = useBusiness();
   const { toast } = useToast();
-  const [siteUrl, setSiteUrl] = useState("");
+  const { t } = useUiLocale();
+  const [storefrontUrl, setStorefrontUrl] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (business) setSiteUrl(`${menuUrl(business.slug)}/site`);
+    if (business) setStorefrontUrl(menuUrl(business.slug));
   }, [business]);
 
   if (!business) return null;
 
-  const hasWebsite = isFeatureAvailable(business, "website");
+  const planHasWebsite = isFeatureAvailable(business, "website");
+  const siteLive = hasActiveWebsite(business);
+  const missing = missingFields(business);
+  const missingCount = missing.filter((item) => !item.filled).length;
 
-  if (!hasWebsite) {
-    return (
-      <div>
-        <PageHeader title="Web sitesi" description="İşletmenizin bilgilerinden otomatik oluşan restoran sitesi" />
-        <FeatureLocked
-          feature="website"
-          subject="Web sitesi"
-          description="Panelde girdiğiniz bilgilerden (menü, görseller, çalışma saatleri, konum, iletişim) otomatik bir restoran web sitesi oluşturulur. Ayrı bir site kurmanıza, içerik girmenize ya da güncelleme yapmanıza gerek kalmaz. Animasyonlu tanıtım, menü slider'ı ve galeri dahildir."
-        />
-      </div>
-    );
+  async function setSiteLive(live: boolean) {
+    if (!business) return;
+    setSaving(true);
+    try {
+      const updated = await pb.collection(BUSINESS_COLLECTION).update<Business>(business.id, { site_disabled: !live });
+      setBusiness(updated);
+      toast(live ? t("Web siteniz yayında") : t("Web siteniz yayından kaldırıldı; vitrinde karşılama sayfası görünüyor"));
+    } catch {
+      toast(t("Kaydedilemedi, tekrar dene."), "error");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  // Siteyi zenginleştiren ama eksik olabilecek alanlar — kullanıcıya somut iş verir.
-  const missing = [
-    { key: "cover_url", label: "Kapak görseli", filled: Boolean(business.cover_url) },
-    { key: "description", label: "İşletme açıklaması", filled: Boolean(business.description) },
-    { key: "working_hours", label: "Çalışma saatleri", filled: Boolean(business.working_hours) },
-    { key: "address", label: "Adres", filled: Boolean(business.address) },
-    { key: "phone", label: "Telefon", filled: Boolean(business.phone) },
-    { key: "whatsapp", label: "WhatsApp (rezervasyon için)", filled: Boolean(business.whatsapp) },
-    { key: "google_maps_url", label: "Harita bağlantısı", filled: Boolean(business.google_maps_url) },
-  ];
-  const missingCount = missing.filter((item) => !item.filled).length;
+  const status = siteLive
+    ? t("Ziyaretçiler web sitenizi görüyor.")
+    : planHasWebsite
+      ? t("Web siteniz kapalı; ziyaretçiler otomatik karşılama sayfanızı görüyor.")
+      : t("Ziyaretçiler işletme bilgilerinizden otomatik oluşan karşılama sayfanızı görüyor.");
 
   return (
     <div>
       <PageHeader
-        title="Web sitesi"
-        description="İşletme bilgilerinizden otomatik oluşturulur — ayrıca içerik girmenize gerek yok"
+        title={t("Web sitesi ve vitrin")}
+        description={t("isletmeniz.buyur.in adresi vitrininizdir — panelde girdiğiniz bilgilerden otomatik oluşur")}
         action={
-          <a
-            href={siteUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={buttonClass("primary")}
-          >
-            <ExternalLinkIcon size={15} /> Siteyi aç
+          <a href={storefrontUrl} target="_blank" rel="noreferrer" className={buttonClass("primary")}>
+            <ExternalLinkIcon size={15} /> {t("Vitrini aç")}
           </a>
         }
       />
 
-      <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-            <GlobeIcon size={14} /> Site adresiniz
-          </p>
-          <p className="mt-1 truncate font-display text-lg font-bold text-paprika">{siteUrl}</p>
-          <p className="mt-1 text-xs text-ink-soft">
-            Elite — animasyonlu tanıtım, menü slider'ı ve galeri dahil.
-          </p>
+      <Card className="space-y-5" data-guide="website">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-ink-soft">
+              <GlobeIcon size={14} /> {t("Vitrin adresiniz")}
+            </p>
+            <p className="mt-1 truncate font-display text-lg font-bold text-paprika">{storefrontUrl}</p>
+            <p className="mt-1 flex items-center gap-2 text-sm text-ink-soft">
+              <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${siteLive ? "bg-herb" : "bg-paprika"}`} />
+              {status}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await navigator.clipboard.writeText(storefrontUrl);
+              toast(t("Vitrin adresi kopyalandı"));
+            }}
+            className={buttonClass("outline", "shrink-0")}
+          >
+            {t("Adresi kopyala")}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={async () => {
-            await navigator.clipboard.writeText(siteUrl);
-            toast("Site adresi kopyalandı");
-          }}
-          className={buttonClass("outline", "shrink-0")}
-        >
-          Adresi kopyala
-        </button>
+
+        {planHasWebsite && (
+          <div className="border-t border-line pt-4">
+            <Switch
+              checked={siteLive}
+              onChange={(value) => !saving && setSiteLive(value)}
+              label={t("Web sitesi yayında")}
+              description={t(
+                "Açıkken isletmeniz.buyur.in adresi web sitenizi açar. Kapatırsanız aynı adreste otomatik karşılama sayfası görünür; siteniz silinmez, istediğiniz an geri açabilirsiniz."
+              )}
+            />
+          </div>
+        )}
+
+        <p className="rounded-md bg-crema/60 px-3.5 py-2.5 text-xs leading-relaxed text-ink-soft">
+          {t(
+            "Masadaki QR kodlar vitrine uğramadan doğrudan menüyü açar. Vitrindeki “Menüyü gör” butonu da menünüze götürür; menüdeki bilgi bölümünden de siteye dönülebilir."
+          )}
+        </p>
       </Card>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
-          <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Sitede ne görünüyor</p>
+          <SectionHeader
+            title={siteLive ? t("Sitede ne görünüyor") : t("Karşılama sayfasında ne görünüyor")}
+            action={<MonitorIcon size={18} className="text-ink-soft" />}
+          />
           <ul className="mt-3 space-y-2 text-sm">
-            {[
-              "İşletme adı, logo ve kapak görseli",
-              "Açıklamanız ve mekân özellikleriniz",
-              "Menüden öne çıkan ürünler ve kategoriler",
-              "Ürün görsellerinden otomatik galeri",
-              "Animasyonlu tanıtım ve menü slider'ı",
-              "Çalışma saatleri, konum ve yol tarifi",
-              "Telefon, WhatsApp, e-posta ve sosyal medya",
-            ].map((line) => (
+            {(siteLive ? SITE_CONTENT : WELCOME_CONTENT).map((line) => (
               <li key={line} className="flex items-start gap-2">
                 <span className="mt-0.5 shrink-0 text-herb" aria-hidden>
                   <CheckCircleIcon size={15} />
                 </span>
-                {line}
+                {t(line)}
               </li>
             ))}
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-ink-soft">
-            Menüde ya da ayarlarda yaptığınız her değişiklik siteye kendiliğinden yansır. Sitede ayrı bir içerik
-            yönetimi yoktur — tek kaynak paneldir.
+            {t(
+              "Menüde ya da ayarlarda yaptığınız her değişiklik vitrine kendiliğinden yansır. Ayrı bir içerik yönetimi yoktur — tek kaynak paneldir."
+            )}
           </p>
         </Card>
 
         <Card>
           <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-            {missingCount === 0 ? "Bilgileriniz tam" : `Siteyi güçlendirin (${missingCount} eksik)`}
+            {missingCount === 0 ? t("Bilgileriniz tam") : t("Vitrini güçlendirin ({count} eksik)", { count: missingCount })}
           </p>
           <ul className="mt-3 space-y-2 text-sm">
             {missing.map((item) => (
               <li key={item.key} className="flex items-center justify-between gap-3">
-                <span className={item.filled ? "" : "text-ink-soft"}>{item.label}</span>
+                <span className={item.filled ? "" : "text-ink-soft"}>{t(item.label)}</span>
                 {item.filled ? (
-                  <span className="text-herb" aria-label="dolu">
+                  <span className="text-herb" aria-label={t("dolu")}>
                     <CheckCircleIcon size={15} />
                   </span>
                 ) : (
                   <Link
-                    href="/panel/settings"
+                    href={item.key === "whatsapp" ? "/panel/settings?tab=sosyal" : item.key === "google_maps_url" || item.key === "address" || item.key === "working_hours" ? "/panel/settings?tab=iletisim" : "/panel/settings?tab=genel"}
                     className="font-mono text-[11px] uppercase tracking-wider text-paprika transition-colors hover:text-paprika-deep"
                   >
-                    Ekle
+                    {t("Ekle")}
                   </Link>
                 )}
               </li>
             ))}
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-ink-soft">
-            Eksik bilgiye ait bölüm sitede hiç gösterilmez; boş bir alan görünmez.
+            {t("Eksik bilgiye ait bölüm vitrinde hiç gösterilmez; boş bir alan görünmez.")}
           </p>
         </Card>
       </div>
+
+      {!planHasWebsite && (
+        <div className="mt-6">
+          <FeatureLocked
+            feature="website"
+            subject={t("Web sitesi")}
+            description={t(
+              "Panelde girdiğiniz bilgilerden (menü, görseller, çalışma saatleri, konum, iletişim) otomatik bir restoran web sitesi oluşturulur ve vitrin adresinizde yayınlanır. Animasyonlu tanıtım, menü slider'ı ve galeri dahildir."
+            )}
+          />
+        </div>
+      )}
     </div>
   );
 }

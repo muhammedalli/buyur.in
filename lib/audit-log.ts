@@ -50,6 +50,7 @@ export const AUDIT_RESOURCE_LABELS: Record<string, string> = {
   buyur_qr_codes: "QR kod",
   buyur_plans: "Plan",
   buyur_settings: "Sistem ayarı",
+  buyur_payments: "Ödeme",
   buyur_admins: "Yönetici",
   ai: "Yapay zekâ",
 };
@@ -120,6 +121,10 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "setting.create": "Sistem ayarı kaydı oluşturdu",
   "setting.update": "Sistem ayarı kaydını güncelledi",
   "setting.delete": "Sistem ayarı kaydını sildi",
+  // Ödemeler (yalnızca yönetim)
+  "payment.create": "Ödeme kaydı ekledi",
+  "payment.update": "Ödeme kaydını güncelledi",
+  "payment.delete": "Ödeme kaydını sildi",
   // Yapay zekâ
   "ai.menu_scan": "AI ile menü taradı",
   "ai.translate": "AI ile çeviri yaptı",
@@ -141,6 +146,7 @@ export const AUDIT_ACTION_GROUPS: { label: string; prefix: string }[] = [
   { label: "QR kod", prefix: "qr_code." },
   { label: "Plan", prefix: "plan" },
   { label: "Sistem ayarı", prefix: "setting" },
+  { label: "Ödeme", prefix: "payment." },
   { label: "Yapay zekâ", prefix: "ai." },
 ];
 
@@ -159,6 +165,7 @@ export const HIGHLIGHT_ACTIONS = [
   "business.slug_change",
   "plans.edit",
   "settings.edit",
+  "payment.delete",
   "admin.create",
   "admin.role_change",
   "admin.disable",
@@ -175,6 +182,7 @@ const ATTENTION_ACTIONS = new Set([
   "admin.role_change",
   "category.delete",
   "product.delete",
+  "payment.delete",
 ]);
 
 export function isAttentionAction(action: string): boolean {
@@ -220,6 +228,14 @@ const FIELD_LABELS: Record<string, string> = {
   price_monthly: "Aylık fiyat",
   key: "Anahtar",
   value: "Değer",
+  // Ödeme kaydı (lib/payments.ts); tutar kayıttaki gibi kuruş cinsindendir.
+  business: "İşletme",
+  type: "İşlem tipi",
+  amount: "Tutar (kuruş)",
+  date: "Tarih",
+  method: "Yöntem",
+  status: "Durum",
+  note: "Açıklama",
 };
 
 export function auditFieldLabel(field: string): string {

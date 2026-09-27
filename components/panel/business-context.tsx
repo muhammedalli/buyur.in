@@ -120,3 +120,8 @@ export function useBusiness() {
   if (!ctx) throw new Error("useBusiness, BusinessProvider içinde kullanılmalı.");
   return ctx;
 }
+
+/** Oturumdan önceki ekranlarda (giriş/kayıt) da çalışan parçalar için: sağlayıcı yoksa null. */
+export function useOptionalBusiness() {
+  return useContext(BusinessContext);
+}

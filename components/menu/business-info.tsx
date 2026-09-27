@@ -1,19 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useMenu } from "@/components/menu/menu-provider";
+import { useMenu, useOptionalMenu } from "@/components/menu/menu-provider";
+import { useOptionalSiteLocale } from "@/components/site/site-locale";
 import { highlightLabels } from "@/lib/labels";
+import { HighlightList } from "@/components/highlight-list";
 import { facebookUrl, instagramUrl, tiktokUrl, whatsappUrl, youtubeUrl } from "@/lib/social";
 import { telHref } from "@/lib/phone";
 import { publicContactEmail } from "@/lib/business-account";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { useAnimatedClose } from "@/lib/use-animated-close";
 import type { Business } from "@/lib/types";
 import {
   ChevronRightIcon,
   ClockIcon,
   CopyIcon,
   FacebookIcon,
-  HighlightIcon,
+  GlobeIcon,
   InfoIcon,
   InstagramIcon,
   MailIcon,
@@ -34,8 +37,18 @@ import {
 //
 // Kural: boş alan hiçbir koşulda gösterilmez — ne boş satır ne kırık bağlantı.
 
+/** Bilgi içeriği hem menü kabuğunda hem vitrinde (karşılama sayfası) çizilir;
+ *  dil araçları hangisi içindeyse oradan gelir. */
+function useInfoLocale() {
+  const menu = useOptionalMenu();
+  const site = useOptionalSiteLocale();
+  const ctx = menu ?? site;
+  if (!ctx) throw new Error("İşletme bilgileri menü ya da vitrin içinde kullanılmalı");
+  return { locale: ctx.locale, t: ctx.t, tf: ctx.tf };
+}
+
 /** Adres var ama harita bağlantısı yoksa aramalı harita bağlantısı kurulur. */
-function mapsHref(business: Business): string {
+export function mapsHref(business: Business): string {
   if (business.google_maps_url) return business.google_maps_url;
   if (business.address) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`;
   return "";
@@ -75,7 +88,7 @@ export function hasBusinessInfo(business: Business): boolean {
 }
 
 function CopyButton({ value }: { value: string }) {
-  const { t } = useMenu();
+  const { t } = useInfoLocale();
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -122,9 +135,19 @@ function Row({ icon, label, children, action }: { icon: ReactNode; label: string
   );
 }
 
-/** Alt yaprağın içeriği — /welcome sayfası da aynı içeriği kullanır. */
-export function BusinessInfoContent({ business }: { business: Business }) {
-  const { locale, t, tf } = useMenu();
+/** Alt yaprağın içeriği — vitrindeki karşılama sayfası da aynı içeriği kullanır
+ *  (orada başlık kendi hero'sunda olduğu için `header={false}`). */
+export function BusinessInfoContent({
+  business,
+  header = true,
+  websiteHref = null,
+}: {
+  business: Business;
+  header?: boolean;
+  /** Menüden işletmenin web sitesine dönüş (site yayındaysa). */
+  websiteHref?: string | null;
+}) {
+  const { locale, t, tf } = useInfoLocale();
   const description = tf(business, "description");
   const maps = mapsHref(business);
   const contactEmail = publicContactEmail(business);
@@ -132,6 +155,7 @@ export function BusinessInfoContent({ business }: { business: Business }) {
   const highlights = business.highlights ?? [];
 
   const actions = [
+    websiteHref && { key: "website", label: t("websiteLabel"), href: websiteHref, Icon: GlobeIcon, external: false },
     business.phone && { key: "call", label: t("callNow"), href: telHref(business.phone), Icon: PhoneIcon, external: false },
     maps && { key: "map", label: t("directionsLabel"), href: maps, Icon: MapPinIcon, external: true },
     business.google_review_url && {
@@ -147,7 +171,7 @@ export function BusinessInfoContent({ business }: { business: Business }) {
 
   return (
     <div>
-      {business.cover_url && (
+      {header && business.cover_url && (
         <div className="relative -mx-5 -mt-5 mb-4 aspect-[16/7] overflow-hidden sm:-mx-6 sm:-mt-6 sm:rounded-t-3xl">
           <picture>
             <img src={business.cover_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
@@ -156,21 +180,25 @@ export function BusinessInfoContent({ business }: { business: Business }) {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        {business.logo_url && (
-          <span className="relative block h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-line/60 bg-paper">
-            <picture>
-              <img src={business.logo_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
-            </picture>
-          </span>
-        )}
-        <h2 className="min-w-0 font-display text-xl font-extrabold leading-tight tracking-tight">{tf(business, "name")}</h2>
-      </div>
-      {description && <p className="mt-3 text-sm leading-relaxed text-ink-soft">{description}</p>}
+      {header && (
+        <>
+          <div className="flex items-center gap-3">
+            {business.logo_url && (
+              <span className="relative block h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-line/60 bg-paper">
+                <picture>
+                  <img src={business.logo_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                </picture>
+              </span>
+            )}
+            <h2 className="min-w-0 font-display text-xl font-extrabold leading-tight tracking-tight">{tf(business, "name")}</h2>
+          </div>
+          {description && <p className="mt-3 text-sm leading-relaxed text-ink-soft">{description}</p>}
+        </>
+      )}
 
       {actions.length > 0 && (
         // Esnek satır: tek kalan düğme yarım genişlikte asılı kalmaz, satırı doldurur.
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className={`${header ? "mt-4" : ""} flex flex-wrap gap-2`}>
           {actions.map((action) => (
             <a
               key={action.key}
@@ -227,17 +255,9 @@ export function BusinessInfoContent({ business }: { business: Business }) {
       {highlights.length > 0 && (
         <div className="mt-4">
           <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{t("siteHighlights")}</p>
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {highlights.map((highlight) => (
-              <li
-                key={highlight}
-                className="flex items-center gap-1.5 rounded-full border border-line/70 bg-crema/50 px-3 py-1.5 text-xs font-medium text-ink"
-              >
-                <HighlightIcon highlight={highlight} size={14} strokeWidth={2} className="text-[var(--brand-text)]" />
-                {highlightLabels[locale][highlight]}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-2">
+            <HighlightList highlights={highlights} locale={locale} />
+          </div>
         </div>
       )}
 
@@ -268,38 +288,44 @@ export function BusinessInfoContent({ business }: { business: Business }) {
 
 /** Alttan açılan bilgi yaprağı (masaüstünde ortalanmış pencere). */
 export function BusinessInfoSheet({ business, onClose }: { business: Business; onClose: () => void }) {
-  const { t } = useMenu();
+  const { t, websiteHref } = useMenu();
   const closeButton = useRef<HTMLButtonElement>(null);
+  const { closing, close } = useAnimatedClose(onClose);
   useBodyScrollLock(true);
 
   useEffect(() => {
     closeButton.current?.focus();
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") close();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [close]);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-6" role="presentation">
-      <button type="button" aria-label={t("close")} onClick={onClose} className="fade-in absolute inset-0 bg-ink/40" />
+      <button
+        type="button"
+        aria-label={t("close")}
+        onClick={close}
+        className={`absolute inset-0 bg-ink/40 ${closing ? "fade-out" : "fade-in"}`}
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t("businessInfo")}
-        className="upsell-in relative max-h-[88dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-line/60 bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_-12px_rgba(35,24,18,0.35)] sm:max-w-lg sm:rounded-3xl sm:p-6"
+        className={`${closing ? "sheet-down" : "sheet-up"} relative max-h-[88dvh] w-full overflow-y-auto overscroll-contain rounded-t-3xl border border-line/60 bg-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-12px_40px_-12px_rgba(35,24,18,0.35)] sm:max-w-lg sm:rounded-3xl sm:p-6`}
       >
         <button
           ref={closeButton}
           type="button"
-          onClick={onClose}
+          onClick={close}
           aria-label={t("close")}
           className="absolute end-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-line/60 bg-paper/90 text-ink shadow-xs backdrop-blur transition-colors hover:bg-crema"
         >
           <XIcon size={16} />
         </button>
-        <BusinessInfoContent business={business} />
+        <BusinessInfoContent business={business} websiteHref={websiteHref} />
       </div>
     </div>
   );

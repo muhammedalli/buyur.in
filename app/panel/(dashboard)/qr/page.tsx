@@ -15,18 +15,20 @@ import { slugify } from "@/lib/slug";
 import { withRetry } from "@/lib/pb-retry";
 import { FileTextIcon, QrCodeIcon, TrashIcon } from "@/components/icons";
 import type { Business, QrCode, QrPlacement } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
+import { msg } from "@/lib/ui-i18n";
 
 // Etiketli QR kodları: masa, vitrin, Instagram… Her QR menü linkine `?qr=<code>`
 // ekler; /api/track bu kodu tarama kaydına bağlar, böylece hangi QR'ın ne kadar
 // tarandığı ve menüyü sepete dönüştürdüğü Trafik sayfasında karşılaştırılabilir.
 
 const PLACEMENTS: { value: QrPlacement; label: string }[] = [
-  { value: "table", label: "Masa" },
-  { value: "counter", label: "Kasa / tezgâh" },
-  { value: "window", label: "Vitrin" },
+  { value: "table", label: msg("Masa") },
+  { value: "counter", label: msg("Kasa / tezgâh") },
+  { value: "window", label: msg("Vitrin") },
   { value: "instagram", label: "Instagram" },
-  { value: "campaign", label: "Kampanya" },
-  { value: "other", label: "Diğer" },
+  { value: "campaign", label: msg("Kampanya") },
+  { value: "other", label: msg("Diğer") },
 ];
 
 const PLACEMENT_LABELS = Object.fromEntries(PLACEMENTS.map((item) => [item.value, item.label])) as Record<
@@ -60,6 +62,7 @@ function QrCard({
   onDownloaded: () => void;
 }) {
   const { toast } = useToast();
+  const { t } = useUiLocale();
   const [dataUrl, setDataUrl] = useState("");
   const url = qrUrlFor(business.slug, code.code);
 
@@ -74,7 +77,7 @@ function QrCard({
       <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-md border border-line bg-crema/40 p-2">
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={dataUrl} alt={`${code.name} QR kodu`} className="h-full w-full" />
+          <img src={dataUrl} alt={t("{name} QR kodu", { name: code.name })} className="h-full w-full" />
         ) : (
           <div className="h-full w-full animate-pulse rounded-md bg-crema" />
         )}
@@ -85,13 +88,13 @@ function QrCard({
           <div className="min-w-0">
             <p className="truncate font-display text-base font-bold">{code.name}</p>
             <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">
-              {PLACEMENT_LABELS[code.placement] ?? code.placement}
+              {t(PLACEMENT_LABELS[code.placement] ?? code.placement)}
             </p>
           </div>
           <button
             type="button"
             onClick={() => onDelete(code)}
-            aria-label={`${code.name} QR kodunu sil`}
+            aria-label={t("{name} QR kodunu sil", { name: code.name })}
             className="shrink-0 text-ink-soft transition-colors hover:text-paprika"
           >
             <TrashIcon size={16} />
@@ -107,17 +110,17 @@ function QrCard({
             onClick={onDownloaded}
             className="rounded-md border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika"
           >
-            PNG indir
+            {t("PNG indir")}
           </a>
           <button
             type="button"
             onClick={async () => {
               await navigator.clipboard.writeText(url);
-              toast("QR linki kopyalandı");
+              toast(t("QR linki kopyalandı"));
             }}
             className="rounded-md border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors hover:border-paprika hover:text-paprika"
           >
-            Linki kopyala
+            {t("Linki kopyala")}
           </button>
         </div>
       </div>
@@ -127,7 +130,8 @@ function QrCard({
 
 /** Masa numaralı QR'ları toplu oluşturma formu. */
 function BulkTableForm({ onCreate }: { onCreate: (prefix: string, from: number, count: number) => Promise<void> }) {
-  const [prefix, setPrefix] = useState("Masa");
+  const { t } = useUiLocale();
+  const [prefix, setPrefix] = useState(() => t("Masa"));
   const [from, setFrom] = useState("1");
   const [count, setCount] = useState("10");
   const [error, setError] = useState("");
@@ -139,11 +143,11 @@ function BulkTableForm({ onCreate }: { onCreate: (prefix: string, from: number, 
     const start = Number.parseInt(from, 10);
     const total = Number.parseInt(count, 10);
     if (!prefix.trim()) {
-      setError("Bir ön ek yaz (ör. Masa, Bahçe, Teras).");
+      setError(t("Bir ön ek yaz (ör. Masa, Bahçe, Teras)."));
       return;
     }
     if (!Number.isInteger(start) || start < 0 || !Number.isInteger(total) || total < 1 || total > MAX_BULK) {
-      setError(`Başlangıç numarası 0 ya da üstü, adet 1–${MAX_BULK} arasında olmalı.`);
+      setError(t("Başlangıç numarası 0 ya da üstü, adet 1–{max} arasında olmalı.", { max: MAX_BULK }));
       return;
     }
     setSaving(true);
@@ -158,33 +162,35 @@ function BulkTableForm({ onCreate }: { onCreate: (prefix: string, from: number, 
     <Card className="mt-6">
       <form onSubmit={handleSubmit}>
         <SectionHeader
-          title="Masa QR'larını toplu oluştur"
-          description="Her masaya ayrı QR: hangi masanın menüyü açıp sepete dönüştürdüğünü Trafik sayfasında ayrı ayrı görürsün."
+          title={t("Masa QR'larını toplu oluştur")}
+          description={t("Her masaya ayrı QR: hangi masanın menüyü açıp sepete dönüştürdüğünü Trafik sayfasında ayrı ayrı görürsün.")}
           action={
             <Button type="submit" loading={saving}>
-              Oluştur
+              {t("Oluştur")}
             </Button>
           }
         />
         <div className="mt-5 grid gap-3 sm:grid-cols-3 sm:items-end">
           <div>
-            <Label htmlFor="bulk-prefix">Ön ek</Label>
+            <Label htmlFor="bulk-prefix">{t("Ön ek")}</Label>
             <Input id="bulk-prefix" value={prefix} maxLength={40} onChange={(e) => setPrefix(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="bulk-from">Başlangıç no</Label>
+            <Label htmlFor="bulk-from">{t("Başlangıç no")}</Label>
             <Input id="bulk-from" type="number" min={0} value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="bulk-count">Adet</Label>
+            <Label htmlFor="bulk-count">{t("Adet")}</Label>
             <Input id="bulk-count" type="number" min={1} max={MAX_BULK} value={count} onChange={(e) => setCount(e.target.value)} />
           </div>
         </div>
       </form>
       <ErrorText>{error}</ErrorText>
       <FooterNote className="font-mono text-[11px]">
-        Örnek: {prefix || "Masa"} {from || 1} … {prefix || "Masa"} {(Number.parseInt(from, 10) || 0) + (Number.parseInt(count, 10) || 1) - 1} ·
-        aynı adla var olan QR&apos;lar atlanır
+        {t("Örnek: {first} … {last} · aynı adla var olan QR'lar atlanır", {
+          first: `${prefix || t("Masa")} ${from || 1}`,
+          last: `${prefix || t("Masa")} ${(Number.parseInt(from, 10) || 0) + (Number.parseInt(count, 10) || 1) - 1}`,
+        })}
       </FooterNote>
     </Card>
   );
@@ -193,6 +199,7 @@ function BulkTableForm({ onCreate }: { onCreate: (prefix: string, from: number, 
 export default function QrCodesPage() {
   const { business, setBusiness } = useBusiness();
   const { toast } = useToast();
+  const { t } = useUiLocale();
   const [confirm, confirmDialog] = useConfirm();
   const [codes, setCodes] = useState<QrCode[] | null>(null);
   const [name, setName] = useState("");
@@ -238,7 +245,7 @@ export default function QrCodesPage() {
 
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("QR koduna bir ad verin (ör. Masa 1).");
+      setError(t("QR koduna bir ad verin (ör. Masa 1)."));
       return;
     }
 
@@ -252,10 +259,10 @@ export default function QrCodesPage() {
         is_active: true,
       });
       setName("");
-      toast("QR kodu oluşturuldu");
+      toast(t("QR kodu oluşturuldu"));
       await load();
     } catch {
-      setError("QR kodu oluşturulamadı. Lütfen tekrar deneyin.");
+      setError(t("QR kodu oluşturulamadı. Lütfen tekrar deneyin."));
     } finally {
       setSaving(false);
     }
@@ -269,7 +276,7 @@ export default function QrCodesPage() {
     );
 
     if (names.length === 0) {
-      toast("Bu adlarla QR'lar zaten var");
+      toast(t("Bu adlarla QR'lar zaten var"));
       return;
     }
 
@@ -307,7 +314,12 @@ export default function QrCodesPage() {
     await load();
     setPrintScope("table");
     const failed = names.length - created;
-    toast(failed > 0 ? `${created} QR oluşturuldu, ${failed} tanesi oluşturulamadı` : `${created} masa QR'ı oluşturuldu`, failed > 0 ? "error" : undefined);
+    toast(
+      failed > 0
+        ? t("{created} QR oluşturuldu, {failed} tanesi oluşturulamadı", { created, failed })
+        : t("{count} masa QR'ı oluşturuldu", { count: created }),
+      failed > 0 ? "error" : undefined
+    );
   }
 
   function handlePrint() {
@@ -318,21 +330,21 @@ export default function QrCodesPage() {
 
   async function handleDelete(code: QrCode) {
     const ok = await confirm({
-      title: `“${code.name}” QR kodu silinsin mi?`,
+      title: t("“{name}” QR kodu silinsin mi?", { name: code.name }),
       tone: "danger",
-      confirmLabel: "QR'ı sil",
+      confirmLabel: t("QR'ı sil"),
       details: [
-        "Basılı QR'lar menüyü açmaya devam eder, ama taramalar artık bu QR adına sayılmaz.",
-        "Bu QR'ın geçmiş tarama verileri raporlarda kalır.",
+        t("Basılı QR'lar menüyü açmaya devam eder, ama taramalar artık bu QR adına sayılmaz."),
+        t("Bu QR'ın geçmiş tarama verileri raporlarda kalır."),
       ],
     });
     if (!ok) return;
     try {
       await pb.collection("buyur_qr_codes").delete(code.id);
-      toast("QR kodu silindi");
+      toast(t("QR kodu silindi"));
       await load();
     } catch {
-      toast("QR kodu silinemedi", "error");
+      toast(t("QR kodu silinemedi"), "error");
     }
   }
 
@@ -341,8 +353,8 @@ export default function QrCodesPage() {
   return (
     <div>
       <PageHeader
-        title="QR kodlar"
-        description="Masa, vitrin ve sosyal medya için ayrı QR'lar oluşturun; hangisinin menüyü açıp sepete dönüştürdüğünü Trafik sayfasında görün"
+        title={t("QR kodlar")}
+        description={t("Masa, vitrin ve sosyal medya için ayrı QR'lar oluşturun; hangisinin menüyü açıp sepete dönüştürdüğünü Trafik sayfasında görün")}
       />
 
       <QrShare business={business} />
@@ -352,27 +364,27 @@ export default function QrCodesPage() {
       <Card className="mt-6">
         <form onSubmit={handleCreate}>
           <SectionHeader
-            title="Tek QR oluştur"
-            description="Vitrin, sosyal medya ya da paket servis için tek tek QR ekleyin."
+            title={t("Tek QR oluştur")}
+            description={t("Vitrin, sosyal medya ya da paket servis için tek tek QR ekleyin.")}
             action={
               <Button type="submit" loading={saving}>
-                <QrCodeIcon size={15} /> QR oluştur
+                <QrCodeIcon size={15} /> {t("QR oluştur")}
               </Button>
             }
           />
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
-              <Label htmlFor="qr-name">QR adı</Label>
+              <Label htmlFor="qr-name">{t("QR adı")}</Label>
               <Input
                 id="qr-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Vitrin, Instagram bio, Paket poşeti…"
+                placeholder={t("Vitrin, Instagram bio, Paket poşeti…")}
                 maxLength={60}
               />
             </div>
             <div className="sm:w-48">
-              <Label htmlFor="qr-placement">Nerede kullanılacak</Label>
+              <Label htmlFor="qr-placement">{t("Nerede kullanılacak")}</Label>
               <Select
                 id="qr-placement"
                 value={placement}
@@ -380,7 +392,7 @@ export default function QrCodesPage() {
               >
                 {PLACEMENTS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.label)}
                   </option>
                 ))}
               </Select>
@@ -391,32 +403,33 @@ export default function QrCodesPage() {
       </Card>
 
       {codes === null ? (
-        <p className="mt-6 text-sm text-ink-soft">QR kodları yükleniyor…</p>
+        <p className="mt-6 text-sm text-ink-soft">{t("QR kodları yükleniyor…")}</p>
       ) : codes.length === 0 ? (
         <p className="mt-6 rounded-md border border-dashed border-line px-6 py-10 text-center text-sm text-ink-soft">
-          Henüz etiketli QR kodunuz yok. Masa QR&apos;larını toplu oluşturun ya da vitrin, Instagram gibi yerler için tek
-          tek ekleyin — hangisinin işe yaradığını ölçebilirsiniz.
+          {t(
+            "Henüz etiketli QR kodunuz yok. Masa QR'larını toplu oluşturun ya da vitrin, Instagram gibi yerler için tek tek ekleyin — hangisinin işe yaradığını ölçebilirsiniz."
+          )}
         </p>
       ) : (
         <>
           <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
             <p className="font-display text-lg font-bold">
-              QR kodları <span className="font-mono text-xs font-normal text-ink-soft">({codes.length})</span>
+              {t("QR kodları")} <span className="font-mono text-xs font-normal text-ink-soft">({codes.length})</span>
             </p>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
               {tableCodes.length > 0 && tableCodes.length < codes.length && (
                 <Select
-                  aria-label="Yazdırılacak QR'lar"
+                  aria-label={t("Yazdırılacak QR'lar")}
                   value={printScope}
                   onChange={(event) => setPrintScope(event.target.value as "table" | "all")}
                   className="w-auto py-2"
                 >
-                  <option value="table">Yalnızca masalar ({tableCodes.length})</option>
-                  <option value="all">Tüm QR&apos;lar ({codes.length})</option>
+                  <option value="table">{t("Yalnızca masalar ({count})", { count: tableCodes.length })}</option>
+                  <option value="all">{t("Tüm QR'lar ({count})", { count: codes.length })}</option>
                 </Select>
               )}
               <Button type="button" variant="outline" onClick={handlePrint} disabled={printing !== null}>
-                <FileTextIcon size={15} /> Toplu PDF indir ({printable.length})
+                <FileTextIcon size={15} /> {t("Toplu PDF indir ({count})", { count: printable.length })}
               </Button>
             </div>
           </div>
@@ -426,7 +439,7 @@ export default function QrCodesPage() {
             ))}
           </div>
           <FooterNote>
-            Yazdırma penceresinde hedef olarak “PDF olarak kaydet”i seçin · A4 sayfaya 6 kart düşer, kesim çizgileri kesiklidir
+            {t("Yazdırma penceresinde hedef olarak “PDF olarak kaydet”i seçin · A4 sayfaya 6 kart düşer, kesim çizgileri kesiklidir")}
           </FooterNote>
         </>
       )}

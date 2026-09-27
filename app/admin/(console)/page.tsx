@@ -180,7 +180,7 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
               <thead>
                 <tr>
                   <th>İşletme</th>
-                  <th>Plan</th>
+                  <th className="hidden sm:table-cell">Plan</th>
                   <th className="hidden sm:table-cell">Bitiş</th>
                   <th>Durum</th>
                 </tr>
@@ -188,12 +188,12 @@ export default async function AdminHomePage({ searchParams }: { searchParams: Pr
               <tbody>
                 {expiries.map((item) => (
                   <tr key={item.id}>
-                    <td className="max-w-[14rem]">
+                    <td className="w-full max-w-0">
                       <Link href={`/admin/businesses/${item.id}`} className="block truncate font-semibold text-ink hover:text-paprika">
                         {item.name}
                       </Link>
                     </td>
-                    <td>
+                    <td className="hidden sm:table-cell">
                       <PlanBadge plan={item.plan} />
                     </td>
                     <td className="hidden font-mono text-[12px] text-ink-soft sm:table-cell">{formatAdminDay(item.expiresAt)}</td>

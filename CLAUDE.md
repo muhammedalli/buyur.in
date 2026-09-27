@@ -1,12 +1,15 @@
 # buyur — Proje Rehberi
 
 > **buyur**, restoran/kafe işletmeleri için QR tabanlı dijital menü platformu.
-> Üç yüzü var: **müşteri menüsü** (`buyur.in/isletme` veya `isletme.buyur.in`),
-> **işletme paneli** (`/panel`) ve **pazarlama sitesi** (kök alan adı).
+> Dört yüzü var: **müşteri menüsü** (`buyur.in/isletme` veya `isletme.buyur.in`),
+> **işletme paneli** (`/panel`), **yönetim paneli** (`admin.buyur.in`) ve
+> **pazarlama sitesi** (kök alan adı).
 
 Bu dosya, kod yazmaya başlamadan önce bilinmesi gereken mimari kararları ve
-kuralları içerir. Ayrıntılı iş akışları için `.claude/skills/` altındaki
-skill'lere, alan uzmanlıkları için `.claude/agents/` altındaki agent'lara bakın.
+kuralları içerir. Alan bazlı kısa kurallar `docs/` altındadır (architecture,
+development-rules, ui-guidelines, localization, admin-panel, payments,
+analytics-architecture, audit-log). Ayrıntılı iş akışları için `.claude/skills/`
+altındaki skill'lere, alan uzmanlıkları için `.claude/agents/` altındaki agent'lara bakın.
 
 ---
 
@@ -17,11 +20,12 @@ skill'lere, alan uzmanlıkları için `.claude/agents/` altındaki agent'lara ba
 | Framework | Next.js 15 (App Router) + React 19 |
 | Dil | TypeScript (strict) |
 | Stil | Tailwind CSS v4 (`@theme` token'ları, `app/globals.css`) |
+| UI | Panel kiti `components/panel/ui.tsx` + shadcn/ui katmanı `components/ui/` (Radix) |
 | Veritabanı | PocketBase (`buyur_*` koleksiyonları) |
 | Dosya deposu | MinIO (S3 uyumlu) — `lib/minio.ts` |
 | AI | OpenAI (yalnızca sunucu tarafında) |
 | Test | Vitest (`tests/`) |
-| Paket yöneticisi | **bun** (`bun.lock` kaynak; `pnpm-lock.yaml` eskidir) |
+| Paket yöneticisi | **bun** (`bun.lock` tek kilit dosyası) |
 
 ### Komutlar
 
@@ -45,13 +49,16 @@ app/
   [slug]/            → MÜŞTERİ MENÜSÜ (welcome, menu, categories, products, cart, search, review)
   panel/(auth)/      → giriş / kayıt
   panel/(dashboard)/ → İŞLETME PANELİ (client component'ler, pb ile doğrudan konuşur)
+  admin/             → YÖNETİM PANELİ (sunucu bileşenleri; yazma /api/admin/* üzerinden)
   site/[slug]/       → işletmeye otomatik üretilen tanıtım sitesi
   api/               → track, upload, ai/scan, analytics
   blog/, yasal/      → pazarlama & hukuki içerik
   docs/              → YARDIM MERKEZİ (/docs, rehberler + /docs/surum-notlari; içerik lib/docs.ts)
 components/
+  ui/                → shadcn/ui katmanı (Radix): dialog, sheet, dropdown-menu, tooltip
   menu/              → müşteri menüsü bileşenleri (MenuProvider bağlamı)
-  panel/             → panel UI kiti, formlar, grafikler
+  panel/             → panel UI kiti (ui.tsx), gezinme (panel-nav.tsx), formlar, grafikler
+  admin/             → yönetim paneli istemci parçaları
   site/              → otomatik site bölümleri
 lib/
   analytics/         → event sözlüğü, ingestion, rollup, raporlar, insights
@@ -61,7 +68,7 @@ lib/
 scripts/             → PocketBase şema kurulumu, göçler, seed verileri
 pocketbase/pb_hooks/ → PocketBase SUNUCUSUNA kurulan hook'lar (denetim kaydı; docs/audit-log.md)
 tests/               → Vitest — iş kurallarının yazılı sözleşmesi
-docs/                → mimari ve ürün notları (analytics-architecture.md = koddaki §N atıfları)
+docs/                → AI/geliştirici için alan kuralları (analytics-architecture.md = koddaki §N atıfları)
 ```
 
 ### Çok kiracılı (multi-tenant) yönlendirme
@@ -82,7 +89,11 @@ Yeni bir üst düzey rota eklerken slug çakışmasını `RESERVED_SLUGS`'a ekle
 
 **Koleksiyonlar** (hepsi `buyur_` önekli): `businesses`, `categories`, `products`,
 `product_options`, `popups`, `admins`, `plans`, `settings`, `events`, `sessions`,
-`stats_daily`, `qr_codes`, `reviews`, `admin_logs`, `admin_notes`, `otps`.
+`stats_daily`, `qr_codes`, `reviews`, `admin_logs`, `admin_notes`, `otps`, `payments`.
+
+`buyur_payments` yönetimin cari hesap kaydıdır (borç, alınan ve verilen ödeme): tutar
+kuruş cinsinden tamsayı, bakiye saklanmaz — her okumada kayıtlardan hesaplanır
+(`lib/payments.ts`, [`docs/payments.md`](./docs/payments.md)).
 
 `buyur_settings` sistem geneli değişkenlerdir (ör. yıllık ödeme indirimi): anahtar/değer
 satırları, tanımları ve yedek değerleri `lib/system-settings.ts`'te. Herkese okunur
@@ -139,10 +150,13 @@ buradan okur.
 
 ## 5. Çoklu Dil
 
-- Desteklenen diller: `tr`, `en`, `ar`, `ru` (`ar` RTL)
+- Desteklenen menü dilleri: `tr`, `en`, `de`, `ar`, `fr`, `es`, `it`, `ru` (`ar` RTL). **İşletme başına en fazla 4 dil**
+  (`MAX_MENU_LOCALES`, ana dil + 3; şemada `languages.maxSelect = 3`). Dil seçimi her yerde açılır menüdür
+- RTL: menü ve sitede mantıksal yön sınıfları (`ms-/me-`, `start-/end-`, `text-start/end`), yön bildiren ikonlar `rtl:rotate-180`
+- Ayrıntı ve yeni dil ekleme listesi: [`docs/localization.md`](./docs/localization.md)
 - Ana metin (`name`, `description`) işletmenin **ana dilinde** tutulur; diğer diller `translations` JSON alanından okunur
 - Okuma her zaman `tField(entity, field, locale, baseLocale)` ile yapılır — çeviri yoksa ana dile düşer
-- Çevrilebilir alanlar: `name`, `description`, `campaign_label`, `group_name`, `title`, `message`
+- Çevrilebilir alanlar: `name`, `description`, `campaign_label`, `group_name`, `title`, `message`, `marquee_text`
 - Ana dil değişince içerik `lib/language-rebase.ts` ile yeni baz dile taşınır
 
 ---
@@ -173,7 +187,9 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 
 - Yazı tipleri: `font-display` (Bricolage), `font-body` (Figtree), `font-mono` (JetBrains)
 - İşletmenin kendi rengi `var(--brand)` üzerinden gelir; menü tarafında marka rengini sabit token'la ezmeyin
-- Panel bileşenleri **her zaman** `components/panel/ui.tsx` kitinden gelir: `Button` (`size="sm"` küçük hâli; dolguyu className ile ezmeyin), `AiButton`, `AiActionButton`, `Card`, `PageHeader`, `SectionHeader`, `Input`, `Select`, `Switch`, `Tabs`, `EmptyState`, `UpgradeNotice`, `FormActions`, `StatGroup`, `Table`, `Dropdown`, `Modal`. Yeni buton/inputs elle yazılmaz.
+- Panel bileşenleri **her zaman** `components/panel/ui.tsx` kitinden gelir: `Button` (`size="sm"` küçük hâli), `AiButton`, `AiActionButton`, `Card`, `PageHeader`, `SectionHeader`, `Input`, `Select`, `Switch`, `Tabs`, `NavTabs`, `SectionNav`, `EmptyState`, `UpgradeNotice`, `FormActions`, `StatGroup`, `Table`, `Dropdown`, `Modal`, `Sheet*`, `Tooltip`. Pencere/yaprak/açılır menü/tooltip shadcn/ui katmanındadır (`components/ui`, Radix); ekranlar onu kit üzerinden kullanır. Sınıflar `cn()` (`lib/utils.ts`, tailwind-merge) ile birleşir. Yeni buton/inputs elle yazılmaz.
+- **Yatay taşma yok (kesin kural):** hiçbir panel/yönetim ekranı 320–1440 px'te yatayda kaymaz ve içerik ekran dışında kalmaz. Sığmayan sekme açılır menüye döner (`Tabs`/`NavTabs` kendisi ölçer), çok bölümlü ekran `SectionNav` (lg+ yan liste, dar ekranda açılır menü), tablo dar ekranda ikincil sütunları gizleyip bilgiyi ana hücrenin altına indirir. Ayrıntı: [`docs/ui-guidelines.md`](./docs/ui-guidelines.md)
+- **Gezinme:** lg ve üstünde gruplu sol yan menü, daha dar ekranda başlıktaki menü butonunun açtığı `Sheet`. Yatay kayan menü şeridi yoktur. Liste: `components/panel/panel-nav.tsx` (panel), `components/admin/admin-shell.tsx` (yönetim).
 - **Köşe yarıçapı standardı 6px** (`rounded-md`): buton, alan, kart, tablo, pencere, açılır menü. Hap (`rounded-full`) yalnızca anahtar, ilerleme çubuğu, durum noktası ve avatar gibi gerçekten yuvarlak öğelerde.
 - **Giriş/kayıt/şifre ekranları** onaylı görseli birebir izler ve kendi parçalarını kullanır (`components/panel/auth-form.tsx`: editoryal serif başlık `font-editorial`, ikonlu geniş alanlar, oklu ana buton; görsel kartı `auth_bg.png`). Bu ekranlar ürünün kapısıdır; yönetim ekranlarının 6px kuralı burada geçerli değildir. "Beni hatırla" `lib/auth-persistence.ts` ile çalışır (işaretsizse tarayıcı kapanınca oturum düşer).
 - Panel ve yönetim ekranları sade kalır: sayıları tek tek küçük kartlara bölmek yerine `StatGroup` (tek çerçevede özet şeridi), listeler için geniş `Table`. Ekranı doldurmak için grafik/metrik eklenmez; ikincil işlemler `Dropdown` altında toplanır.
@@ -209,7 +225,7 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 - Yükleme: 5MB sınırı, izinli MIME listesi, `kind` doğrulaması, sahiplik kontrolü
 - AI ile üretilen içerik **varsayılan olarak taslaktır**; kullanıcı onayı olmadan yayına alınmaz
 - Okunamayan/belirsiz veriyi AI'ya **tahmin ettirmeyin**; kullanıcıya işaretleyin
-- **Yönetim paneli** (`admin.buyur.in`, plan: `docs/admin-panel-prompt.md`): giriş = şifre + e-posta kodu. Admin'in PocketBase token'ı şifreli httpOnly çerezde durur (`lib/admin-session.ts`) ve **tarayıcıya verilmez**: `ADMIN_BYPASS` kuralı rol ayırmaz, rolü sunucu uygular. `ADMIN_SESSION_SECRET` (≥32 karakter) yoksa admin girişi kapalıdır
+- **Yönetim paneli** (`admin.buyur.in`, kurallar: [`docs/admin-panel.md`](./docs/admin-panel.md)): giriş = şifre + e-posta kodu. Admin'in PocketBase token'ı şifreli httpOnly çerezde durur (`lib/admin-session.ts`) ve **tarayıcıya verilmez**: `ADMIN_BYPASS` kuralı rol ayırmaz, rolü sunucu uygular. `ADMIN_SESSION_SECRET` (≥32 karakter) yoksa admin girişi kapalıdır
 - Askıya alınan işletme (`suspended_at`, yalnızca super_admin yazar) herkese açık her yüzeyde `isSuspended()` ile elenir (`lib/business-suspension.ts`): menü, site, `/api/track`, vitrin, sitemap. Yeni bir herkese açık işletme listesi ekleyen de bunu uygular
 - İşletme silme **yumuşaktır** (`deleted_at`, `lib/business-deletion.ts`): silme askıyı da koyar (ayrı bir yüzey kontrolü yok), `authRule` girişi kapatır, hook açık token'ları düşürür; geri alınabilir. Yönetici hesabı silinmez, erişimi kapatılır (`disabled_at`); kimse kendi rolüne/erişimine dokunamaz, servis hesabı panelde görünmez (`lib/admin-users.ts`)
 - Admin yetkisi `canPerform(role, action)` ile okunur (`lib/admin-roles.ts`); `if (role === "super_admin")` yazılmaz. Admin'in yaptığı her değişiklik `runAuditedUpdate()` ile yazılır (`lib/admin-audit.ts`): denetim kaydı yazılamazsa değişiklik **geri alınır**

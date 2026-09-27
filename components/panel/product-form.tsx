@@ -15,6 +15,7 @@ import { useFormDraft } from "@/lib/use-draft";
 import { productNameTaken } from "@/lib/unique-name";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Allergen, Badge, Business, Category, Product } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 const ALL_ALLERGENS = Object.keys(allergenLabels.tr) as Allergen[];
 const ALL_BADGES = Object.keys(badgeLabels.tr) as Badge[];
@@ -95,6 +96,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const { toast } = useToast();
+  const { t, locale: uiLocale } = useUiLocale();
 
   const current: ProductDraft = {
     category,
@@ -200,8 +202,8 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
     setError("");
 
     if (!category) {
-      setError("Bir kategori seç.");
-      toast("Bir kategori seç.", "error");
+      setError(t("Bir kategori seç."));
+      toast(t("Bir kategori seç."), "error");
       return;
     }
 
@@ -231,8 +233,8 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
       // Ad tekilliği işletme genelindedir: aynı ürün iki kategoride durmasın.
       const taken = await productNameTaken(business.id, name, initial?.id);
       if (taken) {
-        setError(taken);
-        toast(taken, "error");
+        setError(t(taken));
+        toast(t(taken), "error");
         return;
       }
 
@@ -244,11 +246,11 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
       // hâlde kayıttan sonra da "kaydedilmemiş değişiklik" görünürdü.
       applyDraft(toDraft(record, categories));
       setLastSavedAt(Date.now());
-      toast(initial ? "Ürün güncellendi" : "Ürün eklendi");
+      toast(initial ? t("Ürün güncellendi") : t("Ürün eklendi"));
       onSaved(record);
     } catch {
-      setError("Kaydedilemedi, alanları kontrol edip tekrar dene.");
-      toast("Kaydedilemedi, tekrar dene.", "error");
+      setError(t("Kaydedilemedi, alanları kontrol edip tekrar dene."));
+      toast(t("Kaydedilemedi, tekrar dene."), "error");
     } finally {
       setSaving(false);
     }
@@ -263,7 +265,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         draftSavedAt={draft.draftSavedAt}
         error={error || undefined}
         onCancel={onCancel}
-        toggle={{ checked: isAvailable, onChange: setIsAvailable, label: "Satışta" }}
+        toggle={{ checked: isAvailable, onChange: setIsAvailable, label: t("Satışta") }}
       />
       {draft.restorable && (
         <DraftBanner
@@ -281,7 +283,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         <div>
           <div className="flex flex-wrap items-start gap-4">
             <div className="w-32 shrink-0">
-              <Label>Ürün görseli</Label>
+              <Label>{t("Ürün görseli")}</Label>
               <ImageUploader
                 value={image}
                 onChange={(url) => applyManualImage(url, null)}
@@ -295,28 +297,27 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
             <div className="min-w-[13rem] flex-1 space-y-2 pt-6">
               {imageStatus === "searching" && (
                 <p className="flex items-center gap-2 text-sm text-ink-soft">
-                  <Spinner className="h-4 w-4" /> Ürün adına uygun görsel aranıyor…
+                  <Spinner className="h-4 w-4" /> {t("Ürün adına uygun görsel aranıyor…")}
                 </p>
               )}
               {imageStatus === "none" && !image && (
                 <p className="text-sm text-ink-soft">
-                  Uygun lisanslı görsel bulunamadı. &quot;Görsel bul&quot; ile kendiniz arayabilir veya
-                  kendi görselinizi yükleyebilirsiniz.
+                  {t("Uygun lisanslı görsel bulunamadı. “Görsel bul” ile kendiniz arayabilir veya kendi görselinizi yükleyebilirsiniz.")}
                 </p>
               )}
               {image && imageSource && <ImageSourceNote source={imageSource} />}
               {image && !imageSource && (
-                <p className="text-[11px] text-ink-soft">Kendi yüklediğiniz görsel.</p>
+                <p className="text-[11px] text-ink-soft">{t("Kendi yüklediğiniz görsel.")}</p>
               )}
 
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant="outline" onClick={() => setPicking((v) => !v)}>
                   <SearchIcon size={15} />
-                  {picking ? "Kapat" : image ? "Görseli değiştir" : "Görsel bul"}
+                  {picking ? t("Kapat") : image ? t("Görseli değiştir") : t("Görsel bul")}
                 </Button>
                 {!image && imageStatus === "none" && name.trim().length >= 3 && (
                   <Button type="button" variant="ghost" onClick={() => findImage(name.trim())}>
-                    Tekrar ara
+                    {t("Tekrar ara")}
                   </Button>
                 )}
               </div>
@@ -346,17 +347,23 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
-          title="Ad ve açıklama"
+          title={t("Ad ve açıklama")}
           translate={{ business, kind: "product", fields: { name, description, campaign_label: campaignLabel } }}
           fields={[
-            { key: "name", label: "Ürün adı", required: true, placeholder: "Izgara Köfte" },
-            { key: "description", label: "Açıklama", multiline: true, rows: 3, placeholder: "El yapımı, közlenmiş biber ve pilav ile" },
+            { key: "name", label: t("Ürün adı"), required: true, placeholder: t("Izgara Köfte") },
+            {
+              key: "description",
+              label: t("Açıklama"),
+              multiline: true,
+              rows: 3,
+              placeholder: t("El yapımı, közlenmiş biber ve pilav ile"),
+            },
           ]}
         />
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label htmlFor="p-category">Kategori</Label>
+            <Label htmlFor="p-category">{t("Kategori")}</Label>
             <Select id="p-category" required value={category} onChange={(e) => setCategory(e.target.value)}>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
@@ -366,7 +373,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
             </Select>
           </div>
           <div>
-            <Label htmlFor="p-price">Fiyat (₺)</Label>
+            <Label htmlFor="p-price">{t("Fiyat (₺)")}</Label>
             <Input id="p-price" type="number" min={0} step="0.01" required value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
         </div>
@@ -374,24 +381,24 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
 
       <Card className="space-y-6">
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Hazırlanma süresi & kalori</p>
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Hazırlanma süresi & kalori")}</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label htmlFor="p-prep-min">Min (dk)</Label>
+              <Label htmlFor="p-prep-min">{t("Min (dk)")}</Label>
               <Input id="p-prep-min" type="number" min={0} value={prepMin} onChange={(e) => setPrepMin(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="p-prep-max">Maks (dk)</Label>
+              <Label htmlFor="p-prep-max">{t("Maks (dk)")}</Label>
               <Input id="p-prep-max" type="number" min={0} value={prepMax} onChange={(e) => setPrepMax(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="p-calories">Kalori</Label>
+              <Label htmlFor="p-calories">{t("Kalori")}</Label>
               <Input id="p-calories" type="number" min={0} value={calories} onChange={(e) => setCalories(e.target.value)} />
             </div>
           </div>
         </div>
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Rozetler</p>
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Rozetler")}</p>
           <div className="flex flex-wrap gap-2">
             {ALL_BADGES.map((badge) => (
               <button
@@ -404,13 +411,13 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
                     : "border-line text-ink-soft hover:border-paprika hover:text-paprika"
                 }`}
               >
-                {badgeLabels.tr[badge]}
+                {badgeLabels[uiLocale][badge]}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Alerjenler</p>
+          <p className="mb-3 font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Alerjenler")}</p>
           <div className="flex flex-wrap gap-2">
             {ALL_ALLERGENS.map((allergen) => (
               <button
@@ -423,7 +430,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
                     : "border-line text-ink-soft hover:border-ink"
                 }`}
               >
-                {allergenLabels.tr[allergen]}
+                {allergenLabels[uiLocale][allergen]}
               </button>
             ))}
           </div>
@@ -431,9 +438,9 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
       </Card>
 
       <Card className="space-y-4">
-        <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">Kampanya</p>
+        <p className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">{t("Kampanya")}</p>
         <div className="sm:max-w-[12rem]">
-          <Label htmlFor="p-discount">İndirim (%)</Label>
+          <Label htmlFor="p-discount">{t("İndirim (%)")}</Label>
           <Input
             id="p-discount"
             type="number"
@@ -453,9 +460,9 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
           onBaseChange={setBaseField}
           translations={translations}
           onTranslationsChange={setTranslations}
-          title="Kampanya etiketi"
+          title={t("Kampanya etiketi")}
           translate={{ business, kind: "product" }}
-          fields={[{ key: "campaign_label", label: "Etiket", placeholder: "Haftanın kampanyası" }]}
+          fields={[{ key: "campaign_label", label: t("Etiket"), placeholder: t("Haftanın kampanyası") }]}
         />
       </Card>
 

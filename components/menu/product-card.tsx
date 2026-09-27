@@ -15,11 +15,14 @@ export function ProductCard({
   template,
   onAdd,
   onOpen,
+  index = 0,
 }: {
   product: Product;
   template: Template;
   onAdd: (product: Product) => void;
   onOpen?: () => void;
+  /** Listedeki sıra: ilk kartlar sırayla (kısa aralıklarla) belirir. */
+  index?: number;
 }) {
   const { business, locale, t, tf } = useMenu();
   const [added, setAdded] = useState(false);
@@ -73,6 +76,7 @@ export function ProductCard({
       ref={cardRef}
       onClick={onOpen}
       data-reveal
+      style={{ transitionDelay: `${Math.min(index, 6) * 55}ms` }}
       className={`group relative overflow-hidden rounded-2xl border border-line/60 bg-paper shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[var(--brand)]/60 hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] ${
         onOpen ? "cursor-pointer active:scale-[0.99]" : ""
       } ${isGrid ? "flex flex-col p-3 sm:p-3.5" : "flex gap-3.5 p-3.5 sm:p-4"}`}
@@ -106,7 +110,7 @@ export function ProductCard({
               {name}
             </h3>
             {!isGrid && (
-              <div className="shrink-0 text-right">
+              <div className="shrink-0 text-end">
                 {hasDiscount && (
                   <p className="font-sans text-xs text-ink-soft line-through">{formatPrice(product.price)}</p>
                 )}

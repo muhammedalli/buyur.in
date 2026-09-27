@@ -8,11 +8,13 @@ import { useBusiness } from "@/components/panel/business-context";
 import { PopupForm } from "@/components/panel/popup-form";
 import { PageHeader } from "@/components/panel/ui";
 import type { Popup } from "@/lib/types";
+import { useUiLocale } from "@/components/ui-locale-provider";
 
 export default function EditAnnouncementPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { business, isLoading: businessLoading } = useBusiness();
+  const { t } = useUiLocale();
   const [popup, setPopup] = useState<Popup | null>(null);
   const [loading, setLoading] = useState(true);
   const businessId = business?.id;
@@ -35,7 +37,7 @@ export default function EditAnnouncementPage() {
   }, [businessId, id, router]);
 
   if (businessLoading || loading || !business || !popup) {
-    return <p className="text-ink-soft">Yükleniyor…</p>;
+    return <p className="text-ink-soft">{t("Yükleniyor…")}</p>;
   }
 
   return (

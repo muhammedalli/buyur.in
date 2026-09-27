@@ -46,6 +46,13 @@ export const RESERVED_SLUGS = new Set([
   "status",
   "yasal",
   "legal",
+  // Pazarlama sitesinin dil kökleri (buyur.in/en) — bir işletme bu adı alırsa
+  // kök alan yolundaki menüsü sitenin İngilizce sayfasıyla çakışırdı.
+  "en",
+  "tr",
+  // İşletme vitrininin ve menünün sabit yolları.
+  "site",
+  "menu",
 ]);
 
 export function isReservedSlug(slug: string): boolean {
