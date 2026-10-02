@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import QRCode from "qrcode";
+import { renderQrPng } from "@/lib/qr-render";
+import { businessLogoUrl } from "@/lib/files";
 import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
 import { useToast } from "@/components/panel/toast";
@@ -67,10 +68,10 @@ function QrCard({
   const url = qrUrlFor(business.slug, code.code);
 
   useEffect(() => {
-    QRCode.toDataURL(url, { width: 640, margin: 2, color: { dark: "#231812", light: "#ffffff" } })
+    renderQrPng({ url, logoUrl: businessLogoUrl(business, "small") })
       .then(setDataUrl)
       .catch(() => setDataUrl(""));
-  }, [url]);
+  }, [url, business]);
 
   return (
     <Card className="flex gap-4">
@@ -444,7 +445,7 @@ export default function QrCodesPage() {
         </>
       )}
 
-      {printing && <QrPrintSheet businessName={business.name} items={printing} onDone={donePrinting} />}
+      {printing && <QrPrintSheet businessName={business.name} logoUrl={businessLogoUrl(business, "small")} items={printing} onDone={donePrinting} />}
       {confirmDialog}
     </div>
   );

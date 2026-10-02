@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import QRCode from "qrcode";
+import { renderQrSvg } from "@/lib/qr-render";
 import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Toplu QR baskı sayfası: A4'e 2×3 masa kartı. Kartlar body'nin doğrudan
@@ -18,10 +18,12 @@ export interface PrintableQr {
 
 export function QrPrintSheet({
   businessName,
+  logoUrl,
   items,
   onDone,
 }: {
   businessName: string;
+  logoUrl?: string;
   items: PrintableQr[];
   onDone: () => void;
 }) {
@@ -35,12 +37,7 @@ export function QrPrintSheet({
         async (item) =>
           [
             item.id,
-            await QRCode.toString(item.url, {
-              type: "svg",
-              margin: 1,
-              errorCorrectionLevel: "M",
-              color: { dark: "#231812", light: "#ffffff" },
-            }),
+            await renderQrSvg({ url: item.url, logoUrl }),
           ] as const
       )
     )
@@ -53,7 +50,7 @@ export function QrPrintSheet({
     return () => {
       cancelled = true;
     };
-  }, [items, onDone]);
+  }, [items, logoUrl, onDone]);
 
   useEffect(() => {
     if (!svgs) return;

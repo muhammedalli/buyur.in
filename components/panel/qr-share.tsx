@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import QRCode from "qrcode";
 import { menuUrl as buildMenuUrl } from "@/lib/site";
 import { mainQrUrl } from "@/lib/storefront";
+import { renderQrPng } from "@/lib/qr-render";
+import { businessLogoUrl } from "@/lib/files";
 import { useUiLocale } from "@/components/ui-locale-provider";
 import { Button, Card } from "@/components/panel/ui";
 import { useToast } from "@/components/panel/toast";
@@ -25,12 +26,10 @@ export function QrShare({ business }: { business: Business }) {
 
   useEffect(() => {
     setMenuUrl(buildMenuUrl(business.slug));
-    QRCode.toDataURL(mainQrUrl(business.slug), {
-      width: 640,
-      margin: 2,
-      color: { dark: "#231812", light: "#ffffff" },
-    }).then(setQrDataUrl);
-  }, [business.slug]);
+    renderQrPng({ url: mainQrUrl(business.slug), logoUrl: businessLogoUrl(business, "small") })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(""));
+  }, [business]);
 
   async function handleCopy() {
     await navigator.clipboard.writeText(menuUrl);

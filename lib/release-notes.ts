@@ -59,6 +59,26 @@ export function localizedReleaseNote(note: ReleaseNote, locale: UiLocale): { tit
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.13.0",
+    date: "2026-10-02",
+    title: "QR kodlarınızın ortasında logonuz",
+    items: [
+      { kind: "yeni", text: "QR kodlarınızın ortasına işletme logonuz otomatik yerleşir; hem ekranda, hem PNG indirmede, hem de toplu baskıda görünür." },
+      { kind: "iyileştirme", text: "Logolu QR'lar daha dayanıklıdır: hafif lekelenme ya da buruşma olsa bile telefon kamerası okur. Logo yüklemediyseniz QR eskisi gibi logosuz üretilir." },
+    ],
+    en: {
+      title: "Your logo in the middle of your QR codes",
+      items: [
+        "Your business logo is now placed in the center of your QR codes automatically, on screen, in PNG downloads and in bulk print sheets.",
+        "Logo QR codes are more resilient: phone cameras still read them with minor smudges or creases. If you have no logo, the QR is generated without one as before.",
+      ],
+    },
+    internal: [
+      "lib/qr-render.ts: ortak üretici (renderQrPng / renderQrSvg), hata düzeltme H, logo yüklenemezse logosuz düşer.",
+      "qr-share.tsx, qr/page.tsx ve qr-print-sheet.tsx artık qrcode'u doğrudan çağırmaz. Şema/göç yok.",
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-10-02",
     title: "Yüklediğiniz görseller otomatik küçülüyor, menünüz daha hızlı açılıyor",

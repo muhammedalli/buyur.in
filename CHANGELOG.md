@@ -3,6 +3,18 @@
 > Bu dosya `lib/release-notes.ts`'ten üretilir (`bun run changelog`). Elle düzenlemeyin.
 > Kullanıcıya görünen hâli: https://buyur.in/docs/surum-notlari
 
+## [0.13.0] — 2026-10-02
+
+**QR kodlarınızın ortasında logonuz**
+
+- **Yeni:** QR kodlarınızın ortasına işletme logonuz otomatik yerleşir; hem ekranda, hem PNG indirmede, hem de toplu baskıda görünür.
+- **İyileştirme:** Logolu QR'lar daha dayanıklıdır: hafif lekelenme ya da buruşma olsa bile telefon kamerası okur. Logo yüklemediyseniz QR eskisi gibi logosuz üretilir.
+
+Geliştirici notu:
+
+- lib/qr-render.ts: ortak üretici (renderQrPng / renderQrSvg), hata düzeltme H, logo yüklenemezse logosuz düşer.
+- qr-share.tsx, qr/page.tsx ve qr-print-sheet.tsx artık qrcode'u doğrudan çağırmaz. Şema/göç yok.
+
 ## [0.12.0] — 2026-10-02
 
 **Yüklediğiniz görseller otomatik küçülüyor, menünüz daha hızlı açılıyor**
