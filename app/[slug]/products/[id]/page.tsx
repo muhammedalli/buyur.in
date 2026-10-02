@@ -10,6 +10,7 @@ import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, PlusIcon } from "@/co
 import { ImageCredit } from "@/components/menu/image-credit";
 import { CategoryPlaceholder } from "@/components/menu/placeholder-art";
 import type { Product, ProductOption } from "@/lib/types";
+import { productImageUrl } from "@/lib/files";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -60,7 +61,7 @@ export default function ProductDetailPage() {
 
   const hasDiscount = product.discount_percent > 0;
   const finalPrice = hasDiscount ? product.price * (1 - product.discount_percent / 100) : product.price;
-  const image = product.images?.[0];
+  const image = productImageUrl(product);
   const name = tf(product, "name");
   const description = tf(product, "description");
 

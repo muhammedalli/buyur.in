@@ -3,6 +3,7 @@ import { activeLocales } from "@/lib/i18n";
 import type { Business } from "@/lib/types";
 import { isSuspended } from "@/lib/business-suspension";
 import { msg } from "@/lib/ui-i18n";
+import { businessLogoUrl } from "@/lib/files";
 
 // Landing'deki sosyal kanıt katmanı. Kural: yalnızca doğrulanabilir bilgi.
 //   · Kart verisi (ad, logo, kategori/ürün/dil sayısı) canlı menüden okunur.
@@ -68,7 +69,7 @@ async function loadEntry(entry: ShowcaseEntry): Promise<ShowcaseItem | null> {
     return {
       ...entry,
       name: business.name,
-      logoUrl: business.logo_url,
+      logoUrl: businessLogoUrl(business, "small"),
       categories: categories.totalItems,
       products: products.totalItems,
       languages: activeLocales(business).length,

@@ -11,6 +11,7 @@ import { ArrowRightIcon, MessageIcon, PhoneIcon, WhatsappIcon } from "@/componen
 import { businessMarqueeItems } from "@/lib/marquee";
 import { reservationAction } from "@/lib/site-content";
 import { PLATFORM_BRANDING, showsPlatformSignature } from "@/lib/branding";
+import { businessCoverUrl, businessLogoUrl } from "@/lib/files";
 
 // İşletmenin web sitesi yoksa vitrinde (isletme.buyur.in) gösterilen karşılama
 // sayfası. Ayrı bir içerik girilmez: tamamı panelde girilmiş işletme
@@ -31,7 +32,7 @@ export function BusinessWelcome({ business }: { business: Business }) {
   const description = tf(business, "description").trim();
   const marquee = businessMarqueeItems(business, locale, baseLocale);
   const reservation = reservationAction(business);
-  const hasCover = Boolean(business.cover_url);
+  const hasCover = Boolean(business.cover);
 
   // Ana buton ekrandan çıkınca alttaki yapışkan kopya görünür.
   useEffect(() => {
@@ -53,7 +54,7 @@ export function BusinessWelcome({ business }: { business: Business }) {
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={business.cover_url}
+                src={businessCoverUrl(business)}
                 alt=""
                 fetchPriority="high"
                 className="welcome-cover absolute inset-0 h-full w-full object-cover"
@@ -78,10 +79,10 @@ export function BusinessWelcome({ business }: { business: Business }) {
 
       <main className="relative z-10 mx-auto -mt-20 max-w-xl px-5 sm:-mt-24">
         <div className="flex flex-col items-center text-center">
-          {business.logo_url ? (
+          {businessLogoUrl(business, "small") ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={business.logo_url}
+              src={businessLogoUrl(business, "small")}
               alt=""
               className="rise rise-1 h-24 w-24 rounded-2xl border-4 border-paper bg-paper object-cover shadow-[0_18px_40px_-18px_rgba(0,0,0,0.45)] sm:h-28 sm:w-28"
             />

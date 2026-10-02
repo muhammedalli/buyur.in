@@ -12,6 +12,7 @@ import { menuUrl } from "@/lib/site";
 import { hasActiveWebsite } from "@/lib/storefront";
 import { SITE_NAME, shareImages } from "@/lib/seo";
 import type { Business, Category, Popup, Product } from "@/lib/types";
+import { businessCoverUrl, businessLogoUrl } from "@/lib/files";
 
 const getBusiness = cache(async (slug: string): Promise<Business | null> => {
   const pb = createServerPB();
@@ -40,7 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = business.description || `${business.name} dijital menüsü — güncel fiyatlar, kategoriler ve ürünler.`;
   // Kapak yoksa markalı paylaşım görseli: WhatsApp'ta paylaşılan menü linki
   // hiçbir koşulda görselsiz kalmasın.
-  const images = shareImages(business.cover_url);
+  const images = shareImages(businessCoverUrl(business));
 
   // Not: canonical burada verilemez — layout metadata'sı alt sayfalara
   // (ürün, kategori, sepet) da miras kalır ve hepsini menü köküne eşitler.
@@ -62,7 +63,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description,
       images,
     },
-    icons: business.logo_url ? { icon: business.logo_url } : undefined,
+    icons: business.logo ? { icon: businessLogoUrl(business, "small") } : undefined,
   };
 }
 
@@ -115,7 +116,7 @@ export default async function MenuLayout({
     "@type": "Restaurant",
     name: business.name,
     description: business.description || undefined,
-    image: business.cover_url || business.logo_url || undefined,
+    image: businessCoverUrl(business) || businessLogoUrl(business) || undefined,
     telephone: business.phone || undefined,
     address: business.address || undefined,
   };

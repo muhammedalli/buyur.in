@@ -2,6 +2,7 @@ import Link from "next/link";
 import { t as translate, type Locale } from "@/lib/i18n";
 import { needsImageCredit, PROVIDER_LABELS } from "@/lib/ai/image-source";
 import type { Product } from "@/lib/types";
+import { hasProductImage, productImageUrl } from "@/lib/files";
 
 // Görsel künyesi. CC BY / CC BY-SA lisansları, eserin GÖSTERİLDİĞİ yerde
 // fotoğrafçının ve lisansın belirtilmesini şart koşar. Bu yüzden künye iki
@@ -13,7 +14,7 @@ import type { Product } from "@/lib/types";
 
 /** Künyesi zorunlu olan görsele sahip ürünler. */
 export function productsNeedingCredit(products: Product[]): Product[] {
-  return products.filter((product) => product.images?.[0] && needsImageCredit(product.image_source));
+  return products.filter((product) => hasProductImage(product) && needsImageCredit(product.image_source));
 }
 
 function ProviderLink({ source }: { source: NonNullable<Product["image_source"]> }) {
@@ -89,7 +90,7 @@ export function ImageCreditList({ products, locale }: { products: Product[]; loc
           <li key={product.id} className="flex items-start gap-3 border-b border-line pb-3 last:border-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={product.images[0]}
+              src={productImageUrl(product, "card")}
               alt=""
               loading="lazy"
               className="h-12 w-12 shrink-0 rounded-md object-cover"

@@ -22,7 +22,7 @@ altındaki skill'lere, alan uzmanlıkları için `.claude/agents/` altındaki ag
 | Stil | Tailwind CSS v4 (`@theme` token'ları, `app/globals.css`) |
 | UI | Panel kiti `components/panel/ui.tsx` + shadcn/ui katmanı `components/ui/` (Radix) |
 | Veritabanı | PocketBase (`buyur_*` koleksiyonları) |
-| Dosya deposu | MinIO (S3 uyumlu) — `lib/minio.ts` |
+| Dosya deposu | PocketBase dosya alanları, depo MinIO (PocketBase S3 ayarı) — `scripts/image-schema.mjs`, adres `lib/files.ts` |
 | AI | OpenAI (yalnızca sunucu tarafında) |
 | Test | Vitest (`tests/`) |
 | Paket yöneticisi | **bun** (`bun.lock` tek kilit dosyası) |
@@ -51,7 +51,7 @@ app/
   panel/(dashboard)/ → İŞLETME PANELİ (client component'ler, pb ile doğrudan konuşur)
   admin/             → YÖNETİM PANELİ (sunucu bileşenleri; yazma /api/admin/* üzerinden)
   site/[slug]/       → işletmeye otomatik üretilen tanıtım sitesi
-  api/               → track, upload, ai/scan, analytics
+  api/               → track, images/remote, ai/scan, analytics
   blog/, yasal/      → pazarlama & hukuki içerik
   docs/              → YARDIM MERKEZİ (/docs, rehberler + /docs/surum-notlari; içerik lib/docs.ts)
 components/
@@ -118,7 +118,7 @@ Menüde görünen iletişim e-postası `publicContactEmail()` ile okunur (`lib/b
 Kurallar:
 
 1. **Filtreleri her zaman `pb.filter()` ile parametreli yazın.** String birleştirme yok.
-2. Route handler'da kimlik: `lib/business-auth.ts` → `authenticateBusiness(authHeader)`; oturumun sahibi işletme kaydının kendisidir, istekteki işletme kimliği oturumun kimliğine eşit olmalı. (`app/api/upload/route.ts` referans akıştır.)
+2. Route handler'da kimlik: `lib/business-auth.ts` → `authenticateBusiness(authHeader)`; oturumun sahibi işletme kaydının kendisidir, istekteki işletme kimliği oturumun kimliğine eşit olmalı. (`app/api/ai/images/route.ts` (+ `lib/ai/guard.ts`) referans akıştır.)
 3. Menü ziyaretçisi PocketBase'e **doğrudan yazmaz**; `buyur_events` yazımı `/api/track` üzerinden servis hesabıyla yapılır.
 4. Şema değişikliği = `scripts/setup-pocketbase.mjs` güncellemesi + gerekiyorsa **idempotent** bir göç scripti. `getOrCreate` var olan alanın `select` seçeneklerini güncellemez — bunun için ayrı göç adımı gerekir.
 5. Kayıt tarayıcıdan yapılmaz: `buyur_businesses.createRule` servis hesabına kilitlidir, hesap `/api/auth/register` üzerinden OTP doğrulandıktan sonra açılır (`buyur_otps` yalnızca kodun sha256 özetini tutar). Ad/slug kurulum ekranında dolana kadar kayıt yayında değildir (`isBusinessSetUp`).
@@ -223,7 +223,7 @@ Token'lar `app/globals.css` içindeki `@theme` bloğunda:
 
 - API anahtarları (`OPENAI_API_KEY`, `BREVO_API_KEY`, MinIO, servis hesabı) **asla** `NEXT_PUBLIC_` önekiyle tanımlanmaz
 - AI çağrıları yalnızca route handler içinde
-- Yükleme: 5MB sınırı, izinli MIME listesi, `kind` doğrulaması, sahiplik kontrolü
+- **Elle yüklenen görsel** PocketBase dosya alanıdır (`logo`, `cover`, `image`; `scripts/image-schema.mjs`), depo MinIO. Yüklemeden önce tarayıcıda küçültülür (`lib/image-resize.ts`, ölçüler `IMAGE_PRESETS`); 5MB, izinli MIME ve sahiplik PocketBase'de. Alan temizlenince/değişince ya da kayıt silinince PocketBase dosyayı depodan kendisi siler — ayrı silme kodu yazılmaz. **AI'ın bulduğu ürün görseli indirilmez**, bağlantı olarak `buyur_products.image_url`'e yazılır (ikisinden biri dolu). Adres her zaman `lib/files.ts` ile okunur; panel formu görseli kaydet'e kadar tarayıcıda tutar (`lib/image-value.ts` → `imagePatch`)
 - AI ile üretilen içerik **varsayılan olarak taslaktır**; kullanıcı onayı olmadan yayına alınmaz
 - Okunamayan/belirsiz veriyi AI'ya **tahmin ettirmeyin**; kullanıcıya işaretleyin
 - **Yönetim paneli** (`admin.buyur.in`, kurallar: [`docs/admin-panel.md`](./docs/admin-panel.md)): giriş = şifre + e-posta kodu. Admin'in PocketBase token'ı şifreli httpOnly çerezde durur (`lib/admin-session.ts`) ve **tarayıcıya verilmez**: `ADMIN_BYPASS` kuralı rol ayırmaz, rolü sunucu uygular. `ADMIN_SESSION_SECRET` (≥32 karakter) yoksa admin girişi kapalıdır

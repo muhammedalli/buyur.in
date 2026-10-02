@@ -57,7 +57,7 @@ Demo veriyi etkiliyorsa `scripts/seed-demo-menu.mjs`,
 
 ## B. Yeni route handler
 
-`app/api/upload/route.ts` referans akıştır. Sıra değişmez:
+`app/api/ai/images/route.ts` (+ `lib/ai/guard.ts`) referans akıştır. Sıra değişmez:
 
 ```ts
 export async function POST(req: NextRequest) {

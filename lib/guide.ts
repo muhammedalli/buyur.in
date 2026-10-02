@@ -56,7 +56,7 @@ export const GUIDE_STEPS: GuideStep[] = [
     title: msg("Logonuzu ve kapak görselinizi ekleyin"),
     body: msg("Logo menünün başında ve QR kartlarında, kapak görseli vitrin sayfanızın en üstünde görünür."),
     hint: msg("Görselin üzerine dokunup yükleyin; kaydetmeyi unutmayın."),
-    done: (business) => Boolean(business.logo_url) && Boolean(business.cover_url),
+    done: (business) => Boolean(business.logo) && Boolean(business.cover),
   },
   {
     id: "categories",

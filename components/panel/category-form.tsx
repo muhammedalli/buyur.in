@@ -8,6 +8,8 @@ import { ImageUploader } from "@/components/panel/image-uploader";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { useFormDraft } from "@/lib/use-draft";
 import { categoryNameTaken } from "@/lib/unique-name";
+import { CATEGORY_COLLECTION, categoryImageUrl } from "@/lib/files";
+import { imagePatch, restoreImageValue } from "@/lib/image-value";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Business, Category } from "@/lib/types";
 import { useUiLocale } from "@/components/ui-locale-provider";
@@ -15,7 +17,8 @@ import { useUiLocale } from "@/components/ui-locale-provider";
 interface CategoryDraft {
   name: string;
   description: string;
-  imageUrl: string;
+  /** Görsel alanı değeri (lib/image-value.ts). */
+  image: string;
   isActive: boolean;
   translations: Translations;
 }
@@ -24,7 +27,7 @@ function toDraft(initial?: Category): CategoryDraft {
   return {
     name: initial?.name ?? "",
     description: initial?.description ?? "",
-    imageUrl: initial?.image_url ?? "",
+    image: initial?.image ?? "",
     isActive: initial?.is_active ?? true,
     translations: initial?.translations ?? {},
   };
@@ -51,7 +54,7 @@ export function CategoryForm({
 
   const [name, setName] = useState(baseline.name);
   const [description, setDescription] = useState(baseline.description);
-  const [imageUrl, setImageUrl] = useState(baseline.imageUrl);
+  const [image, setImage] = useState(baseline.image);
   const [isActive, setIsActive] = useState(baseline.isActive);
   const [translations, setTranslations] = useState<Translations>(baseline.translations);
   const [error, setError] = useState("");
@@ -60,7 +63,7 @@ export function CategoryForm({
   const { toast } = useToast();
   const { t } = useUiLocale();
 
-  const current: CategoryDraft = { name, description, imageUrl, isActive, translations };
+  const current: CategoryDraft = { name, description, image, isActive, translations };
   const draft = useFormDraft(`category:${initial?.id ?? `new:${business.id}`}`, current, baseline, initial?.updated);
 
   // Kullanıcı formu düzelttikçe eski hata çubukta asılı kalmasın.
@@ -72,7 +75,7 @@ export function CategoryForm({
   function applyDraft(value: CategoryDraft) {
     setName(value.name);
     setDescription(value.description);
-    setImageUrl(value.imageUrl);
+    setImage(restoreImageValue(value.image, baseline.image));
     setIsActive(value.isActive);
     setTranslations(value.translations);
   }
@@ -95,10 +98,11 @@ export function CategoryForm({
         return;
       }
 
-      const payload = { name, description, image_url: imageUrl, is_active: isActive, translations };
+      // Görsel yalnızca değiştiyse gider; kaldırılan görseli PocketBase depodan da siler.
+      const payload = { name, description, is_active: isActive, translations, ...imagePatch(image, name, "image") };
       const record = initial
-        ? await pb.collection("buyur_categories").update<Category>(initial.id, payload)
-        : await pb.collection("buyur_categories").create<Category>({ ...payload, business: business.id, order: order ?? 0 });
+        ? await pb.collection(CATEGORY_COLLECTION).update<Category>(initial.id, payload)
+        : await pb.collection(CATEGORY_COLLECTION).create<Category>({ ...payload, business: business.id, order: order ?? 0 });
       draft.clear();
       // Form kayıtla birebir aynı hâle gelir; "kaydedilmemiş değişiklik" kalmaz.
       applyDraft(toDraft(record));
@@ -139,7 +143,13 @@ export function CategoryForm({
         {/* Üstte solda kare görsel */}
         <div className="w-32">
           <Label>{t("Kategori görseli")}</Label>
-          <ImageUploader value={imageUrl} onChange={setImageUrl} businessId={business.id} kind="category" name={name} aspect="aspect-square" />
+          <ImageUploader
+            value={image}
+            onChange={setImage}
+            preset="category"
+            storedUrl={(fileName) => categoryImageUrl({ id: initial?.id ?? "", image: fileName })}
+            aspect="aspect-square"
+          />
         </div>
 
         {/* Altında dil sekmeleri — ana dil ilk sırada ve açık */}

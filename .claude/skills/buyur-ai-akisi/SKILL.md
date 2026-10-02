@@ -87,8 +87,8 @@ Türkçe ve eyleme dönük:
 ## Mevcut mimariyi kullan
 
 Yeni bir veri modeli veya paralel API katmanı kurma. Kategoriler
-`buyur_categories`, ürünler `buyur_products`, görseller `/api/upload` →
-MinIO, panel bileşenleri `components/panel/ui.tsx` kitinden (`AiButton` hazır).
+`buyur_categories`, ürünler `buyur_products`, AI'ın bulduğu ürün görseli
+bağlantı olarak `image_url`'de (indirilmez), elle yüklenen PocketBase dosya alanında, panel bileşenleri `components/panel/ui.tsx` kitinden (`AiButton` hazır).
 
 ## Kontrol listesi
 

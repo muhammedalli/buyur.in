@@ -16,6 +16,7 @@ import { AUDIT_LOG_INDEXES, AUDIT_LOG_NEW_FIELDS, AUDIT_LOG_RULES } from "./audi
 import { SETTINGS_COLLECTION, SETTINGS_FIELDS, SETTINGS_INDEXES, SETTINGS_RULES, SETTING_SEEDS } from "./settings-schema.mjs";
 import { HIGHLIGHT_VALUES, MENU_EXTRA_LANGUAGES_MAX, MENU_LOCALE_VALUES, STOREFRONT_FIELDS } from "./storefront-schema.mjs";
 import { PAYMENTS_COLLECTION, PAYMENTS_INDEXES, PAYMENTS_RULES, paymentFields } from "./payments-schema.mjs";
+import { imageFieldsFor } from "./image-schema.mjs";
 
 const PB_URL = process.env.POCKETBASE_API_URL;
 const PB_TOKEN = process.env.POCKETBASE_ADMIN_TOKEN;
@@ -264,8 +265,8 @@ async function main() {
       // Menüde görünen iletişim e-postası — giriş e-postasından farklıysa.
       // Aynıysa burada tutulmaz; emailVisibility ile giriş e-postası gösterilir.
       emailField("contact_email"),
-      text("logo_url", { max: 500 }),
-      text("cover_url", { max: 500 }),
+      // Logo ve kapak: PocketBase dosya alanları (scripts/image-schema.mjs).
+      ...imageFieldsFor(BUSINESS_COLLECTION),
       select("theme", [
         "paprika",
         "midnight",
@@ -357,7 +358,7 @@ async function main() {
       relation("business", businesses.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       text("name", { required: true, max: 120 }),
       text("description", { max: 300 }),
-      text("image_url", { max: 500 }),
+      ...imageFieldsFor("buyur_categories"),
       num("order", { onlyInt: true }),
       boolField("is_active"),
       json("translations"),
@@ -383,7 +384,7 @@ async function main() {
       text("name", { required: true, max: 150 }),
       text("description", { max: 600 }),
       num("price", { required: true, min: 0 }),
-      json("images"),
+      ...imageFieldsFor("buyur_products"),
       // Otomatik bulunan görselin kaynağı/lisansı — telif denetimi için saklanır.
       json("image_source"),
       num("prep_time_min", { min: 0, onlyInt: true }),
@@ -459,7 +460,7 @@ async function main() {
       relation("business", businesses.id, { required: true, cascadeDelete: true, maxSelect: 1 }),
       text("title", { required: true, max: 120 }),
       text("message", { max: 400 }),
-      text("image_url", { max: 500 }),
+      ...imageFieldsFor("buyur_popups"),
       boolField("is_active"),
       dateField("starts_at"),
       dateField("ends_at"),

@@ -7,6 +7,7 @@ import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useAnimatedClose } from "@/lib/use-animated-close";
 import { ChevronRightIcon, StarIcon } from "@/components/icons";
 import { ProductPlaceholder } from "@/components/menu/placeholder-art";
+import { businessLogoUrl, categoryImageUrl } from "@/lib/files";
 
 export function CategoryDrawer({ onClose }: { onClose: () => void }) {
   const { business, base, categories, imageByCategory, productCountByCategory, t, tf } = useMenu();
@@ -24,10 +25,10 @@ export function CategoryDrawer({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-center justify-between gap-3 border-b border-line/40 px-5 py-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            {business.logo_url ? (
+            {businessLogoUrl(business, "small") ? (
               <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-xl border border-line/50 bg-paper shadow-xs">
                 <picture>
-                  <img src={business.logo_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                  <img src={businessLogoUrl(business, "small")} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                 </picture>
               </span>
             ) : null}
@@ -48,7 +49,7 @@ export function CategoryDrawer({ onClose }: { onClose: () => void }) {
           {categories.map((cat) => {
             const href = `${base}/categories/${cat.id}`;
             const active = pathname === href;
-            const image = cat.image_url || imageByCategory.get(cat.id);
+            const image = categoryImageUrl(cat) || imageByCategory.get(cat.id);
             const count = productCountByCategory.get(cat.id) ?? 0;
             return (
               <Link

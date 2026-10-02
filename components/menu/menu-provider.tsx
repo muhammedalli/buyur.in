@@ -49,6 +49,7 @@ import { BusinessInfoSheet, hasBusinessInfo } from "@/components/menu/business-i
 import { PoweredBy } from "@/components/powered-by";
 import { PLATFORM_BRANDING, showsPlatformSignature } from "@/lib/branding";
 import { ArrowLeftIcon, InfoIcon, MenuIcon, SearchIcon, ShoppingBagIcon, StarIcon } from "@/components/icons";
+import { businessLogoUrl, hasProductImage, productImageUrl } from "@/lib/files";
 
 /** Sepete eklemenin nereden geldiği: menüdeki ürün kartı ya da "yanına içecek" önerisi. */
 type AddSource = "menu" | "upsell";
@@ -224,10 +225,10 @@ function MenuHeader({
           aria-label={`${tf(business, "name")} — ${t("menuHomeAria")}`}
           className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 max-w-[60%] flex-col items-center gap-1 text-center transition-opacity hover:opacity-85"
         >
-          {business.logo_url ? (
+          {businessLogoUrl(business, "small") ? (
             <span className="relative block h-8 w-8 overflow-hidden rounded-xl border border-line/50 bg-paper shadow-xs">
               <picture>
-                <FadeImg src={business.logo_url} alt="" loading="eager" className="absolute inset-0 h-full w-full object-cover" />
+                <FadeImg src={businessLogoUrl(business, "small")} alt="" loading="eager" className="absolute inset-0 h-full w-full object-cover" />
               </picture>
             </span>
           ) : null}
@@ -418,7 +419,7 @@ export function MenuProvider({
   const imageByCategory = useMemo(() => {
     const map = new Map<string, string>();
     for (const p of products) {
-      if (!map.has(p.category) && p.images?.[0]) map.set(p.category, p.images[0]);
+      if (!map.has(p.category) && hasProductImage(p)) map.set(p.category, productImageUrl(p, "card"));
     }
     return map;
   }, [products]);

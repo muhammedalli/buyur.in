@@ -1,7 +1,7 @@
 # Mimari
 
-buyur tek bir Next.js 15 (App Router) uygulamasıdır; veri PocketBase'de, dosyalar MinIO'da
-durur. Kod yazmadan önce [`CLAUDE.md`](../CLAUDE.md) okunur; bu dosya haritayı ve veri akışını
+buyur tek bir Next.js 15 (App Router) uygulamasıdır; veri ve görsel dosyaları PocketBase'de
+(dosyaların deposu PocketBase'in S3 ayarıyla MinIO) durur. Kod yazmadan önce [`CLAUDE.md`](../CLAUDE.md) okunur; bu dosya haritayı ve veri akışını
 özetler.
 
 ## Dört yüz

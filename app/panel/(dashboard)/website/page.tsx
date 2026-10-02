@@ -43,8 +43,8 @@ const WELCOME_CONTENT = [
 
 function missingFields(business: Business) {
   return [
-    { key: "cover_url", label: msg("Kapak görseli"), filled: Boolean(business.cover_url) },
-    { key: "logo_url", label: msg("Logo"), filled: Boolean(business.logo_url) },
+    { key: "cover", label: msg("Kapak görseli"), filled: Boolean(business.cover) },
+    { key: "logo", label: msg("Logo"), filled: Boolean(business.logo) },
     { key: "description", label: msg("İşletme açıklaması"), filled: Boolean(business.description) },
     { key: "working_hours", label: msg("Çalışma saatleri"), filled: Boolean(business.working_hours) },
     { key: "address", label: msg("Adres"), filled: Boolean(business.address) },

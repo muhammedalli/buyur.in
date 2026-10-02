@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/format";
 import { useMenu } from "@/components/menu/menu-provider";
 import { CheckCircleIcon } from "@/components/icons";
 import type { Product } from "@/lib/types";
+import { productImageUrl } from "@/lib/files";
 
 /** Görünür kalma süresi — müşteri dokunmazsa kendiliğinden kapanır. */
 const AUTO_CLOSE_MS = 9000;
@@ -54,7 +55,7 @@ export function UpsellSheet({
 
           <ul className="mt-3 space-y-2">
             {items.map((product) => {
-              const image = product.images?.[0];
+              const image = productImageUrl(product, "card");
               return (
                 <li key={product.id} className="flex items-center gap-3">
                   <span className="relative block h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-crema">

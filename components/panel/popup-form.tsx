@@ -6,6 +6,8 @@ import { useToast } from "@/components/panel/toast";
 import { Card, FORM_STACK, FormActions, Label } from "@/components/panel/ui";
 import { ImageUploader } from "@/components/panel/image-uploader";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
+import { POPUP_COLLECTION, popupImageUrl } from "@/lib/files";
+import { imagePatch } from "@/lib/image-value";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Business, Popup } from "@/lib/types";
 import { useUiLocale } from "@/components/ui-locale-provider";
@@ -13,7 +15,8 @@ import { useUiLocale } from "@/components/ui-locale-provider";
 interface PopupValues {
   title: string;
   message: string;
-  imageUrl: string;
+  /** Görsel alanı değeri (lib/image-value.ts). */
+  image: string;
   isActive: boolean;
   translations: Translations;
 }
@@ -22,7 +25,7 @@ function toValues(popup?: Popup): PopupValues {
   return {
     title: popup?.title ?? "",
     message: popup?.message ?? "",
-    imageUrl: popup?.image_url ?? "",
+    image: popup?.image ?? "",
     isActive: popup?.is_active ?? true,
     translations: popup?.translations ?? {},
   };
@@ -46,7 +49,7 @@ export function PopupForm({
   );
   const [title, setTitle] = useState(baseline.title);
   const [message, setMessage] = useState(baseline.message);
-  const [imageUrl, setImageUrl] = useState(baseline.imageUrl);
+  const [image, setImage] = useState(baseline.image);
   const [isActive, setIsActive] = useState(baseline.isActive);
   const [translations, setTranslations] = useState<Translations>(baseline.translations);
   const [saving, setSaving] = useState(false);
@@ -55,7 +58,7 @@ export function PopupForm({
   const { toast } = useToast();
   const { t } = useUiLocale();
 
-  const currentJson = JSON.stringify({ title, message, imageUrl, isActive, translations } satisfies PopupValues);
+  const currentJson = JSON.stringify({ title, message, image, isActive, translations } satisfies PopupValues);
   const dirty = currentJson !== JSON.stringify(baseline);
 
   // Kullanıcı formu düzelttikçe eski hata çubukta asılı kalmasın.
@@ -73,22 +76,16 @@ export function PopupForm({
     setError("");
     setSaving(true);
     try {
-      const payload = {
-        business: business.id,
-        title,
-        message,
-        image_url: imageUrl,
-        is_active: isActive,
-        translations,
-      };
+      // Görsel yalnızca değiştiyse gider; kaldırılan görseli PocketBase depodan da siler.
+      const payload = { business: business.id, title, message, is_active: isActive, translations, ...imagePatch(image, title, "image") };
       const record = initial
-        ? await pb.collection("buyur_popups").update<Popup>(initial.id, payload)
-        : await pb.collection("buyur_popups").create<Popup>(payload);
+        ? await pb.collection(POPUP_COLLECTION).update<Popup>(initial.id, payload)
+        : await pb.collection(POPUP_COLLECTION).create<Popup>(payload);
       // Form kayıtla birebir aynı hâle gelir; "kaydedilmemiş değişiklik" kalmaz.
       const saved = toValues(record);
       setTitle(saved.title);
       setMessage(saved.message);
-      setImageUrl(saved.imageUrl);
+      setImage(saved.image);
       setIsActive(saved.isActive);
       setTranslations(saved.translations);
       setSavedAt(Date.now());
@@ -116,7 +113,13 @@ export function PopupForm({
         {/* Üstte solda kare görsel */}
         <div className="w-32">
           <Label>{t("Görsel (opsiyonel)")}</Label>
-          <ImageUploader value={imageUrl} onChange={setImageUrl} businessId={business.id} kind="popup" name={title} aspect="aspect-square" />
+          <ImageUploader
+            value={image}
+            onChange={setImage}
+            preset="popup"
+            storedUrl={(fileName) => popupImageUrl({ id: initial?.id ?? "", image: fileName })}
+            aspect="aspect-square"
+          />
         </div>
         {/* Başlık ve mesaj dil bazlı — ana dil baz alan, diğerleri çeviri */}
         <MultiLangFields

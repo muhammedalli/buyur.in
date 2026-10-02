@@ -120,7 +120,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               name: product.name,
               description: product.description,
               price: product.price ?? 0,
-              images: product.image_url ? [product.image_url] : [],
+              // AI görseli bağlantı olarak kalır (izinli sağlayıcı: normalizeDraft).
+              image_url: product.image_url,
               image_source: product.image_url ? product.image_source : null,
               is_available: publish,
               order: planned.productOrderStart + index,

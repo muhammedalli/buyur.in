@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { uploadFile } from "@/lib/upload";
+import { IMAGE_ACCEPT, stageImageFile } from "@/lib/image-value";
 import { Button, Modal, Spinner } from "@/components/panel/ui";
 import { ImageIcon, SearchIcon, TrashIcon } from "@/components/icons";
 import { searchImageCandidates } from "@/lib/ai/find-image";
@@ -15,8 +15,10 @@ import { useUiLocale } from "@/components/ui-locale-provider";
 // Sonuçlar modalda gösterilir: satır arasına sıkışmış küçük ızgarada görselin
 // neye benzediği anlaşılmıyordu — seçim görsele bakarak yapılan bir karar.
 //
-// Seçilen görsel sağlayıcının kendi adresiyle kaydedilir; kaynak ve lisans
-// künyesi `onChange`'in ikinci parametresiyle çağırana geçer.
+// Seçilen görsel sağlayıcının kendi adresiyle (bağlantı olarak, indirilmeden)
+// kaydedilir; kaynak ve lisans künyesi `onChange`'in ikinci parametresiyle
+// çağırana geçer. "Kendi görselim" ise küçültülüp kayıtla birlikte MinIO'ya
+// yüklenir (lib/image-value.ts).
 // Arama başarısız olursa hiçbir şey engellenmez — ürün görselsiz oluşur.
 
 // Seçici çeşitlilik göstermeli; otomatik akıştaki 8 aday burada az kalır.
@@ -41,8 +43,8 @@ export function ImagePicker({
   const [query, setQuery] = useState(productName);
   const [images, setImages] = useState<ImageCandidate[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [configured, setConfigured] = useState(true);
   const [searched, setSearched] = useState(false);
   const [source, setSource] = useState<"all" | ImageCandidate["provider"]>("all");
@@ -82,18 +84,16 @@ export function ImagePicker({
   }
 
   async function handleUpload(file: File) {
-    setUploading(true);
-    try {
-      const url = await uploadFile(file, businessId, "product", productName);
-      // Kendi görselinde dış kaynak künyesi olmaz.
-      onChange(url, null);
-      onClose();
-    } catch {
-      // Yükleme hatası akışı durdurmaz; kullanıcı görselsiz devam edebilir.
+    setPreparing(true);
+    const result = await stageImageFile(file, "product");
+    setPreparing(false);
+    if ("error" in result) {
       setFailed(true);
-    } finally {
-      setUploading(false);
+      return;
     }
+    // Kendi görselinde dış kaynak künyesi olmaz.
+    onChange(result.value, null);
+    onClose();
   }
 
   return (
@@ -107,12 +107,12 @@ export function ImagePicker({
         <>
           <label className="mr-auto inline-flex cursor-pointer items-center gap-2 rounded-md border border-line bg-paper px-4 py-2 text-[13px] font-medium transition-colors hover:border-paprika hover:text-paprika">
             <ImageIcon size={15} />
-            {uploading ? t("Yükleniyor…") : t("Kendi görselim")}
+            {preparing ? t("Görsel hazırlanıyor…") : t("Kendi görselim")}
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept={IMAGE_ACCEPT}
               className="hidden"
-              disabled={uploading}
+              disabled={preparing}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleUpload(file);

@@ -9,6 +9,7 @@ import { useConfirm } from "@/components/panel/confirm-dialog";
 import { AiButton, Button, buttonClass, Card, EmptyState, FooterNote, PageHeader, UpdatedAt } from "@/components/panel/ui";
 import type { Category, Product } from "@/lib/types";
 import { useUiLocale } from "@/components/ui-locale-provider";
+import { hasProductImage, productImageUrl } from "@/lib/files";
 
 export default function ProductsPage() {
   const { business, isLoading: businessLoading } = useBusiness();
@@ -172,9 +173,9 @@ export default function ProductsPage() {
                 {items.map((product) => (
                   <Card key={product.id} className="flex flex-wrap items-center gap-x-4 gap-y-3">
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-crema">
-                      {product.images?.[0] && (
+                      {hasProductImage(product) && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />
+                        <img src={productImageUrl(product, "card")} alt={product.name} className="h-full w-full object-cover" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">

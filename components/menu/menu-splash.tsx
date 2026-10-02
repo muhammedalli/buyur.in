@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMenu } from "@/components/menu/menu-provider";
+import { businessCoverUrl, businessLogoUrl, categoryImageUrl } from "@/lib/files";
 
 // Menü ilk açılış süresi: görseller iner inmez açılır (güvenlik zaman aşımı 2 sn)
 const MAX_WAIT_MS = 2000;
@@ -140,9 +141,9 @@ export function MenuSplash() {
     }
 
     const urls = [
-      business.logo_url,
-      business.cover_url,
-      ...categories.slice(0, 4).map((c) => c.image_url || imageByCategory.get(c.id)),
+      businessLogoUrl(business, "small"),
+      businessCoverUrl(business),
+      ...categories.slice(0, 4).map((c) => categoryImageUrl(c) || imageByCategory.get(c.id)),
     ].filter((u): u is string => Boolean(u));
 
     let cancelled = false;

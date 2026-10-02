@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Business } from "@/lib/types";
+import { businessLogoUrl } from "@/lib/files";
 
 // Freemium limiti dolan işletmenin menüsü yerine gösterilen sayfa.
 // Hiçbir veri silinmez: menü, ürünler ve analizler yerinde durur; sahibi plana
@@ -7,9 +8,9 @@ import type { Business } from "@/lib/types";
 export function MenuUnavailable({ business }: { business: Business }) {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-paper px-6 text-center">
-      {business.logo_url ? (
+      {businessLogoUrl(business, "small") ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={business.logo_url} alt={business.name} className="h-16 w-16 rounded-2xl object-cover" />
+        <img src={businessLogoUrl(business, "small")} alt={business.name} className="h-16 w-16 rounded-2xl object-cover" />
       ) : null}
 
       <div>

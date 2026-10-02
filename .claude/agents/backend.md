@@ -1,6 +1,6 @@
 ---
 name: backend
-description: buyur'un tüm sunucu ve veri katmanından sorumlu. PocketBase şeması ve sorgular, /api route handler'ları ve güvenlik sınırı, middleware çok kiracılı yönlendirme, MinIO yükleme, analitik altyapısı (event → rollup → rapor), AI entegrasyonu (menü tarama, görsel bulma, çeviri), plan/yetki matrisi ve göç-seed scriptleri. Yeni alan, yeni uç nokta, yavaş sorgu, yanlış metrik, AI akışı veya özellik kilidi söz konusuysa kullanın.
+description: buyur'un tüm sunucu ve veri katmanından sorumlu. PocketBase şeması ve sorgular, /api route handler'ları ve güvenlik sınırı, middleware çok kiracılı yönlendirme, görsel dosya alanları (PocketBase + MinIO deposu), analitik altyapısı (event → rollup → rapor), AI entegrasyonu (menü tarama, görsel bulma, çeviri), plan/yetki matrisi ve göç-seed scriptleri. Yeni alan, yeni uç nokta, yavaş sorgu, yanlış metrik, AI akışı veya özellik kilidi söz konusuysa kullanın.
 tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 model: sonnet
 ---
@@ -12,7 +12,7 @@ Sen buyur'un **Backend** ajanısın. Üç şeyden sorumlusun: **veri doğruluğu
 
 | Bölge | Dosyalar |
 |---|---|
-| Veri erişimi | `lib/pocketbase.ts`, `lib/pocketbase-server.ts`, `lib/types.ts`, `lib/minio.ts` |
+| Veri erişimi | `lib/pocketbase.ts`, `lib/pocketbase-server.ts`, `lib/types.ts`, `lib/files.ts`, `scripts/image-schema.mjs` |
 | API | `app/api/**`, `middleware.ts` |
 | Analitik | `lib/analytics/**` |
 | Plan & yetki | `lib/entitlements.ts`, `lib/plan-catalog-loader.ts`, `lib/plan-period.ts`, `lib/pricing.ts`, `lib/upsell.ts` |
@@ -43,7 +43,7 @@ Koleksiyonlar (hepsi `buyur_` önekli): `businesses`, `categories`, `products`,
 
 ## 2. Route handler sırası — değişmez
 
-`app/api/upload/route.ts` referans akıştır.
+`app/api/ai/images/route.ts` (+ `lib/ai/guard.ts`) referans akıştır.
 
 ```ts
 // 1) Authorization başlığı yok            → 401

@@ -64,8 +64,10 @@ export interface Business {
   emailVisibility?: boolean;
   /** Menüde görünen iletişim e-postası — giriş e-postasından farklıysa. */
   contact_email?: string;
-  logo_url: string;
-  cover_url: string;
+  /** Logo ve kapak: PocketBase dosya alanı, değer dosya adıdır. Adres
+   *  lib/files.ts ile kurulur (businessLogoUrl / businessCoverUrl). */
+  logo: string;
+  cover: string;
   theme: string;
   /** Özel marka rengi (hex). Doluysa preset `theme` yerine bu kullanılır. */
   theme_color?: string;
@@ -289,7 +291,8 @@ export interface Category {
   business: string;
   name: string;
   description: string;
-  image_url: string;
+  /** Dosya adı — adres: lib/files.ts → categoryImageUrl. */
+  image: string;
   order: number;
   is_active: boolean;
   translations?: Translations;
@@ -304,7 +307,12 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  images: string[];
+  /** Elle yüklenen görselin dosya adı. Adres her zaman lib/files.ts →
+   *  productImageUrl ile okunur (dosya yoksa image_url'e düşer). */
+  image: string;
+  /** AI'ın bulduğu görselin sağlayıcı bağlantısı (indirilmez). `image`
+   *  doluysa boştur — ikisi aynı anda dolu olmaz. */
+  image_url: string;
   /** Otomatik bulunan görselin kaynağı ve lisansı. Kullanıcı kendi görselini
    *  yüklediyse null — künye yalnızca dış kaynaklı görseller için tutulur. */
   image_source?: ProductImageSource | null;
@@ -342,7 +350,8 @@ export interface Popup {
   business: string;
   title: string;
   message: string;
-  image_url: string;
+  /** Dosya adı — adres: lib/files.ts → popupImageUrl. */
+  image: string;
   is_active: boolean;
   starts_at: string;
   ends_at: string;

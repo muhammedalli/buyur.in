@@ -2,6 +2,7 @@ import { mainLocale, tField, type Locale } from "@/lib/i18n";
 import type { Business, Category, Product } from "@/lib/types";
 import { telHref, whatsappDigits } from "@/lib/phone";
 import { publicContactEmail } from "@/lib/business-account";
+import { businessCoverUrl, businessLogoUrl, hasProductImage, productImageUrl } from "@/lib/files";
 
 // Otomatik web sitesinin içerik türetimi.
 //
@@ -80,7 +81,7 @@ function featuredProducts(products: Product[], limit: number): Product[] {
       const badgeScore = Math.min(
         ...[...(product.badges ?? []).map((badge) => BADGE_PRIORITY[badge] ?? 9), 9]
       );
-      return { product, badgeScore, hasImage: (product.images?.[0] ? 0 : 1) };
+      return { product, badgeScore, hasImage: (hasProductImage(product) ? 0 : 1) };
     });
 
   return scored
@@ -213,19 +214,20 @@ export function buildSiteContent({ business, categories, products, rich }: SiteC
 
   const featured = featuredProducts(available, rich ? 8 : 4);
   const gallery = rich
-    ? Array.from(new Set(available.flatMap((product) => product.images ?? []).filter(Boolean))).slice(0, 12)
+    ? Array.from(new Set(available.map((product) => productImageUrl(product, "card")).filter(Boolean))).slice(0, 12)
     : [];
 
   const hours = hourLines(business);
   const reservation = reservationAction(business);
   const contact = contactLinks(business);
-  const heroImage = business.cover_url || featured.find((product) => product.images?.[0])?.images?.[0] || null;
+  const heroProduct = featured.find(hasProductImage);
+  const heroImage = businessCoverUrl(business) || (heroProduct ? productImageUrl(heroProduct) : "") || null;
 
   return {
     business,
     hero: {
       image: heroImage,
-      logo: business.logo_url || null,
+      logo: businessLogoUrl(business, "small") || null,
     },
     // Gösterge amaçlı: yalnızca "en az bir ifade üretilebiliyor mu" — işletmenin
     // ana dilinde hesaplanır, gerçek gösterim seçili dile göre yeniden türetilir.

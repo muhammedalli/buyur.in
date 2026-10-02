@@ -88,7 +88,7 @@ export const DOC_GUIDES: DocGuide[] = [
     title: "Kategori ve ürün yönetimi",
     summary: "Kategoriler, ürünler, seçenekler, görseller, alerjenler ve stok durumu.",
     group: "Menü",
-    updated: D,
+    updated: "2026-10-02",
     sections: [
       {
         heading: "Kategoriler",
@@ -102,7 +102,7 @@ export const DOC_GUIDES: DocGuide[] = [
         steps: [
           "Ürünler → Yeni ürün.",
           "Adı ve açıklamayı ana dilde yazın; fiyatı ve kategoriyi seçin.",
-          "Görsel: yeni üründe ad yazıldıkça uygun bir görsel otomatik aranır. Beğenmezseniz kendi fotoğrafınızı yükleyin (en fazla 5 MB).",
+          "Görsel: yeni üründe ad yazıldıkça uygun bir görsel otomatik aranır. Beğenmezseniz kendi fotoğrafınızı yükleyin; büyük fotoğraf menüye uygun boyuta otomatik küçültülür. Seçtiğiniz görsel kaydettiğinizde yüklenir; kaldırdığınız ya da değiştirdiğiniz görsel depodan da silinir.",
           "İsterseniz hazırlık süresi, kalori, alerjen ve rozet ekleyin.",
           "Kaydet'e basın. Kaydetmeden çıkarsanız yazdıklarınız taslak olarak saklanır; yarım bilgi canlı menüye yazılmaz.",
         ],

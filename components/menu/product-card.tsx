@@ -9,6 +9,7 @@ import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, PlusIcon } from "@/co
 import { FadeImg } from "@/components/menu/fade-img";
 import { ProductPlaceholder } from "@/components/menu/placeholder-art";
 import { useMenu } from "@/components/menu/menu-provider";
+import { productImageUrl } from "@/lib/files";
 
 export function ProductCard({
   product,
@@ -66,7 +67,7 @@ export function ProductCard({
   }
 
   const finalPrice = hasDiscount ? product.price * (1 - product.discount_percent / 100) : product.price;
-  const image = product.images?.[0];
+  const image = productImageUrl(product, "card");
   const isGrid = template === "grid";
   const name = tf(product, "name");
   const description = tf(product, "description");

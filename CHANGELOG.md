@@ -3,6 +3,24 @@
 > Bu dosya `lib/release-notes.ts`'ten üretilir (`bun run changelog`). Elle düzenlemeyin.
 > Kullanıcıya görünen hâli: https://buyur.in/docs/surum-notlari
 
+## [0.12.0] — 2026-10-02
+
+**Yüklediğiniz görseller otomatik küçülüyor, menünüz daha hızlı açılıyor**
+
+- **Yeni:** Yüklediğiniz fotoğraf, menüde gösterileceği boyuta otomatik küçültülür. Telefonla çektiğiniz büyük fotoğrafları da doğrudan yükleyebilirsiniz; menünüz misafirin telefonunda daha hızlı açılır.
+- **İyileştirme:** Logo, kapak, kategori, ürün ve kampanya görselleriniz menünüzle aynı yerde, güvenle saklanıyor. Menü listelerinde görsellerin telefona uygun küçük boyu gösteriliyor.
+- **Yeni:** Ayarlar'da logoyu ve kapak görselini kaldırabilirsiniz. Kaldırdığınız ya da değiştirdiğiniz görsel depodan da silinir, eski dosya birikmez.
+- **İyileştirme:** Seçtiğiniz görsel artık Kaydet'e bastığınızda yükleniyor: yarım bıraktığınız bir form menünüze görsel yazmaz.
+
+Geliştirici notu:
+
+- Model (scripts/image-schema.mjs): elle yüklenen görsel → PocketBase file alanı (buyur_businesses.logo/cover, buyur_categories.image, buyur_products.image, buyur_popups.image; maxSelect 1, 5MB, jpeg/png/webp/gif/avif, thumbs logo 256x256f, ürün/kategori 640x640f). Depo PocketBase'in S3 ayarı (MinIO, bucket buyur, dışa kapalı; dosyayı PB /api/files servis eder). Alan temizlenince/değişince ya da kayıt silinince PB dosyayı depodan siler (yerel PB 0.39.4'te doğrulandı; silme işlem sonrası asenkron). AI'ın bulduğu ürün görseli → buyur_products.image_url (text) bağlantı olarak, indirilmez; ikisinden biri dolu.
+- Küçültme tarayıcıda (lib/image-resize.ts, ölçüler IMAGE_PRESETS): logo 512, kapak 1920, ürün 1200, kategori 800, pop-up 1080 px en uzun kenar; WebP (saydamlık korunur), WebP kodlayamayan tarayıcıda JPEG/PNG; EXIF yönü uygulanır; GIF dokunulmaz; küçülen dosya büyürse özgün kalır. Kaynak sınırı 25MB, çıktı 5MB. Headless Chromium'da: 4032x3024 JPEG → 1200x900 WebP ~0,1 sn.
+- Adres lib/files.ts (productImageUrl: dosya → yoksa image_url; hasProductImage). Form değeri lib/image-value.ts: "" kaldır, blob: seçilmiş dosya, https AI bağlantısı, diğer mevcut dosya adı; kayıt yükü imagePatch(value, ad, dosyaAlanı, bağlantıAlanı?) yalnızca değişeni yazar. Taslaktan dönen ölü blob kayıtlı görseli silmez.
+- Kaldırılanlar: /api/upload, lib/upload.ts, lib/minio.ts, tests/upload-path.test.ts; uygulama MINIO_* okumaz (yalnızca göç scripti). Sözleşme: tests/image-files.test.ts.
+- YAYIN SIRASI: (1) scripts/migrate-image-files.mjs --dry-run, sonra gerçek (MINIO_ENDPOINT + geçerli MINIO_ACCESS_KEY/SECRET_KEY zorunlu: eski s3.harbidigital.com/buyur/<slug>/… yüklemeleri dışa kapalı, anahtarla okunur, sharp ile küçültülüp dosya alanına yüklenir; ürünlerdeki Pexels/Wikimedia bağlantıları image_url'e kopyalanır). (2) deploy. (3) göçü bir kez daha. (4) kontrol sonrası --drop-legacy (taşınamayan varsa durur; --force): eski MinIO kopyalarını siler, logo_url/cover_url/kategori-pop-up image_url/ürün images alanlarını kaldırır.
+- Canlı göç (2026-10-02): 195 AI görseli image_url'e yazıldı. Eski 40 MinIO yüklemesi (Prime Grill 27, Ünal Kebap 3; Demo, Reality Döner, Zeus Garden, Invest Garden, İkizdere Kaymakamlığı logo+kapak) bucket'ta yok — buyur bucket'ı PocketBase bağlanırken boş yeniden kurulmuş, sürümleme kapalı. Kararla gözden çıkarıldı: yeniden yüklenecek, eski alanlar --drop-legacy --force ile kaldırılacak.
+
 ## [0.11.0] — 2026-09-27
 
 **buyur ekibi hesabınızı ve menünüzü sizin için kurabiliyor**

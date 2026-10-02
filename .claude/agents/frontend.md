@@ -70,7 +70,7 @@ const [confirm, confirmDialog] = useConfirm();
    elle `plan === "premium"` yazma. Kilitli özelliği **gizleme** —
    `UpgradeNotice` ile görünür bırak.
 6. **Çok dilli alanlar `MultiLangFields` ile.**
-7. **Görsel yükleme `/api/upload` üzerinden**, `ImageUploader` bileşeniyle.
+7. **Görsel `ImageUploader` ile seçilir** (`preset` ile tarayıcıda küçültülür), kayıtla birlikte PocketBase dosya alanına gider (`lib/image-value.ts` → `imagePatch`); AI görseli bağlantı olarak `image_url`'e. Gösterim adresi her zaman `lib/files.ts` (listelerde küçük boy).
 
 ---
 

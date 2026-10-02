@@ -4,6 +4,7 @@ import type { Popup } from "@/lib/types";
 import { useMenu } from "@/components/menu/menu-provider";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useAnimatedClose } from "@/lib/use-animated-close";
+import { popupImageUrl } from "@/lib/files";
 
 export function PopupModal({ popup, onClose }: { popup: Popup; onClose: () => void }) {
   const { t, tf } = useMenu();
@@ -19,10 +20,10 @@ export function PopupModal({ popup, onClose }: { popup: Popup; onClose: () => vo
         className={`w-full max-w-sm overflow-hidden rounded-2xl bg-paper shadow-2xl ${closing ? "pop-out" : "pop-in"}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {popup.image_url && (
+        {popup.image && (
           <div className="relative h-40 w-full">
             <picture>
-              <img src={popup.image_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={popupImageUrl(popup)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
             </picture>
           </div>
         )}

@@ -3,6 +3,7 @@
 import { localeCodes, localeLabels, type Locale } from "@/lib/i18n";
 import { useMenu } from "@/components/menu/menu-provider";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
+import { businessLogoUrl } from "@/lib/files";
 
 // İlk ziyarette gösterilen dil seçim modalı — kampanya popup'ından önce gelir.
 // Ziyaretçi bir dil seçince kapanır ve seçim hatırlanır.
@@ -15,10 +16,10 @@ export function LanguageModal({ onPick }: { onPick: (locale: Locale) => void }) 
     <div className="fade-in fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-5">
       <div className="pop-in w-full max-w-sm overflow-hidden rounded-2xl bg-paper shadow-2xl">
         <div className="flex flex-col items-center gap-2 px-6 pt-7 text-center">
-          {business.logo_url ? (
+          {businessLogoUrl(business, "small") ? (
             <span className="relative mb-1 block h-14 w-14 overflow-hidden rounded-2xl border border-line bg-paper">
               <picture>
-                <img src={business.logo_url} alt="" loading="eager" className="absolute inset-0 h-full w-full object-cover" />
+                <img src={businessLogoUrl(business, "small")} alt="" loading="eager" className="absolute inset-0 h-full w-full object-cover" />
               </picture>
             </span>
           ) : null}

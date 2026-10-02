@@ -16,6 +16,7 @@ import { formatPrice } from "@/lib/format";
 import { badgeLabels } from "@/lib/labels";
 import { isRTLLocale } from "@/lib/i18n";
 import type { Category, Product } from "@/lib/types";
+import { categoryImageUrl, productImageUrl } from "@/lib/files";
 
 /** İşletmenin kayan yazısı (Ayarlar → Kayan yazı) — menünün en üstünde, kapalıysa hiç çizilmez. */
 function MenuMarquee() {
@@ -84,7 +85,7 @@ function CategoryTile({
 /** Öne çıkan ürün kartı */
 function FeaturedCard({ product, index }: { product: Product; index: number }) {
   const { base, locale, tf } = useMenu();
-  const image = product.images?.[0];
+  const image = productImageUrl(product, "card");
   const hasDiscount = product.discount_percent > 0;
   const finalPrice = hasDiscount ? product.price * (1 - product.discount_percent / 100) : product.price;
   const badge = product.badges?.[0];
@@ -266,7 +267,7 @@ export default function MenuCategoriesPage() {
               key={cat.id}
               index={index}
               category={cat}
-              image={cat.image_url || imageByCategory.get(cat.id)}
+              image={categoryImageUrl(cat) || imageByCategory.get(cat.id)}
               count={productCountByCategory.get(cat.id) ?? 0}
             />
           ))}

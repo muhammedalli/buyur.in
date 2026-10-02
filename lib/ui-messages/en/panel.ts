@@ -86,7 +86,11 @@ export const PANEL_MESSAGES_EN: Catalog = {
   "Adres & iletişim": "Address & contact",
   "Sosyal medya": "Social media",
   "Panel": "Panel",
-  "Görsel yüklenemedi, tekrar dene.": "Image couldn't be uploaded, try again.",
+  "Logoyu kaldır": "Remove logo",
+  "Görsel hazırlanıyor…": "Preparing image…",
+  "Dosya en fazla 25MB olabilir.": "The file can be at most 25MB.",
+  "Görsel okunamadı, başka bir dosya deneyin.": "The image couldn't be read, try another file.",
+  "Görsel küçültüldükten sonra da 5MB'ı aşıyor, daha küçük bir dosya deneyin.": "The image is still over 5MB after resizing, try a smaller file.",
   "Kapak": "Cover",
   "Kapak görseli yok": "No cover image",
   "Kapağı değiştir": "Change cover",
@@ -588,12 +592,9 @@ export const PANEL_MESSAGES_EN: Catalog = {
   // panel/language-switcher
   "Seçili": "Selected",
   // panel/image-uploader
-  "Görsel yüklendi": "Image uploaded",
-  "Görsel kaldırıldı": "Image removed",
   "Görsel yok": "No image",
   "Görseli kaldır": "Remove image",
   "Görsel yükle": "Upload image",
-  "Yüklenemedi, tekrar dene.": "Couldn't upload, try again.",
   // panel/ui
   "İşleniyor": "Processing",
   "Yapay Zeka ile Tara": "Scan with AI",
@@ -689,7 +690,6 @@ export const PANEL_MESSAGES_EN: Catalog = {
   "Bu adda bir kategoriniz zaten var. Farklı bir ad girin.": "You already have a category with this name. Enter a different name.",
   "Bu adda bir ürününüz zaten var. Farklı bir ad girin.": "You already have a product with this name. Enter a different name.",
   // upload
-  "Yükleme başarısız oldu.": "Upload failed.",
   // ai/guard
   "Giriş yapmalısınız.": "You need to log in.",
   "Oturum geçersiz.": "Invalid session.",
@@ -729,10 +729,7 @@ export const PANEL_MESSAGES_EN: Catalog = {
   "Çok fazla deneme yapıldı. Biraz sonra tekrar dene.": "Too many attempts. Try again shortly.",
   "Şifre güncellenemedi, tekrar dene.": "The password couldn't be updated, try again.",
   // api/upload/route
-  "Dosya bulunamadı.": "File not found.",
   "Sadece görsel dosyaları yüklenebilir (jpg, png, webp, gif, avif).": "Only image files can be uploaded (jpg, png, webp, gif, avif).",
-  "Dosya en fazla 5MB olabilir.": "The file can be at most 5MB.",
-  "Önce işletme kurulumunu tamamla.": "Complete your business setup first.",
   // api/ai/translate/route
   "Çeviri için ana dil dışında en az bir menü dili açık olmalı (Ayarlar → Menü dilleri).": "To translate, at least one menu language other than the main language must be on (Settings → Menu languages).",
   "Çevrilecek metin yok. Önce ana dildeki alanları doldurun.": "There's nothing to translate. Fill in the fields in the main language first.",

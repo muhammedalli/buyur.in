@@ -13,6 +13,9 @@ import type { ProductImageSource } from "@/lib/ai/image-source";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { useFormDraft } from "@/lib/use-draft";
 import { productNameTaken } from "@/lib/unique-name";
+import { PRODUCT_COLLECTION, productImageUrl } from "@/lib/files";
+import { imagePatch, imageValueOf, restoreImageValue } from "@/lib/image-value";
+import { productImageLabel } from "@/scripts/image-schema.mjs";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Allergen, Badge, Business, Category, Product } from "@/lib/types";
 import { useUiLocale } from "@/components/ui-locale-provider";
@@ -34,6 +37,7 @@ interface ProductDraft {
   name: string;
   description: string;
   price: string;
+  /** Görsel alanı değeri (lib/image-value.ts). */
   image: string;
   imageSource: ProductImageSource | null;
   prepMin: string;
@@ -53,7 +57,7 @@ function toDraft(initial: Product | undefined, categories: Category[]): ProductD
     name: initial?.name ?? "",
     description: initial?.description ?? "",
     price: initial?.price?.toString() ?? "",
-    image: initial?.images?.[0] ?? "",
+    image: imageValueOf(initial?.image, initial?.image_url),
     imageSource: initial?.image_source ?? null,
     prepMin: initial?.prep_time_min ? initial.prep_time_min.toString() : initial ? "0" : "",
     prepMax: initial?.prep_time_max ? initial.prep_time_max.toString() : initial ? "0" : "",
@@ -129,7 +133,7 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
     setName(value.name);
     setDescription(value.description);
     setPrice(value.price);
-    setImage(value.image);
+    setImage(restoreImageValue(value.image, baseline.image));
     setImageSource(value.imageSource);
     setPrepMin(value.prepMin);
     setPrepMax(value.prepMax);
@@ -213,7 +217,6 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
       name,
       description,
       price: Number(price) || 0,
-      images: image ? [image] : [],
       // Görselin nereden geldiği ve hangi lisansla kullanıldığı ürünle birlikte
       // saklanır; kendi yüklediği görselde künye olmaz.
       image_source: image ? imageSource : null,
@@ -238,9 +241,12 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         return;
       }
 
+      // Görsel yalnızca değiştiyse gider: yüklenen dosya MinIO'ya (eskisini
+      // PocketBase depodan siler), AI'ın bulduğu görsel bağlantı olarak.
+      const body = { ...payload, ...imagePatch(image, productImageLabel(categoryName, name), "image", "image_url") };
       const record = initial
-        ? await pb.collection("buyur_products").update<Product>(initial.id, payload)
-        : await pb.collection("buyur_products").create<Product>({ ...payload, order: 999 });
+        ? await pb.collection(PRODUCT_COLLECTION).update<Product>(initial.id, body)
+        : await pb.collection(PRODUCT_COLLECTION).create<Product>({ ...body, order: 999 });
       draft.clear();
       // Form kayıtla birebir aynı hâle getirilir (ör. "80.50" → 80.5); aksi
       // hâlde kayıttan sonra da "kaydedilmemiş değişiklik" görünürdü.
@@ -286,10 +292,9 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
               <Label>{t("Ürün görseli")}</Label>
               <ImageUploader
                 value={image}
-                onChange={(url) => applyManualImage(url, null)}
-                businessId={business.id}
-                kind="product"
-                name={name}
+                onChange={(value) => applyManualImage(value, null)}
+                preset="product"
+                storedUrl={(fileName) => productImageUrl({ id: initial?.id ?? "", image: fileName }, "card")}
                 aspect="aspect-square"
               />
             </div>

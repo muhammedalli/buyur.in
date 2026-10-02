@@ -5,7 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { ClientResponseError } from "pocketbase";
 import { pb } from "@/lib/pocketbase";
 import { useBusiness } from "@/components/panel/business-context";
-import { uploadFile, type UploadKind } from "@/lib/upload";
+import { businessCoverUrl, businessLogoUrl } from "@/lib/files";
+import { IMAGE_ACCEPT, imagePatch, imagePreviewUrl, stageImageFile } from "@/lib/image-value";
+import type { ImagePreset } from "@/lib/image-resize";
 import { isReservedSlug, slugify } from "@/lib/slug";
 import { themes } from "@/lib/themes";
 import { surfaces, DEFAULT_SURFACE } from "@/lib/surfaces";
@@ -29,6 +31,7 @@ import {
   PaletteIcon,
   ShareIcon,
   StarIcon,
+  TrashIcon,
 } from "@/components/icons";
 import {
   Button,
@@ -99,98 +102,116 @@ function TabFromUrl({ onTab }: { onTab: (tab: SettingsTab) => void }) {
 
 function ProfileImages({
   businessId,
-  logoUrl,
-  coverUrl,
+  logo,
+  cover,
   onLogo,
   onCover,
 }: {
   businessId: string;
-  logoUrl: string;
-  coverUrl: string;
-  onLogo: (url: string) => void;
-  onCover: (url: string) => void;
+  /** Görsel alanı değerleri (lib/image-value.ts). */
+  logo: string;
+  cover: string;
+  onLogo: (value: string) => void;
+  onCover: (value: string) => void;
 }) {
   const { t } = useUiLocale();
   const { toast } = useToast();
-  const [logoBusy, setLogoBusy] = useState(false);
-  const [coverBusy, setCoverBusy] = useState(false);
+  const logoPreview = imagePreviewUrl(logo, (fileName) => businessLogoUrl({ id: businessId, logo: fileName }, "small"));
+  const coverPreview = imagePreviewUrl(cover, (fileName) => businessCoverUrl({ id: businessId, cover: fileName }));
 
-  async function upload(
-    files: FileList | null,
-    kind: UploadKind,
-    setBusy: (b: boolean) => void,
-    onChange: (url: string) => void
-  ) {
+  const [busy, setBusy] = useState<ImagePreset | null>(null);
+
+  // Seçilen dosya küçültülür ve kaydet'e kadar formda bekler; kayıtla birlikte yüklenir.
+  async function pick(files: FileList | null, preset: "logo" | "cover", onChange: (value: string) => void) {
     const file = files?.[0];
     if (!file) return;
-    setBusy(true);
-    try {
-      onChange(await uploadFile(file, businessId, kind));
-    } catch (err) {
-      toast(err instanceof Error ? t(err.message) : t("Görsel yüklenemedi, tekrar dene."), "error");
-    } finally {
-      setBusy(false);
-    }
+    setBusy(preset);
+    const result = await stageImageFile(file, preset);
+    setBusy(null);
+    if ("error" in result) toast(t(result.error), "error");
+    else onChange(result.value);
   }
 
   return (
     <div className="pb-2">
       {/* Kapak */}
       <div className="relative h-36 w-full overflow-hidden rounded-md border border-line bg-crema/40 sm:h-44">
-        {coverUrl ? (
+        {coverPreview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverUrl} alt={t("Kapak")} className="h-full w-full object-cover" />
+          <img src={coverPreview} alt={t("Kapak")} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-ink-soft">{t("Kapak görseli yok")}</div>
         )}
-        {coverBusy && (
-          <div className="absolute inset-0 flex items-center justify-center bg-ink/40">
+        {busy === "cover" && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-ink/40">
             <Spinner className="h-7 w-7 text-paper" />
           </div>
         )}
-        {!coverBusy && (
-          <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
-            <span className="text-xs font-medium">
-              {coverUrl ? t("Kapağı değiştir") : t("Kapak yükle")}
-            </span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
-              className="hidden"
-              onChange={(e) => upload(e.target.files, "cover", setCoverBusy, onCover)}
-            />
-          </label>
+        <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
+          <span className="text-xs font-medium">
+            {coverPreview ? t("Kapağı değiştir") : t("Kapak yükle")}
+          </span>
+          <input
+            type="file"
+            accept={IMAGE_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              void pick(e.target.files, "cover", onCover);
+              e.target.value = "";
+            }}
+          />
+        </label>
+        {coverPreview && (
+          <button
+            type="button"
+            onClick={() => onCover("")}
+            aria-label={t("Görseli kaldır")}
+            title={t("Görseli kaldır")}
+            className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-ink/70 text-paper shadow-sm backdrop-blur-sm transition-colors hover:bg-paprika"
+          >
+            <TrashIcon size={14} />
+          </button>
         )}
       </div>
 
       {/* Logo — kapağın sol altına biner */}
-      <div className="relative z-10 -mt-12 ml-5 h-24 w-24">
-        <div className="relative h-full w-full overflow-hidden rounded-full border-4 border-paper bg-crema shadow-md">
-          {logoUrl ? (
+      <div className="relative z-10 -mt-12 ml-5 flex items-end gap-2">
+        <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-paper bg-crema shadow-md">
+          {logoPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={t("Logo")} className="h-full w-full object-cover" />
+            <img src={logoPreview} alt={t("Logo")} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center text-center text-[10px] leading-tight text-ink-soft">
               {t("Logo yok")}
             </div>
           )}
-          {logoBusy && (
-            <div className="absolute inset-0 flex items-center justify-center bg-ink/40">
+          {busy === "logo" && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-ink/40">
               <Spinner className="h-6 w-6 text-paper" />
             </div>
           )}
-          {!logoBusy && (
-            <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/50 hover:text-paper">
-              <span className="text-[11px] font-medium">{t("Değiştir")}</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
-                className="hidden"
-                onChange={(e) => upload(e.target.files, "logo", setLogoBusy, onLogo)}
-              />
-            </label>
-          )}
+          <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/50 hover:text-paper">
+            <span className="text-[11px] font-medium">{t("Değiştir")}</span>
+            <input
+              type="file"
+              accept={IMAGE_ACCEPT}
+              className="hidden"
+              onChange={(e) => {
+                void pick(e.target.files, "logo", onLogo);
+                e.target.value = "";
+              }}
+            />
+          </label>
         </div>
+        {logoPreview && (
+          <button
+            type="button"
+            onClick={() => onLogo("")}
+            className="mb-1 text-xs text-ink-soft underline-offset-2 hover:text-paprika hover:underline"
+          >
+            {t("Logoyu kaldır")}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -223,8 +244,9 @@ function settingsValues(business: Business) {
     themeColor: business.theme_color || "",
     menuBg: business.menu_bg || DEFAULT_SURFACE,
     font: business.font || DEFAULT_FONT,
-    logoUrl: business.logo_url,
-    coverUrl: business.cover_url,
+    // Görsel alanı değerleri (lib/image-value.ts): kayıttaki dosya adı.
+    logo: business.logo ?? "",
+    cover: business.cover ?? "",
     marqueeEnabled: Boolean(business.marquee_enabled),
     marqueeText: business.marquee_text ?? "",
     mainLang: mainLocale(business),
@@ -365,8 +387,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
   const [menuBg, setMenuBg] = useState(initial.menuBg);
   const [font, setFont] = useState(initial.font);
   const template: Template = "liste";
-  const [logoUrl, setLogoUrl] = useState(initial.logoUrl);
-  const [coverUrl, setCoverUrl] = useState(initial.coverUrl);
+  const [logo, setLogo] = useState(initial.logo);
+  const [cover, setCover] = useState(initial.cover);
   const [marqueeEnabled, setMarqueeEnabled] = useState(initial.marqueeEnabled);
   const [marqueeText, setMarqueeText] = useState(initial.marqueeText);
   const [mainLang, setMainLang] = useState<Locale>(initial.mainLang);
@@ -399,8 +421,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     themeColor,
     menuBg,
     font,
-    logoUrl,
-    coverUrl,
+    logo,
+    cover,
     marqueeEnabled,
     marqueeText,
     mainLang,
@@ -438,8 +460,8 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     setThemeColor(values.themeColor);
     setMenuBg(values.menuBg);
     setFont(values.font);
-    setLogoUrl(values.logoUrl);
-    setCoverUrl(values.coverUrl);
+    setLogo(values.logo);
+    setCover(values.cover);
     setMarqueeEnabled(values.marqueeEnabled);
     setMarqueeText(values.marqueeText);
     setMainLang(values.mainLang);
@@ -563,7 +585,12 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         baseTranslations = rebased.translations;
       }
 
+      // Logo/kapak yalnızca değiştiyse gider: yeni dosya yüklenir, kaldırılan
+      // ya da değiştirilen dosyayı PocketBase depodan da siler.
+      const images = { ...imagePatch(logo, `${name}-logo`, "logo"), ...imagePatch(cover, `${name}-kapak`, "cover") };
+
       const updated = await pb.collection(BUSINESS_COLLECTION).update<Business>(business.id, {
+        ...images,
         name,
         slug: slugify(slug),
         description: baseDescription,
@@ -585,8 +612,6 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         menu_bg: menuBg,
         font,
         template,
-        logo_url: logoUrl,
-        cover_url: coverUrl,
         marquee_enabled: marqueeEnabled,
         marquee_text: baseMarquee,
         main_language: mainLang,
@@ -658,10 +683,10 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             <Card className="space-y-4" data-guide="settings-images">
               <ProfileImages
                 businessId={business.id}
-                logoUrl={logoUrl}
-                coverUrl={coverUrl}
-                onLogo={setLogoUrl}
-                onCover={setCoverUrl}
+                logo={logo}
+                cover={cover}
+                onLogo={setLogo}
+                onCover={setCover}
               />
             </Card>
 

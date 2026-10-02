@@ -28,6 +28,7 @@ import { SiteHeader, SiteMarquee } from "@/components/site/site-chrome";
 import { SiteLocaleProvider } from "@/components/site/site-locale";
 import { BusinessWelcome } from "@/components/site/business-welcome";
 import type { Business, Category, Product } from "@/lib/types";
+import { businessCoverUrl, businessLogoUrl } from "@/lib/files";
 
 // İşletmenin VİTRİNİ: isletme.buyur.in kökü (middleware /site/{slug}'a yazar;
 // eski isletme.buyur.in/site bağlantıları da buraya gelir).
@@ -82,7 +83,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const description =
     business.description || `${business.name} — menü, çalışma saatleri, konum ve iletişim bilgileri.`;
-  const images = shareImages(business.cover_url);
+  const images = shareImages(businessCoverUrl(business));
   const url = menuUrl(business.slug);
   const ogLocale = localeTags[mainLocale(business)].replace("-", "_");
 
@@ -101,7 +102,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     },
     twitter: { card: "summary_large_image", title: business.name, description, images },
     alternates: { canonical: url },
-    icons: business.logo_url ? { icon: business.logo_url } : undefined,
+    icons: business.logo ? { icon: businessLogoUrl(business, "small") } : undefined,
   };
 }
 
@@ -121,7 +122,7 @@ export default async function StorefrontPage({ params }: { params: Promise<{ slu
     "@type": "Restaurant",
     name: business.name,
     description: business.description || undefined,
-    image: business.cover_url || business.logo_url || undefined,
+    image: businessCoverUrl(business) || businessLogoUrl(business) || undefined,
     telephone: business.phone || undefined,
     address: business.address || undefined,
     url: menuUrl(business.slug),

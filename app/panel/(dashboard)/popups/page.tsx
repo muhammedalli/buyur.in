@@ -11,6 +11,7 @@ import { isFeatureAvailable } from "@/lib/entitlements";
 import type { Popup } from "@/lib/types";
 import { FeatureLocked } from "@/components/panel/plan-gate";
 import { useUiLocale } from "@/components/ui-locale-provider";
+import { popupImageUrl } from "@/lib/files";
 
 export default function AnnouncementsPage() {
   const { business, isLoading: businessLoading } = useBusiness();
@@ -128,9 +129,9 @@ export default function AnnouncementsPage() {
         {popups.map((p) => (
           <Card key={p.id} className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 flex-1 basis-60 items-center gap-4">
-              {p.image_url && (
+              {p.image && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.image_url} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+                <img src={popupImageUrl(p)} alt="" className="h-12 w-12 shrink-0 rounded-md object-cover" />
               )}
               <div className="min-w-0">
                 <p className="font-display font-bold">

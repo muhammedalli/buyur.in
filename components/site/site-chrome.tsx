@@ -7,6 +7,7 @@ import { useMenuHref } from "@/components/site/storefront-links";
 import { Marquee } from "@/components/marquee";
 import { MenuIcon } from "@/components/icons";
 import { businessMarqueeItems } from "@/lib/marquee";
+import { businessLogoUrl } from "@/lib/files";
 
 // İşletme sitesinin sabit parçaları: üst çubuk ve kayan yazı.
 
@@ -45,9 +46,9 @@ export function SiteHeader({ business }: { business: Business }) {
           }}
           className="flex min-w-0 items-center gap-2.5"
         >
-          {business.logo_url && (
+          {businessLogoUrl(business, "small") && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={business.logo_url} alt="" className="h-8 w-8 shrink-0 rounded-lg border border-line/60 object-cover" />
+            <img src={businessLogoUrl(business, "small")} alt="" className="h-8 w-8 shrink-0 rounded-lg border border-line/60 object-cover" />
           )}
           <span className="truncate font-display text-base font-bold text-ink">{tf(business, "name")}</span>
         </a>

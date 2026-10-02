@@ -6,6 +6,8 @@ import { pb } from "@/lib/pocketbase";
 import { useToast } from "@/components/panel/toast";
 import { AiButton, Button, Card, Modal, Spinner, Switch } from "@/components/panel/ui";
 import { ImagePicker } from "@/components/panel/ai/image-picker";
+import { imagePatch } from "@/lib/image-value";
+import { productImageLabel } from "@/scripts/image-schema.mjs";
 import { autoFindProductImage } from "@/lib/ai/find-image";
 import { fingerprintPages } from "@/lib/ai/fingerprint";
 import { buildImportPlan, isPlanEmpty, type ImportPlan } from "@/lib/ai/import-plan";
@@ -496,6 +498,9 @@ export function MenuImport({ business }: { business: Business }) {
         // ürünün sonucu bilinmeden diğerine geçilmemesini sağlar.
         for (const [index, product] of planned.newProducts.entries()) {
           try {
+            // AI görseli bağlantı olarak, seçicide eklenen kendi görseli dosya
+            // olarak (MinIO) ürünle birlikte yazılır.
+            const image = product.image_url ? imagePatch(product.image_url, productImageLabel(planned.draft.name, product.name), "image", "image_url") : {};
             await withRetry(
               () =>
                 pb.collection("buyur_products").create<{ id: string }>({
@@ -504,7 +509,7 @@ export function MenuImport({ business }: { business: Business }) {
                   name: product.name,
                   description: product.description,
                   price: product.price ?? 0,
-                  images: product.image_url ? [product.image_url] : [],
+                  ...image,
                   image_source: product.image_url ? product.image_source : null,
                   is_available: publishNow,
                   order: planned.productOrderStart + index,

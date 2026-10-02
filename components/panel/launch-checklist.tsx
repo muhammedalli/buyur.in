@@ -63,7 +63,7 @@ export function LaunchChecklist({
       key: "logo",
       title: t("Logonu yükle"),
       hint: t("Menünün başında ve QR kartlarında görünür."),
-      done: Boolean(business.logo_url),
+      done: Boolean(business.logo),
       cta: t("Logo yükle"),
       href: "/panel/settings?tab=general",
     },

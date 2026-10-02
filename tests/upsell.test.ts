@@ -3,7 +3,7 @@ import { isDrinkCategory, upsellSuggestions } from "@/lib/upsell";
 import type { Category, Product } from "@/lib/types";
 
 function category(id: string, name: string, translations: Category["translations"] = {}): Category {
-  return { id, business: "b", name, description: "", image_url: "", order: 0, is_active: true, translations, created: "", updated: "" };
+  return { id, business: "b", name, description: "", image: "", order: 0, is_active: true, translations, created: "", updated: "" };
 }
 
 function product(id: string, categoryId: string, overrides: Partial<Product> = {}): Product {
@@ -14,7 +14,8 @@ function product(id: string, categoryId: string, overrides: Partial<Product> = {
     name: id,
     description: "",
     price: 100,
-    images: [],
+    image: "",
+    image_url: "",
     prep_time_min: 0,
     prep_time_max: 0,
     calories: 0,

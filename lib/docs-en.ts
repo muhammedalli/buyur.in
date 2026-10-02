@@ -66,7 +66,7 @@ export const DOC_GUIDES_EN: Record<string, DocGuideTranslation> = {
         steps: [
           "Products → New product.",
           "Write the name and description in the main language; set the price and category.",
-          "Image: for a new product a matching image is searched automatically as you type the name. If you don't like it, upload your own photo (up to 5 MB).",
+          "Image: for a new product a matching image is searched automatically as you type the name. If you don't like it, upload your own photo; large photos are automatically resized for the menu. The image you pick is uploaded when you save; an image you remove or replace is deleted from storage too.",
           "Optionally add preparation time, calories, allergens and a badge.",
           "Click Save. If you leave without saving, your input is kept as a draft; half-finished details never reach the live menu.",
         ],

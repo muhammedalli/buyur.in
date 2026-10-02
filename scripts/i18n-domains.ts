@@ -39,7 +39,7 @@ export const I18N_DOMAIN_FILES = {
     "lib/surfaces.ts",
     "lib/sector-templates.ts",
     "lib/unique-name.ts",
-    "lib/upload.ts",
+    "lib/image-value.ts",
     "lib/ai/guard.ts",
     "lib/ai/menu-scan.ts",
     // Analiz modüllerinin sabit etiketleri (rapor tanımları, tablo sütunları,
@@ -50,7 +50,6 @@ export const I18N_DOMAIN_FILES = {
     "lib/analytics/funnel.ts",
     // Panelin çağırdığı API uçlarının hata metinleri (istemci t(hata) ile gösterir).
     "app/api/auth",
-    "app/api/upload",
     "app/api/ai",
     "app/api/analytics",
     "app/api/emails",

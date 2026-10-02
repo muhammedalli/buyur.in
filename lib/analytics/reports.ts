@@ -20,6 +20,7 @@ import { buildInsights } from "@/lib/analytics/insights";
 import { computeMenuScore, type MenuScore } from "@/lib/analytics/score";
 import { classifyProduct, computeBenchmarks } from "@/lib/analytics/opportunities";
 import { buildFunnel } from "@/lib/analytics/funnel";
+import { businessLogoUrl } from "@/lib/files";
 
 // Rapor üretimi (Elite). Raporlar panelde gösterilen verinin aynısından üretilir —
 // ayrı bir "rapor hesabı" yok, dolayısıyla ekrandaki sayı ile rapordaki sayı
@@ -514,7 +515,7 @@ export async function buildReport(
     business: {
       name: context.business.name,
       slug: context.business.slug,
-      logo_url: context.business.logo_url || undefined,
+      logo_url: businessLogoUrl(context.business, "small") || undefined,
     },
     range,
     comparison,

@@ -103,13 +103,13 @@ async function findProduct(businessId, name) {
   }
 }
 
-/** Kategorideki mevcut ürünlerden görsel havuzu — --reuse-images için. */
+/** Kategorideki mevcut ürünlerin AI görsel bağlantıları — --reuse-images için. */
 async function imagePool(categoryId) {
   const existing = await pb.collection("buyur_products").getFullList({
-    filter: pb.filter("category = {:c}", { c: categoryId }),
-    fields: "images",
+    filter: pb.filter("category = {:c} && image_url != ''", { c: categoryId }),
+    fields: "image_url",
   });
-  return existing.flatMap((product) => product.images ?? []).filter(Boolean);
+  return existing.map((product) => product.image_url);
 }
 
 /** İşletmenin vitrin alanlarını tamamlar: BOŞ olanları doldurur, dolu olanlara
@@ -144,17 +144,18 @@ async function seedProduct(business, category, spec, order, pool) {
 
   // Görsel kaynağı önceliği: gerçek arama → demo havuzu → görselsiz.
   // Arama hiçbir koşulda ürün oluşturmayı engellemez.
-  let images = [];
+  // AI görseli panelde olduğu gibi bağlantı olarak yazılır (indirilmez).
+  let imageUrl = "";
   if (searchProductImages && !DRY) {
     try {
       const found = await searchProductImages(spec.name, category.name, 1);
-      if (found.length > 0) images = [found[0].url];
+      if (found.length > 0) imageUrl = found[0].url;
     } catch {
       // Sağlayıcı hatası demo kurulumunu durdurmaz.
     }
   }
-  if (images.length === 0 && REUSE_IMAGES && pool.length > 0) {
-    images = [pool[order % pool.length]];
+  if (!imageUrl && REUSE_IMAGES && pool.length > 0) {
+    imageUrl = pool[order % pool.length];
   }
 
   const payload = {
@@ -163,7 +164,7 @@ async function seedProduct(business, category, spec, order, pool) {
     name: spec.name,
     description: spec.desc ?? "",
     price: spec.price,
-    images,
+    image_url: imageUrl,
     prep_time_min: prepMin,
     prep_time_max: prepMax,
     calories: spec.kcal ?? 0,
@@ -219,7 +220,6 @@ async function seedPopups(business) {
         business: business.id,
         title: popup.title,
         message: popup.message,
-        image_url: "",
         is_active: popup.is_active !== false,
         starts_at: popup.starts_at ?? "",
         ends_at: popup.ends_at ?? "",
@@ -255,7 +255,6 @@ async function main() {
         business: business.id,
         name: categorySpec.name,
         description: categorySpec.desc ?? "",
-        image_url: "",
         order: categoryOrder++,
         is_active: true,
         translations: translationsOf(categorySpec),

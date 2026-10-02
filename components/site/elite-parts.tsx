@@ -8,6 +8,7 @@ import { useSiteLocale } from "@/components/site/site-locale";
 import { useMenuHref } from "@/components/site/storefront-links";
 import { typewriterPhrases, type MenuHighlightGroup } from "@/lib/site-content";
 import type { Business } from "@/lib/types";
+import { hasProductImage, productImageUrl } from "@/lib/files";
 
 // Elite web sitesinin hareketli parçaları. Sitenin geri kalanı da artık
 // istemci bileşeni (dil değişimi için, bkz. sections.tsx) ama animasyon ve
@@ -142,11 +143,11 @@ export function MenuSlider({ groups, slug }: { groups: MenuHighlightGroup[]; slu
               style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
               className="slide-in w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-paper"
             >
-              {product.images?.[0] && (
+              {hasProductImage(product) && (
                 <div className="aspect-[4/3] overflow-hidden bg-crema">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={product.images[0]}
+                    src={productImageUrl(product, "card")}
                     alt={tf(product, "name")}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"

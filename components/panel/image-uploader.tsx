@@ -1,80 +1,75 @@
 "use client";
 
 import { useState } from "react";
-import { uploadFile, type UploadKind } from "@/lib/upload";
+import { IMAGE_ACCEPT, imagePreviewUrl, stageImageFile } from "@/lib/image-value";
+import type { ImagePreset } from "@/lib/image-resize";
 import { Spinner } from "@/components/panel/ui";
 import { useToast } from "@/components/panel/toast";
 import { useUiLocale } from "@/components/ui-locale-provider";
 
 // Tek görsel yükleyici — her yerde resim tekildir, çoklu ekleme yoktur.
-// Yükleme sırasında loader gösterir; hazır görselin üstünde "değiştir"/"kaldır" sunar.
+// Seçilen dosya amacına göre tarayıcıda küçültülür ve kaydet'e kadar formda
+// bekler (lib/image-value.ts); kayıtla birlikte PocketBase dosya alanına
+// (MinIO) gider. Hazır görselin üstünde "değiştir"/"kaldır" sunar; kaldırılan
+// görsel kaydet'te depodan da silinir.
 export function ImageUploader({
   value,
   onChange,
-  businessId,
-  kind,
-  name,
+  storedUrl,
+  preset,
   aspect = "aspect-square",
   className = "",
 }: {
+  /** Görsel alanı değeri (bkz. lib/image-value.ts). */
   value: string;
-  onChange: (url: string) => void;
-  businessId: string;
-  kind: UploadKind;
-  /** Dosya adında kullanılacak içerik adı (ürün/kategori/pop-up adı). */
-  name?: string;
+  onChange: (value: string) => void;
+  /** Kayıttaki dosya adını adrese çevirir (lib/files.ts). */
+  storedUrl: (fileName: string) => string;
+  /** Küçültme boyu (lib/image-resize.ts → IMAGE_PRESETS). */
+  preset: ImagePreset;
   aspect?: string;
   className?: string;
 }) {
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const { toast } = useToast();
   const { t } = useUiLocale();
+  const preview = imagePreviewUrl(value, storedUrl);
 
   async function handleFile(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    setUploading(true);
-    setError(false);
-    try {
-      const url = await uploadFile(file, businessId, kind, name);
-      onChange(url);
-      toast(t("Görsel yüklendi"));
-    } catch {
-      setError(true);
-      toast(t("Görsel yüklenemedi, tekrar dene."), "error");
-    } finally {
-      setUploading(false);
+    setPreparing(true);
+    const result = await stageImageFile(file, preset);
+    setPreparing(false);
+    if ("error" in result) {
+      toast(t(result.error), "error");
+      return;
     }
-  }
-
-  function handleRemove() {
-    onChange("");
-    toast(t("Görsel kaldırıldı"));
+    onChange(result.value);
   }
 
   return (
     <div>
       <div className={`relative w-full overflow-hidden rounded-md border border-dashed border-line bg-crema/30 ${aspect} ${className}`}>
-        {value ? (
+        {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt="" className="h-full w-full object-cover" />
+          <img src={preview} alt="" className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-ink-soft">{t("Görsel yok")}</div>
         )}
 
-        {/* Yükleme loader'ı */}
-        {uploading && (
+        {/* Küçültme sürerken */}
+        {preparing && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/40">
             <Spinner className="h-7 w-7 text-paper" />
           </div>
         )}
 
         {/* Kaldır: resmin sağ üstünde çarpı butonu */}
-        {value && !uploading && (
+        {preview && !preparing && (
           <button
             type="button"
-            onClick={handleRemove}
+            onClick={() => onChange("")}
             aria-label={t("Görseli kaldır")}
             title={t("Görseli kaldır")}
             className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-md bg-ink/70 text-paper shadow-sm backdrop-blur-sm transition-colors hover:bg-paprika"
@@ -87,20 +82,22 @@ export function ImageUploader({
         )}
 
         {/* Tıklanınca dosya seçtiren katman */}
-        {!uploading && (
+        {!preparing && (
           <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/0 text-transparent transition-colors hover:bg-ink/40 hover:text-paper">
-            <span className="text-xs font-medium">{value ? t("Değiştir") : t("Görsel yükle")}</span>
+            <span className="text-xs font-medium">{preview ? t("Değiştir") : t("Görsel yükle")}</span>
             <input
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+              accept={IMAGE_ACCEPT}
               className="hidden"
-              onChange={(e) => handleFile(e.target.files)}
+              onChange={(e) => {
+                void handleFile(e.target.files);
+                // Aynı dosya kaldırılıp yeniden seçilebilsin.
+                e.target.value = "";
+              }}
             />
           </label>
         )}
       </div>
-
-      {error && <p className="mt-1.5 text-xs text-paprika-deep">{t("Yüklenemedi, tekrar dene.")}</p>}
     </div>
   );
 }

@@ -40,6 +40,7 @@ import {
   StarIcon,
   TrendingUpIcon,
 } from "@/components/icons";
+import { businessLogoUrl } from "@/lib/files";
 
 // İşletme panelinin gezinmesi (components/ui/sidebar.tsx kabuğunda). Aynı
 // gruplu liste lg ve üstünde tam boy sol sütun (ikonlara daraltılabilir),
@@ -167,9 +168,9 @@ export function PanelSidebar({ business, onLogout }: { business: Business; onLog
           title={name}
           subtitle={host}
           avatar={
-            business.logo_url ? (
+            businessLogoUrl(business, "small") ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={business.logo_url} alt="" className="h-full w-full bg-paper object-contain" />
+              <img src={businessLogoUrl(business, "small")} alt="" className="h-full w-full bg-paper object-contain" />
             ) : (
               <InitialsAvatar name={name} />
             )

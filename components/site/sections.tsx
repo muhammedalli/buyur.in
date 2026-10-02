@@ -12,6 +12,7 @@ import { PLATFORM_BRANDING, showsPlatformSignature } from "@/lib/branding";
 import { PoweredBy } from "@/components/powered-by";
 import { useMenuHref } from "@/components/site/storefront-links";
 import { ArrowRightIcon } from "@/components/icons";
+import { hasProductImage, productImageUrl } from "@/lib/files";
 
 // Otomatik web sitesinin bölümleri. Metin, seçili dile göre `useSiteLocale()`
 // (tf/t) üzerinden okunur — bkz. components/site/site-locale.tsx. Yalnızca
@@ -159,11 +160,11 @@ export function ProductCards({ products, columns = 4 }: { products: SiteContent[
           style={{ transitionDelay: `${Math.min(index, 6) * 70}ms` }}
           className="group overflow-hidden rounded-2xl border border-line bg-paper transition-shadow duration-300 hover:shadow-[0_18px_40px_-26px_rgba(35,24,18,0.55)]"
         >
-          {product.images?.[0] && (
+          {hasProductImage(product) && (
             <div className="aspect-[4/3] overflow-hidden bg-crema">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={product.images[0]}
+                src={productImageUrl(product, "card")}
                 alt={tf(product, "name")}
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

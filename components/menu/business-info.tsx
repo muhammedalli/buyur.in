@@ -29,6 +29,7 @@ import {
   XIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { businessCoverUrl, businessLogoUrl } from "@/lib/files";
 
 // İşletme bilgileri: adres, saatler, harita, Google yorumları, WiFi, iletişim,
 // sosyal medya ve öne çıkan özellikler. Menüde ürünler ana odak kalsın diye
@@ -171,10 +172,10 @@ export function BusinessInfoContent({
 
   return (
     <div>
-      {header && business.cover_url && (
+      {header && businessCoverUrl(business) && (
         <div className="relative -mx-5 -mt-5 mb-4 aspect-[16/7] overflow-hidden sm:-mx-6 sm:-mt-6 sm:rounded-t-3xl">
           <picture>
-            <img src={business.cover_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={businessCoverUrl(business)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
           </picture>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-paper" />
         </div>
@@ -183,10 +184,10 @@ export function BusinessInfoContent({
       {header && (
         <>
           <div className="flex items-center gap-3">
-            {business.logo_url && (
+            {businessLogoUrl(business, "small") && (
               <span className="relative block h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-line/60 bg-paper">
                 <picture>
-                  <img src={business.logo_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                  <img src={businessLogoUrl(business, "small")} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                 </picture>
               </span>
             )}
@@ -355,10 +356,10 @@ export function BusinessInfoCard({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       className="group flex w-full items-center gap-3 rounded-2xl border border-line/60 bg-crema/40 p-3 text-start shadow-xs transition-colors hover:border-[var(--brand)]/50 active:scale-[0.99]"
     >
-      {business.cover_url ? (
+      {businessCoverUrl(business) ? (
         <span className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-crema">
           <picture>
-            <img src={business.cover_url} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+            <img src={businessCoverUrl(business)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
           </picture>
         </span>
       ) : (
