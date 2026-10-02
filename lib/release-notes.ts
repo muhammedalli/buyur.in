@@ -59,6 +59,36 @@ export function localizedReleaseNote(note: ReleaseNote, locale: UiLocale): { tit
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.14.0",
+    date: "2026-10-02",
+    title: "Menü asistanı bağlantıdaki menüyü eksiksiz alıyor",
+    items: [
+      { kind: "iyileştirme", text: "Menüsünü kategori sayfalarına bölen sitelerde asistan alt sayfaları da açar: ürünler fiyatları ve açıklamalarıyla birlikte gelir." },
+      { kind: "düzeltme", text: "Asistan artık kaynakta adı geçmeyen ürün eklemez ve kaynakta yazmayan fiyatı almaz; şüpheli kayıtlar ayıklanıp size bildirilir." },
+      { kind: "iyileştirme", text: "\"Fiyatları al\", \"eksikleri siteden doldur\" dediğinizde asistan aynı bağlantıyı yeniden okuyup boş kalan fiyat ve açıklamaları doldurur; sizin düzelttiğiniz değerlere dokunmaz." },
+      { kind: "yeni", text: "Asistan alerjen, rozet, kalori ve hazırlanma süresini de doldurabilir. Kaynakta yazmayan değerler önizlemede \"AI önerisi\" olarak işaretlenir; tek tıkla kaldırabilirsiniz." },
+      { kind: "iyileştirme", text: "Asistanın sohbet modeli güçlendirildi: toplu isteklerde (\"hepsine açıklama yaz\") her ürün için işlem yapar, yapamadığı şeyi açıkça söyler." },
+    ],
+    en: {
+      title: "The menu assistant now imports linked menus completely",
+      items: [
+        "On sites that split the menu into category pages, the assistant also opens the sub-pages, so products arrive with their prices and descriptions.",
+        "The assistant no longer adds products whose names do not appear in the source, or prices the source does not show; suspicious entries are dropped and reported to you.",
+        "When you say \"get the prices\" or \"fill the gaps from the site\", the assistant re-reads the same link and fills empty prices and descriptions, without touching values you corrected.",
+        "The assistant can also fill allergens, badges, calories and preparation time. Values not found in the source are marked \"AI suggestion\" in the preview and can be removed in one click.",
+        "The assistant's chat model is stronger: bulk requests (\"write descriptions for all\") act on every product, and it says plainly what it cannot do.",
+      ],
+    },
+    internal: [
+      "Kök neden (ikizdere-menu vakası): ana sayfa yalnızca kategori kartları (\"5 ürün\") taşıyordu; okuyucu alt sayfaları izlemiyordu, gpt-4.1-mini sayaçlardan 51 ürün adı uydurdu, fiyatlar null kaldı. Sonraki mesajda model kaynağı görmediği için \"dış bağlantıya erişemem\" dedi.",
+      "lib/ai/menu-link.ts: extractPageLinks (aynı alan adı, dosya/menü dışı/başka dil elenir), data-description vb. nitelikler ürün adıyla etiketlenip metne katılır. lib/ai/menu-extract.ts → readMenuLink: düz → alt sayfalar (en çok 12, 4 eşzamanlı, 30k karakterlik parçalar paralel) → tarayıcı → görsel.",
+      "groundScan (lib/ai/menu-assistant.ts): metin kaynaklı çıkarımda ad kaynakta yoksa ürün atılır, fiyat kaynakta sayı olarak yoksa null, açıklama/ayrıntı dayanaksızsa silinir.",
+      "MenuDraft.sources + reread_source: kaynak yeniden okunur, fillFromSource yalnızca boşları doldurur; model işi tamamen kaynağa bıraktıysa buildFollowUpInstruction ile ikinci tur.",
+      "lib/ai/product-details.ts: alerjen/rozet/kalori/süre normalizasyonu; set_details işlemi, DraftProduct.suggested. Model popüler/yeni/şefin önerisi rozetini öneremez. /api/admin/businesses/[id]/import bu alanları yazar. Şema değişikliği yok.",
+      "OPENAI_ASSISTANT_MODEL varsayılanı gpt-5-mini (reasoning effort low); çıkarma MENU_MODEL'de kaldı. max_output_tokens 32000, incomplete yanıt bildirilir. Sohbet geçmişine notlar da girer.",
+    ],
+  },
+  {
     version: "0.13.1",
     date: "2026-10-02",
     title: "Marka adı başlıklarda BUYUR olarak yazılıyor",

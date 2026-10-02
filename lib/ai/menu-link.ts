@@ -11,7 +11,9 @@
 // lib/ai/menu-extract.ts → readMenuLink'te):
 //  1) düz okuma (gömülü JSON-LD / __NEXT_DATA__ / Nuxt verisi dahil),
 //  2) sayfayı gerçek tarayıcıda açan okuyucu (fetchRenderedPage, Jina Reader),
-//  3) sayfadaki menü görselleri (menüsünü resim olarak yükleyen işletmeler).
+//  3) aynı sitedeki alt sayfalar (menüyü kategori sayfalarına bölen siteler:
+//     ana sayfada yalnızca kategori kartları, ürün ve fiyat alt sayfada),
+//  4) sayfadaki menü görselleri (menüsünü resim olarak yükleyen işletmeler).
 // Hiçbiri sonuç vermezse uydurulmaz; yöneticiye açıkça söylenir.
 
 import { lookup } from "node:dns/promises";
@@ -29,11 +31,11 @@ const RENDER_TIMEOUT_MS = 30_000;
 const READER_BASE = "https://r.jina.ai/";
 
 export type LinkSource =
-  | { ok: true; kind: "text"; text: string; title: string; url: string; images: string[] }
+  | { ok: true; kind: "text"; text: string; title: string; url: string; images: string[]; links: string[] }
   | { ok: true; kind: "image"; dataUrl: string; url: string }
   | { ok: true; kind: "pdf"; dataUrl: string; url: string }
   /** `blocked`: adres güvenlik kuralına takıldı; başka yoldan da denenmez. */
-  | { ok: false; error: string; url: string; blocked?: boolean; images?: string[] };
+  | { ok: false; error: string; url: string; blocked?: boolean; images?: string[]; links?: string[] };
 
 /** IPv4/IPv6 adresi iç ağ, döngü, bağlantı-yerel ya da ayrılmış bir blokta mı. */
 export function isPrivateAddress(address: string): boolean {
@@ -113,6 +115,9 @@ function decodeEntities(text: string): string {
   });
 }
 
+/** Ürün bilgisini taşıyan metin nitelikleri (açıklama, içerik, alerjen, kalori, süre). */
+const DATA_TEXT_ATTRIBUTE = /\sdata-(description|desc|aciklama|ingredients|icerik|allergens?|alerjen(?:ler)?|calories|kalori|prep-time|sure)\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+
 /** HTML'den menü okumaya yarayan metni çıkarır: görünür metin + gömülü veri
  *  (JSON-LD, __NEXT_DATA__, Nuxt/Vue durum nesneleri). Saf; test edilir. */
 export function htmlToMenuText(html: string): { text: string; title: string } {
@@ -133,6 +138,18 @@ export function htmlToMenuText(html: string): { text: string; title: string } {
   const visible = decodeEntities(
     html
       .replace(/<(script|style|noscript|svg|template|iframe)\b[\s\S]*?<\/\1>/gi, " ")
+      // Bazı menüler açıklamayı/içeriği görünür metinde değil, tıklayınca açılan
+      // pencere için niteliklerde tutar (data-description="…"). Değer, etiketin
+      // hemen arkasına metin olarak eklenir; ürün adının yanında okunur.
+      .replace(/<[a-z][a-z0-9-]*\b[^>]*>/gi, (tag) => {
+        const values = [...tag.matchAll(DATA_TEXT_ATTRIBUTE)].map((match) => (match[2] ?? match[3] ?? "").trim()).filter(Boolean);
+        if (values.length === 0) return tag;
+        // Değer ürün adından ÖNCE düşer; ad etiketlenmezse model açıklamayı bir
+        // önceki ürüne bağlar. Ad nitelikte varsa açıkça yazılır.
+        const name = tag.match(/\sdata-(?:name|title)\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
+        const label = (name?.[1] ?? name?.[2] ?? "").trim();
+        return `${tag}\n${label ? `(${label} — açıklama: ${values.join("; ")})` : values.join("\n")}\n`;
+      })
       .replace(/<!--[\s\S]*?-->/g, " ")
       .replace(/<(br|\/p|\/div|\/li|\/tr|\/h[1-6]|\/section|\/article)\b[^>]*>/gi, "\n")
       .replace(/<[^>]+>/g, " ")
@@ -204,6 +221,54 @@ export function extractImageLinks(source: string, baseUrl: string, limit = 12): 
   return urls.sort((a, b) => menuFirst(a) - menuFirst(b)).slice(0, limit);
 }
 
+// Menü olmayan sayfalar: izlenmez (iletişim, giriş, sepet, yasal metin…).
+const NON_MENU_PATH = /(iletisim|contact|hakkimizda|hakkinda|about|login|giris|signin|kayit|register|signup|sepet|cart|checkout|odeme|gizlilik|privacy|kvkk|cerez|cookie|terms|kosul|sozlesme|blog|haber|news|galeri|gallery|rezervasyon|reservation|kariyer|career|sss|faq)/i;
+const ASSET_PATH = /\.(css|js|mjs|json|xml|txt|ico|png|jpe?g|gif|webp|avif|svg|woff2?|ttf|mp4|webm|zip|pdf)$/i;
+const LANGUAGE_PREFIX = /^\/(en|de|ar|fr|es|it|ru|tr)(\/|$)/i;
+
+/** Sayfadaki aynı siteye ait iç bağlantılar (HTML <a href> ya da Markdown
+ *  [metin](adres)). Menüyü kategori sayfalarına bölen siteler için: ürünler
+ *  alt sayfadadır. Başka alan adı, dosya, çapa, menü dışı sayfa ve başka dil
+ *  sürümü elenir (aynı menü ikinci dilde ayrı ürün olarak gelmesin). Saf. */
+export function extractPageLinks(source: string, baseUrl: string, limit = 15): string[] {
+  let base: URL;
+  try {
+    base = new URL(baseUrl);
+  } catch {
+    return [];
+  }
+  const host = (value: string) => value.replace(/^www\./, "");
+  const baseLanguage = base.pathname.match(LANGUAGE_PREFIX)?.[1]?.toLowerCase() ?? "";
+  const found: string[] = [];
+  const patterns = [/<a\b[^>]*?\shref\s*=\s*["']([^"'#][^"']*)["']/gi, /\]\(\s*<?(https?:\/\/[^)\s>]+|\/[^)\s>]*)>?(?:\s+"[^"]*")?\s*\)/g];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      let url: URL;
+      try {
+        url = new URL(decodeEntities(match[1] ?? ""), base);
+      } catch {
+        continue;
+      }
+      if (url.protocol !== "https:" && url.protocol !== "http:") continue;
+      if (host(url.hostname) !== host(base.hostname)) continue;
+      url.hash = "";
+      let path = url.pathname.toLowerCase();
+      try {
+        path = decodeURIComponent(path);
+      } catch {
+        /* bozuk kodlama: ham yol kullanılır */
+      }
+      if (ASSET_PATH.test(path) || NON_MENU_PATH.test(path)) continue;
+      const language = path.match(LANGUAGE_PREFIX)?.[1] ?? "";
+      if (language !== baseLanguage) continue;
+      if (url.pathname.replace(/\/$/, "") === base.pathname.replace(/\/$/, "") && url.search === base.search) continue;
+      if (!found.includes(url.href)) found.push(url.href);
+      if (found.length >= limit) return found;
+    }
+  }
+  return found;
+}
+
 /** Sayfayı gerçek bir tarayıcıda açıp oluşan içeriği okur (Jina Reader).
  *  JS ile yüklenen QR menüler için gereklidir. Adres önce aynı güvenlik
  *  kurallarından geçer; okuyucuya yalnızca herkese açık bir menü adresi gider.
@@ -243,10 +308,11 @@ export async function fetchRenderedPage(raw: string): Promise<LinkSource> {
         return false;
       }
     });
+    const links = extractPageLinks(content, checked.href);
     if (content.replace(/\s+/g, "").length < MIN_TEXT_CHARS) {
-      return { ok: false, error: "Sayfada okunabilir metin yok.", url: checked.href, images };
+      return { ok: false, error: "Sayfada okunabilir metin yok.", url: checked.href, images, links };
     }
-    return { ok: true, kind: "text", text: content, title: body.data.title ?? "", url: checked.href, images };
+    return { ok: true, kind: "text", text: content, title: body.data.title ?? "", url: checked.href, images, links };
   } catch (error) {
     const aborted = (error as { name?: string })?.name === "AbortError";
     return { ok: false, error: aborted ? "Sayfa tarayıcıda zamanında açılmadı." : "Sayfa tarayıcıyla açılamadı.", url: checked.href };
@@ -303,7 +369,7 @@ export async function fetchMenuSource(raw: string): Promise<LinkSource> {
 
       const content = new TextDecoder("utf-8", { fatal: false }).decode(body);
       if (type.includes("json")) {
-        return { ok: true, kind: "text", text: content.slice(0, MAX_SOURCE_CHARS), title: "", url: url.href, images: [] };
+        return { ok: true, kind: "text", text: content.slice(0, MAX_SOURCE_CHARS), title: "", url: url.href, images: [], links: [] };
       }
       if (type && !type.includes("html") && !type.startsWith("text/")) {
         return { ok: false, error: "Bu bağlantı bir web sayfası, görsel ya da PDF değil.", url: url.href };
@@ -312,10 +378,11 @@ export async function fetchMenuSource(raw: string): Promise<LinkSource> {
       const isHtml = !type.startsWith("text/plain");
       const { text, title } = isHtml ? htmlToMenuText(content) : { text: content.slice(0, MAX_SOURCE_CHARS), title: "" };
       const images = isHtml ? extractImageLinks(content, url.href) : [];
+      const links = isHtml ? extractPageLinks(content, url.href) : [];
       if (text.replace(/\s+/g, "").length < MIN_TEXT_CHARS) {
-        return { ok: false, error: "Sayfa boş iskelet olarak geldi (menü tarayıcıda yükleniyor).", url: url.href, images };
+        return { ok: false, error: "Sayfa boş iskelet olarak geldi (menü tarayıcıda yükleniyor).", url: url.href, images, links };
       }
-      return { ok: true, kind: "text", text, title, url: url.href, images };
+      return { ok: true, kind: "text", text, title, url: url.href, images, links };
     }
   } catch (error) {
     const aborted = (error as { name?: string })?.name === "AbortError";

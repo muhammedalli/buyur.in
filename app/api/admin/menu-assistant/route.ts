@@ -1,10 +1,14 @@
 import { after, NextResponse, type NextRequest } from "next/server";
 import { authenticateAdminRequest } from "@/lib/admin-auth";
 import { recordAudit } from "@/lib/admin-audit";
-import { aiErrorResponse, isGuardFailure, MENU_MODEL, openaiClient } from "@/lib/ai/guard";
+import { aiErrorResponse, isGuardFailure, openaiClient } from "@/lib/ai/guard";
 import {
+  addSource,
   applyMenuOps,
   buildAssistantPrompt,
+  buildFollowUpInstruction,
+  fillFromSource,
+  groundScan,
   detectLinks,
   stripLinks,
   draftStats,
@@ -14,8 +18,9 @@ import {
   normalizeDraft,
   readJsonSource,
   type MenuDraft,
+  type MenuOp,
 } from "@/lib/ai/menu-assistant";
-import { addUsage, emptyUsage, extractFromPages, extractFromText, readMenuLink, safeJson } from "@/lib/ai/menu-extract";
+import { addUsage, emptyUsage, extractFromPages, extractGrounded, readMenuLink, safeJson, type LinkReadResult } from "@/lib/ai/menu-extract";
 import { MAX_SOURCE_CHARS } from "@/lib/ai/menu-link";
 import { parseMenuPages, type MenuPage, type ScanResult } from "@/lib/ai/menu-scan";
 import { getServicePB } from "@/lib/pocketbase-server";
@@ -31,12 +36,22 @@ import { auditRequestContext } from "@/lib/system-audit";
 // fiyat null) okunup taslağa eklenir; mesajın geri kalanı düzenleme komutu
 // sayılır ve modelden işlem listesi istenir (lib/ai/menu-assistant.ts).
 // Yetki business.content: aynı asistan var olan işletmenin menüsünde de çalışır.
+//
+// Okunan bağlantı taslağın `sources` alanında taşınır: sonraki mesajda
+// ("fiyatları al") model `reread_source` der, kaynak yeniden okunur ve
+// taslaktaki boşluklar doldurulur (fillFromSource) — model kaynağı görmeden
+// "çekemem" demek zorunda kalmaz.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
 
-const ASSISTANT_MODEL = process.env.OPENAI_ASSISTANT_MODEL ?? MENU_MODEL;
+// Sohbet modeli talimat takibinde güçlü olmalı (işlem listesi, "uydurma" kuralı,
+// toplu açıklama/ayrıntı). Kaynaktan çıkarma MENU_MODEL'de kalır: o iş kodla
+// kaynağa karşı sınanıyor (groundScan).
+const ASSISTANT_MODEL = process.env.OPENAI_ASSISTANT_MODEL ?? "gpt-5-mini";
+/** Akıl yürüten modeller (gpt-5*, o*) için düşük efor: yanıt süresi kısa kalsın. */
+const REASONING = /^(gpt-5|o\d)/.test(ASSISTANT_MODEL) ? { reasoning: { effort: "low" as const } } : {};
 const MAX_MESSAGE_CHARS = MAX_SOURCE_CHARS;
 const MAX_ATTACHMENTS = 5;
 const MAX_HISTORY = 8;
@@ -52,6 +67,23 @@ function readHistory(value: unknown): HistoryEntry[] {
     })
     .slice(-MAX_HISTORY)
     .map((entry) => ({ role: entry.role, text: entry.text.slice(0, 2000) }));
+}
+
+function viaLabel(read: LinkReadResult): string {
+  switch (read.via) {
+    case "alt sayfa":
+      return ` (${read.pages ?? 0} alt sayfa okunarak)`;
+    case "tarayıcı":
+      return " (tarayıcıda açılarak)";
+    case "görsel":
+      return " (sayfadaki menü görsellerinden)";
+    default:
+      return "";
+  }
+}
+
+function droppedNote(count: number): string {
+  return `Kaynakta adı geçmeyen ${count} ürün alınmadı (model uydurmuş olabilir).`;
 }
 
 function describeMerge(label: string, added: { categories: number; products: number; duplicates: number }): string {
@@ -101,6 +133,7 @@ export async function POST(req: NextRequest) {
   const notes: string[] = [];
   const sources: string[] = [];
   const usage = emptyUsage();
+  const readThisTurn: string[] = [];
   let reply = "";
 
   const merge = (label: string, scan: ScanResult) => {
@@ -125,7 +158,7 @@ export async function POST(req: NextRequest) {
       instruction = "";
     } else if (json?.kind === "foreign") {
       sources.push("json-ai");
-      merge("JSON", await extractFromText(client, "bir menüyü taşıyan, biçimi bilinmeyen bir JSON verisi", json.text, usage));
+      merge("JSON", (await extractGrounded(client, "bir menüyü taşıyan, biçimi bilinmeyen bir JSON verisi", json.text, usage)).scan);
       instruction = "";
     } else if (message) {
       // 3) Bağlantılar: her biri ayrı okunur; biri açılmazsa diğerleri sürer.
@@ -138,8 +171,10 @@ export async function POST(req: NextRequest) {
           notes.push(`${read.host}: ${read.error ?? "menü okunamadı."}`);
           continue;
         }
-        const via = read.via === "tarayıcı" ? " (tarayıcıda açılarak)" : read.via === "görsel" ? " (sayfadaki menü görsellerinden)" : "";
-        merge(`${read.host}${via}`, read.scan);
+        merge(`${read.host}${viaLabel(read)}`, read.scan);
+        draft = addSource(draft, link);
+        readThisTurn.push(draft.sources[draft.sources.length - 1]);
+        if (read.dropped > 0) notes.push(droppedNote(read.dropped));
       }
       // Yapıştırılmış menü metninin satırları korunur; yalnızca bağlantı varsa ayıklanır.
       if (links.length > 0) {
@@ -150,28 +185,84 @@ export async function POST(req: NextRequest) {
 
     // 4) Geri kalan: düzenleme komutu ya da yapıştırılmış menü metni.
     if (instruction) {
-      const response = await client.responses.create({
-        model: ASSISTANT_MODEL,
-        input: [
-          { role: "system", content: buildAssistantPrompt(draftSummary(draft), businessName) },
-          ...history.map((entry) => ({ role: entry.role, content: entry.text })),
-          { role: "user", content: instruction },
-        ],
-        text: { format: { type: "json_object" } },
-        max_output_tokens: 16000,
-      });
-      addUsage(usage, response);
-      const answer = normalizeAssistantReply(safeJson(response.output_text));
-      if (answer.add.categories.length > 0) {
-        sources.push("metin");
-        merge("Mesajdaki menü", answer.add);
-      }
-      if (answer.ops.length > 0) {
-        const applied = applyMenuOps(draft, answer.ops);
+      const ask = async (rereadDone: boolean) => {
+        const response = await client.responses.create({
+          model: ASSISTANT_MODEL,
+          ...REASONING,
+          input: [
+            { role: "system", content: buildAssistantPrompt(draftSummary(draft), businessName, draft.sources, notes, rereadDone) },
+            ...history.map((entry) => ({ role: entry.role, content: entry.text })),
+            { role: "user", content: instruction },
+            ...(rereadDone ? [{ role: "system" as const, content: buildFollowUpInstruction(draft, notes) }] : []),
+          ],
+          text: { format: { type: "json_object" } },
+          max_output_tokens: 32000,
+        });
+        addUsage(usage, response);
+        if (response.status === "incomplete") {
+          // Yarım JSON hiçbir şey uygulamaz; yöneticiye işi bölmesi söylenir.
+          notes.push("Yanıt çok uzun olduğu için yarıda kesildi, değişiklik uygulanmadı. İsteği kategori kategori yazın.");
+        }
+        return normalizeAssistantReply(safeJson(response.output_text));
+      };
+      const applyOps = (ops: MenuOp[]): string[] => {
+        if (ops.length === 0) return [];
+        const applied = applyMenuOps(draft, ops);
         draft = applied.draft;
         notes.push(...applied.skipped);
-      }
+        return applied.described;
+      };
+
+      const answer = await ask(false);
       reply = answer.reply;
+      if (answer.add.categories.length > 0) {
+        sources.push("metin");
+        // Yapıştırılan metinden çıkan menü de metnin kendisiyle sınanır.
+        const grounded = groundScan(answer.add, instruction);
+        merge("Mesajdaki menü", grounded.scan);
+        if (grounded.droppedProducts > 0) notes.push(droppedNote(grounded.droppedProducts));
+      }
+      const described = applyOps(answer.ops);
+
+      if (answer.rereadSource) {
+        // Bu mesajda zaten okunan bağlantı ikinci kez okunmaz (aynı sonuç, ikinci maliyet).
+        const pending = draft.sources.filter((source) => !readThisTurn.includes(source));
+        if (draft.sources.length === 0) {
+          notes.push("Taslağın okunduğu bir bağlantı yok; kaynaktan doldurmak için menü bağlantısını gönderin.");
+        }
+        let reread = false;
+        for (const source of pending) {
+          sources.push("reread");
+          const read = await readMenuLink(client, source, usage);
+          if (!read.scan) {
+            notes.push(`${read.host}: ${read.error ?? "kaynak yeniden okunamadı."}`);
+            continue;
+          }
+          reread = true;
+          const filled = fillFromSource(draft, read.scan, described);
+          draft = filled.draft;
+          const parts = [
+            filled.prices && `${filled.prices} fiyat`,
+            filled.descriptions && `${filled.descriptions} açıklama`,
+            filled.details && `${filled.details} ayrıntı (alerjen/kalori/süre/rozet)`,
+            filled.addedProducts && `${filled.addedProducts} yeni ürün`,
+          ].filter(Boolean);
+          notes.push(
+            parts.length
+              ? `${read.host}${viaLabel(read)}: kaynaktan ${parts.join(", ")} dolduruldu.`
+              : `${read.host}${viaLabel(read)}: kaynakta taslağa eklenecek yeni bilgi bulunamadı.`
+          );
+          if (read.dropped > 0) notes.push(droppedNote(read.dropped));
+        }
+        // Model işin tamamını kaynağa bıraktıysa ("fiyatları al ve açıklama
+        // ekle"), kaynağın KAPSAMADIĞI kısım (açıklama yazma, ayrıntı önerme)
+        // için ikinci tur: model artık kaynağın ne getirdiğini görür.
+        if (reread && answer.ops.length === 0) {
+          const second = await ask(true);
+          applyOps(second.ops);
+          if (second.reply) reply = second.reply;
+        }
+      }
     }
   } catch (error) {
     console.error("[admin/menu-assistant] hata", error);

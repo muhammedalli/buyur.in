@@ -21,9 +21,22 @@ import {
   type ScanResult,
   type UncertainField,
 } from "@/lib/ai/menu-scan";
+import type { Badge } from "@/lib/types";
 import { IMAGE_PROVIDERS, isAllowedImageHost, type ProductImageSource } from "@/lib/ai/image-source";
+import {
+  DETAIL_FIELDS,
+  detailsSummary,
+  emptyDetails,
+  groundDetails,
+  hasDetail,
+  normalizeDetails,
+  pickDetails,
+  providedDetailFields,
+  type DetailField,
+  type ProductDetails,
+} from "@/lib/ai/product-details";
 
-export interface DraftProduct {
+export interface DraftProduct extends ProductDetails {
   id: string;
   name: string;
   description: string;
@@ -32,6 +45,9 @@ export interface DraftProduct {
   uncertain: UncertainField[];
   image_url: string;
   image_source: ProductImageSource | null;
+  /** Kaynakta yazmayan, modelin ÖNERDİĞİ ayrıntılar. Önizlemede "AI önerisi"
+   *  olarak işaretlenir; alerjen ve kalori sağlık bilgisidir, kontrol edilmeli. */
+  suggested: DetailField[];
 }
 
 export interface DraftCategory {
@@ -44,17 +60,42 @@ export interface MenuDraft {
   categories: DraftCategory[];
   /** Kaynakta baskın görünen para birimi (bilgi amaçlı). */
   currency: string;
+  /** Taslağın okunduğu bağlantılar. Sonraki mesajlarda ("fiyatları al")
+   *  kaynak yeniden okunabilsin diye taslakla birlikte taşınır. */
+  sources: string[];
 }
 
 /** Yazılabilecek en yüksek fiyat (lib/admin-content.ts ile aynı sınır). */
 export const MAX_PRICE = 1_000_000;
 /** Tek bir yanıtta uygulanacak en fazla işlem. */
-export const MAX_OPS = 200;
+export const MAX_OPS = 400;
 /** Bir mesajda okunacak en fazla bağlantı. */
 export const MAX_LINKS = 3;
+/** Taslağın hatırladığı en fazla kaynak bağlantısı. */
+export const MAX_SOURCES = 3;
 
 export function emptyDraft(): MenuDraft {
-  return { categories: [], currency: "" };
+  return { categories: [], currency: "", sources: [] };
+}
+
+function cleanSources(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const urls: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string" || entry.length > 500) continue;
+    try {
+      const url = new URL(entry);
+      if ((url.protocol === "https:" || url.protocol === "http:") && !urls.includes(url.href)) urls.push(url.href);
+    } catch {
+      /* geçersiz adres atılır */
+    }
+  }
+  return urls.slice(-MAX_SOURCES);
+}
+
+/** Okunan bağlantıyı taslağın kaynaklarına ekler (en yenisi sonda). */
+export function addSource(draft: MenuDraft, url: string): MenuDraft {
+  return { ...draft, sources: cleanSources([...draft.sources.filter((entry) => entry !== url), url]) };
 }
 
 function cleanText(value: unknown, max: number): string {
@@ -83,7 +124,8 @@ function cleanImageSource(value: unknown, imageUrl: string): ProductImageSource 
 export function normalizeDraft(raw: unknown): MenuDraft {
   const rawCategories = (raw as { categories?: unknown })?.categories;
   const currency = cleanText((raw as { currency?: unknown })?.currency, 3).toUpperCase();
-  if (!Array.isArray(rawCategories)) return { categories: [], currency };
+  const sources = cleanSources((raw as { sources?: unknown })?.sources);
+  if (!Array.isArray(rawCategories)) return { categories: [], currency, sources };
 
   const categories: DraftCategory[] = [];
   for (const rawCategory of rawCategories.slice(0, MAX_CATEGORIES)) {
@@ -104,7 +146,10 @@ export function normalizeDraft(raw: unknown): MenuDraft {
       if (price === null && !uncertain.includes("price")) uncertain = [...uncertain, "price"];
       if (price !== null) uncertain = uncertain.filter((field) => field !== "price");
       const imageUrl = typeof product.image_url === "string" && isAllowedImageHost(product.image_url) ? product.image_url : "";
+      const details = normalizeDetails(product);
+      const reportedSuggested = Array.isArray(product.suggested) ? product.suggested : [];
       products.push({
+        ...details,
         id: "",
         name: productName,
         description: cleanText(product.description, MAX_DESCRIPTION_LENGTH),
@@ -112,12 +157,17 @@ export function normalizeDraft(raw: unknown): MenuDraft {
         uncertain,
         image_url: imageUrl,
         image_source: cleanImageSource(product.image_source, imageUrl),
+        // Yalnızca gerçekten dolu alan "öneri" olarak işaretli kalır.
+        suggested: DETAIL_FIELDS.filter((field) => reportedSuggested.includes(field) && hasDetail(details, field)),
       });
     }
     categories.push({ id: "", name, products });
   }
-  return reindexDraft({ categories, currency });
+  return reindexDraft({ categories, currency, sources });
 }
+
+/** Modelin ÖNERİ olarak verebileceği rozetler (ürünün kendisinden anlaşılır). */
+const INFERABLE_BADGES: Badge[] = ["vejetaryen", "vegan", "aci", "glutensiz"];
 
 /** Kimlikleri sıradan yeniden verir. Modelin göreceği özet de bu kimliklerle
  *  yazılır; kısa ve tahmin edilebilir kimlik modelin yanlış kayda dokunma
@@ -172,6 +222,7 @@ export function mergeExtracted(draft: MenuDraft, scan: ScanResult): MergeResult 
     id: "",
     name: category.name,
     products: category.products.map((product) => ({
+      ...(product.details ?? emptyDetails()),
       id: "",
       name: product.name,
       description: product.description,
@@ -179,11 +230,13 @@ export function mergeExtracted(draft: MenuDraft, scan: ScanResult): MergeResult 
       uncertain: product.uncertain,
       image_url: "",
       image_source: null,
+      suggested: [],
     })),
   }));
   const before = draftStats(draft);
   const { categories } = dedupeScanned<DraftProduct, DraftCategory>([...draft.categories, ...incoming]);
   const merged = reindexDraft({
+    ...draft,
     categories: categories.filter((category) => category.products.length > 0).slice(0, MAX_CATEGORIES),
     currency: draft.currency || scan.currency,
   });
@@ -210,6 +263,9 @@ export type MenuOp =
   | { op: "delete_product"; product: string }
   | { op: "move_product"; product: string; category: string }
   | { op: "add_product"; category: string; name: string; price: number | null; description?: string }
+  /** Alerjen/rozet/kalori/süre. `given`: değeri yönetici mesajında verdi
+   *  (öneri sayılmaz); değilse modelin önerisidir ve işaretlenir. */
+  | { op: "set_details"; product: string; details: Partial<ProductDetails>; given: boolean }
   | { op: "clear_descriptions"; category?: string }
   | { op: "clear_menu" };
 
@@ -293,6 +349,13 @@ export function normalizeOps(raw: unknown): MenuOp[] {
         }
         break;
       }
+      case "set_details": {
+        const product = ref(item.product);
+        const fields = providedDetailFields(item);
+        if (!product || fields.length === 0) break;
+        ops.push({ op: "set_details", product, details: pickDetails(normalizeDetails(item), fields), given: item.given === true });
+        break;
+      }
       case "clear_descriptions": {
         const category = ref(item.category);
         ops.push({ op: "clear_descriptions", ...(category ? { category } : {}) });
@@ -319,6 +382,9 @@ export function adjustPrice(price: number, percent: number, round?: number): num
 export interface ApplyResult {
   draft: MenuDraft;
   applied: number;
+  /** Açıklaması bu işlemlerle (modelce) yazılan ürünlerin katlanmış adları:
+   *  kaynak aynı turda yeniden okunursa kaynaktaki gerçek açıklama öne geçer. */
+  described: string[];
   /** Uygulanamayan işlemlerin okunur açıklaması (bulunamayan kayıt gibi). */
   skipped: string[];
 }
@@ -327,6 +393,7 @@ export interface ApplyResult {
 export function applyMenuOps(input: MenuDraft, ops: MenuOp[]): ApplyResult {
   let categories: DraftCategory[] = input.categories.map((category) => ({ ...category, products: [...category.products] }));
   const skipped: string[] = [];
+  const described: string[] = [];
   let applied = 0;
 
   const findCategory = (key: string) => {
@@ -447,6 +514,7 @@ export function applyMenuOps(input: MenuDraft, ops: MenuOp[]): ApplyResult {
           skipped.push(`"${op.name}" adında bir ürün zaten var.`);
           break;
         }
+        if (op.description) described.push(normalizeEntryName(op.name ?? current.name));
         updateProduct(found.category, found.index, {
           ...(op.name ? { name: op.name } : {}),
           ...(op.description !== undefined ? { description: op.description, uncertain: current.uncertain.filter((f) => f !== "description") } : {}),
@@ -484,6 +552,8 @@ export function applyMenuOps(input: MenuDraft, ops: MenuOp[]): ApplyResult {
         }
         const target = ensureCategory(op.category);
         target.products.push({
+          ...emptyDetails(),
+          suggested: [],
           id: `new-p${applied}`,
           name: op.name,
           description: op.description ?? "",
@@ -492,6 +562,24 @@ export function applyMenuOps(input: MenuDraft, ops: MenuOp[]): ApplyResult {
           image_url: "",
           image_source: null,
         });
+        applied += 1;
+        break;
+      }
+      case "set_details": {
+        const found = findProduct(op.product);
+        if (!found) {
+          skipped.push(`"${op.product}" ürünü bulunamadı.`);
+          break;
+        }
+        const current = found.category.products[found.index];
+        // "Yeni", "Popüler", "Şefin önerisi" işletmenin bildiği gerçeklerdir;
+        // ürün adından çıkarılamaz. Model yalnızca beslenme rozetini önerebilir.
+        const details = !op.given && op.details.badges ? { ...op.details, badges: op.details.badges.filter((badge) => INFERABLE_BADGES.includes(badge)) } : op.details;
+        const next = { ...current, ...details };
+        const touched = DETAIL_FIELDS.filter((field) => field in details || (field === "prep_time" && "prep_time_min" in details));
+        const suggested = current.suggested.filter((field) => !touched.includes(field));
+        if (!op.given) suggested.push(...touched.filter((field) => hasDetail(next, field)));
+        updateProduct(found.category, found.index, { ...details, suggested });
         applied += 1;
         break;
       }
@@ -520,7 +608,7 @@ export function applyMenuOps(input: MenuDraft, ops: MenuOp[]): ApplyResult {
 
   // Ürünü kalmayan kategori yazılmaz; taslakta da tutulmaz.
   const draft = reindexDraft({ ...input, categories: categories.filter((category) => category.products.length > 0) });
-  return { draft, applied, skipped };
+  return { draft, applied, skipped, described };
 }
 
 // ── Kaynak tespiti ──────────────────────────────────────────────────────
@@ -562,6 +650,126 @@ export function readJsonSource(message: string): JsonSource | null {
   return { kind: "foreign", text: trimmed };
 }
 
+// ── Kaynağa bağlılık ────────────────────────────────────────────────────
+
+/** Kaynak metinde geçen bütün sayılar ("1.250 ₺" → 1250, "45,50" → 45.5). */
+export function sourceNumbers(text: string): Set<number> {
+  const numbers = new Set<number>();
+  for (const match of text.match(/\d[\d.,]*/g) ?? []) {
+    const parsed = parsePrice(match.replace(/[.,]+$/, ""));
+    if (parsed !== null) numbers.add(parsed);
+    // "130" gibi yalın sayılar da ayrıca sayılır ("1.5 saat" → 1 ve 5 değil, 1.5).
+    for (const part of match.split(/[.,]/)) if (part) numbers.add(Number(part));
+  }
+  return numbers;
+}
+
+export interface GroundResult {
+  scan: ScanResult;
+  /** Adı kaynakta geçmediği için atılan ürün sayısı (uydurma). */
+  droppedProducts: number;
+  /** Kaynakta geçmediği için silinen fiyat sayısı. */
+  clearedPrices: number;
+}
+
+/** Metin kaynaktan çıkarılan menüyü kaynağın kendisiyle sınar. Model
+ *  "kaynakta olmayanı uydurma" kuralını her zaman tutmaz (ör. "5 ürün" yazan
+ *  bir kategori kartından ürün adı üretir); bu yüzden kural kodla uygulanır:
+ *  - ürün adı kaynakta geçmiyorsa ürün atılır,
+ *  - fiyat kaynakta sayı olarak geçmiyorsa null olur ve işaretlenir,
+ *  - açıklama kaynakta geçmiyorsa boşaltılır,
+ *  - alerjen/rozet/kalori/süre kaynakta dayanağı yoksa atılır.
+ *  Fotoğraf/PDF kaynağında metin olmadığı için bu sınama yapılmaz. */
+export function groundScan(scan: ScanResult, sourceText: string): GroundResult {
+  const normalizedSource = ` ${normalizeEntryName(sourceText)} `;
+  const numbers = sourceNumbers(sourceText);
+  const inSource = (value: string) => {
+    const key = normalizeEntryName(value);
+    return key !== "" && normalizedSource.includes(` ${key} `);
+  };
+  let droppedProducts = 0;
+  let clearedPrices = 0;
+  const categories = scan.categories
+    .map((category) => ({
+      ...category,
+      products: category.products.flatMap((product) => {
+        if (!inSource(product.name)) {
+          droppedProducts += 1;
+          return [];
+        }
+        let { price, uncertain, description } = product;
+        if (price !== null && !numbers.has(price)) {
+          price = null;
+          clearedPrices += 1;
+          if (!uncertain.includes("price")) uncertain = [...uncertain, "price"];
+        }
+        // Uzun açıklamanın başı yeterli: kırpma ve boşluk farkı sınamayı bozmasın.
+        if (description && !inSource(normalizeEntryName(description).split(" ").slice(0, 8).join(" "))) description = "";
+        const details = product.details ? groundDetails(product.details, normalizedSource.trim(), numbers) : undefined;
+        return [{ ...product, price, uncertain, description, ...(details ? { details } : {}) }];
+      }),
+    }))
+    .filter((category) => category.products.length > 0);
+  return { scan: { ...scan, categories }, droppedProducts, clearedPrices };
+}
+
+export interface FillResult {
+  draft: MenuDraft;
+  prices: number;
+  descriptions: number;
+  details: number;
+  addedProducts: number;
+}
+
+/** Kaynağı yeniden okuyup taslaktaki BOŞLUKLARI doldurur: fiyatı olmayan
+ *  ürüne fiyat, açıklaması olmayana açıklama, ayrıntısı olmayana ayrıntı.
+ *  Eşleşme ada göredir (Türkçe katlamalı). Dolu alan ezilmez; yöneticinin
+ *  düzelttiği değer kaynakla geri alınmaz. Kaynakta olup taslakta olmayan
+ *  ürünler de eklenir. */
+export function fillFromSource(draft: MenuDraft, scan: ScanResult, replaceDescriptions: string[] = []): FillResult {
+  const byName = new Map<string, ScanResult["categories"][number]["products"][number]>();
+  for (const category of scan.categories) {
+    for (const product of category.products) {
+      const key = normalizeEntryName(product.name);
+      if (key && !byName.has(key)) byName.set(key, product);
+    }
+  }
+  let prices = 0;
+  let descriptions = 0;
+  let details = 0;
+  const categories = draft.categories.map((category) => ({
+    ...category,
+    products: category.products.map((product) => {
+      const source = byName.get(normalizeEntryName(product.name));
+      if (!source) return product;
+      const next = { ...product };
+      if (next.price === null && source.price !== null) {
+        next.price = source.price;
+        next.uncertain = next.uncertain.filter((field) => field !== "price");
+        prices += 1;
+      }
+      const aiWritten = replaceDescriptions.includes(normalizeEntryName(product.name));
+      if ((!next.description || aiWritten) && source.description && source.description !== next.description) {
+        next.description = source.description;
+        descriptions += 1;
+      }
+      if (source.details) {
+        for (const field of DETAIL_FIELDS) {
+          // Önerilmiş (tahmin) değer kaynaktaki gerçek değerle değiştirilir.
+          const replaceable = !hasDetail(next, field) || next.suggested.includes(field);
+          if (!replaceable || !hasDetail(source.details, field)) continue;
+          Object.assign(next, pickDetails(source.details, [field]));
+          next.suggested = next.suggested.filter((entry) => entry !== field);
+          details += 1;
+        }
+      }
+      return next;
+    }),
+  }));
+  const merged = mergeExtracted({ ...draft, categories }, scan);
+  return { draft: merged.draft, prices, descriptions, details, addedProducts: merged.addedProducts };
+}
+
 // ── Model yönergeleri ───────────────────────────────────────────────────
 
 /** Modelin göreceği taslak özeti. Açıklama kısaltılır: model düzenleme
@@ -573,26 +781,35 @@ export function draftSummary(draft: MenuDraft): string {
     lines.push(`[${category.id}] ${category.name}`);
     for (const product of category.products) {
       const price = product.price === null ? "fiyat yok" : String(product.price);
-      const description = product.description ? ` — ${product.description.slice(0, 80)}` : "";
-      lines.push(`  [${product.id}] ${product.name} | ${price}${description}`);
+      const description = product.description ? ` — ${product.description.slice(0, 80)}` : " — açıklama yok";
+      const details = detailsSummary(product);
+      const suggested = product.suggested.length ? ` (öneri: ${product.suggested.join(", ")})` : "";
+      lines.push(`  [${product.id}] ${product.name} | ${price}${description}${details ? ` | ${details}${suggested}` : ""}`);
     }
   }
   return lines.join("\n");
 }
 
+const DETAIL_VALUES = `Alerjen anahtarları: gluten, laktoz, yumurta, findik_fistik, yer_fistigi, soya, balik, kabuklu_deniz_urunu, susam, hardal, kereviz, sulfit.
+Rozet anahtarları: yeni, sefin_onerisi, populer, vejetaryen, vegan, aci, glutensiz. (yeni, populer, sefin_onerisi yalnızca kaynakta ya da yöneticinin mesajında yazıyorsa; sen önerme.)`;
+
 const EXTRACTION_RULES = `KURALLAR:
 1. ASLA TAHMİN ETME. Fiyatı net göremiyorsan price alanını null yap ve uncertain listesine "price" ekle. Yanlış bir fiyat, eksik fiyattan çok daha kötüdür.
 2. Fiyatı yalnızca sayı olarak ver; para birimini "currency" alanına ISO kodu olarak yaz (TRY, USD, EUR, GBP), emin değilsen boş bırak.
-3. Kaynakta olmayan ürün veya kategori UYDURMA.
+3. Kaynakta adı YAZILI olmayan ürün veya kategori UYDURMA. "5 ürün", "16 çeşit" gibi sayılar ürün değildir; ürün adlarını görmüyorsan boş liste döndür.
 4. Kategori başlığı yoksa ürünleri kaynaktaki bağlama uygun, kısa ve genel bir başlık altında topla (ör. "Menü").
-5. Adları ve açıklamaları kaynakta yazdığı gibi bırak; çevirme. Açıklama yoksa boş bırak, kendin yazma.
+5. Adları ve açıklamaları kaynakta yazdığı gibi bırak; çevirme. Açıklama (ör. içindekiler listesi) yazıyorsa olduğu gibi al; yoksa boş bırak, kendin yazma.
 6. Aynı ürün birden fazla kez geçiyorsa bir kez ekle. Porsiyon/boy farkı varsa ("Küçük", "Büyük") her birini ayrı ürün olarak adıyla birlikte yaz.
-7. Menü dışı içerikleri (adres, çalışma saati, kampanya metni, gezinme bağlantıları, çerez uyarısı) alma.`;
+7. Menü dışı içerikleri (adres, çalışma saati, kampanya metni, gezinme bağlantıları, çerez uyarısı) alma.
+8. Alerjen, rozet (vegan, acılı vb.), kalori ve hazırlanma süresini YALNIZCA kaynakta o ürün için açıkça yazıyorsa doldur; yoksa boş bırak. Malzemeden alerjen çıkarımı yapma.
+9. Kaynak birden fazla sayfadan oluşabilir ("## Sayfa:" başlıkları). Her sayfanın başlığı genelde kategoridir; sayfalar arasında tekrar eden gezinme menüsünü ürün sanma.
+${DETAIL_VALUES}`;
 
 const EXTRACTION_SCHEMA = `{
   "categories": [
     { "name": "string", "products": [
-      { "name": "string", "description": "string", "price": number | null, "currency": "TRY" | "USD" | "EUR" | "GBP" | "", "uncertain": ["price"] }
+      { "name": "string", "description": "string", "price": number | null, "currency": "TRY" | "USD" | "EUR" | "GBP" | "", "uncertain": ["price"],
+        "allergens": ["gluten"], "badges": ["vegan"], "calories": number | null, "prep_time_min": number | null, "prep_time_max": number | null }
     ] }
   ]
 }`;
@@ -610,10 +827,34 @@ ${EXTRACTION_SCHEMA}`;
 
 /** Sohbet (düzenleme) yönergesi. Model menüyü yeniden yazmaz; işlem listesi
  *  döndürür. Mesaj menü içeriği taşıyorsa (yapıştırılmış metin) "add" alanına
- *  çıkarır. */
-export function buildAssistantPrompt(summary: string, businessName: string): string {
+ *  çıkarır; kaynağın yeniden okunmasını "reread_source" ile ister. */
+export function buildAssistantPrompt(
+  summary: string,
+  businessName: string,
+  sources: string[] = [],
+  turnNotes: string[] = [],
+  /** Kaynak bu mesajda zaten yeniden okundu: model isteğin kalanını yapar. */
+  rereadDone = false
+): string {
+  const sourceLine = rereadDone
+    ? "Kaynak bu mesaj için yeniden okundu ve bulunanlar taslağa işlendi (aşağıdaki notlar); reread_source artık kullanılamaz."
+    : sources.length
+      ? `Taslağın okunduğu kaynak bağlantı(lar): ${sources.join(", ")}. Sistem bu kaynağı senin için yeniden açıp okuyabilir.`
+      : "Taslak henüz bir bağlantıdan okunmadı.";
+  const turnLine = turnNotes.length
+    ? `\nBU MESAJDA SİSTEMİN ZATEN YAPTIKLARI (taslak aşağıda bunlardan sonraki hâlidir; aynı kaynağı yeniden okutma):\n${turnNotes.map((note) => `- ${note}`).join("\n")}\n`
+    : "";
   return `Sen buyur yönetim panelinde, ${businessName ? `"${businessName}" işletmesinin` : "yeni bir işletmenin"} dijital menüsünü hazırlayan asistansın. Yöneticiyle Türkçe, kısa ve net konuşursun.
 
+NE YAPABİLDİĞİN (yöneticiye yanlış bilgi verme):
+- Yöneticinin mesajındaki bağlantıları, ekli fotoğraf/PDF'leri ve JSON'u SİSTEM otomatik okur ve taslağa ekler; sonucu sen bu mesajı görmeden önce taslağa işlenmiştir. "Bağlantıya erişemem", "dış siteden veri çekemem" gibi cümleler YANLIŞTIR, asla yazma.
+- ${sourceLine}
+- Yönetici kaynaktan bilgi almanı isterse ("fiyatları al", "siteden açıklamaları çek", "eksikleri kaynaktan doldur") "reread_source": true döndür; sistem kaynağı yeniden okuyup YALNIZCA kaynakta yazan boş fiyat, açıklama ve ayrıntıları doldurur. Kaynak yoksa yöneticiden bağlantıyı iste.
+- reread_source açıklama YAZMAZ, alerjen/kalori/süre/rozet ÖNERMEZ. Bunlar istendiyse işlemleri (update_product, set_details) SEN bu yanıtta üretirsin; kaynakta yazan değer sistemce sonra gerçek değerle değiştirilir.
+- Ürün açıklaması yazabilir, alerjen/rozet/kalori/hazırlanma süresi önerebilirsin (aşağıdaki kurallarla).
+- Görsel arama ve kayda yazma bu sohbetin işi değil: ekrandaki "Tüm ürünlere görsel ara" ve "İşletmeyi oluştur"/"Menüye aktar" düğmeleri yapar.
+
+${turnLine}
 Menü taslağının şu anki hâli (köşeli parantezdekiler kayıt kimliği):
 ${summary}
 
@@ -621,7 +862,8 @@ Yöneticinin mesajına göre YALNIZCA şu JSON'u döndür:
 {
   "reply": "Yöneticiye kısa Türkçe yanıt (ne yaptığını ya da neden yapamadığını söyle, 1-3 cümle)",
   "ops": [ ...işlemler ],
-  "add": { "categories": [ ... ] }
+  "add": { "categories": [ ... ] },
+  "reread_source": false
 }
 
 İŞLEMLER (kayıtlara kimlikle başvur: "c3", "p12"):
@@ -635,25 +877,42 @@ Yöneticinin mesajına göre YALNIZCA şu JSON'u döndür:
 - {"op":"delete_product","product":"p9"}
 - {"op":"move_product","product":"p2","category":"c5" ya da yeni kategori adı}
 - {"op":"add_product","category":"c1" ya da yeni kategori adı,"name":"...","price":45 | null,"description":"..."?}
+- {"op":"set_details","product":"p3","allergens":["gluten","laktoz"]?,"badges":["vejetaryen"]?,"calories":350?,"prep_time_min":10?,"prep_time_max":15?,"given":false}  yalnızca değiştirdiğin alanları yaz. Değeri yönetici mesajında açıkça verdiyse "given": true, senin önerinse false.
 - {"op":"clear_descriptions","category":"c1"?}
 - {"op":"clear_menu"}  yalnızca yönetici taslağı tamamen silmek istediğinde.
+${DETAIL_VALUES}
 
 "add": Mesajın KENDİSİ menü içeriği (ürün adları ve fiyatlar) taşıyorsa onu buraya çıkar, taslağa eklenir. Şema:
 ${EXTRACTION_SCHEMA}
 Menü içeriği yoksa "add" alanını boş bırak: {"categories": []}.
 
 KURALLAR:
-1. ASLA fiyat uydurma. Yönetici söylemediyse set_price kullanma; yüzde değişimini adjust_prices ile yap, hesaplamayı sen yapma.
-2. Açıklama yazman istenirse kısa (en fazla 1 cümle), iştah açıcı, ürünün gerçekte ne olduğuna sadık yaz; içerikte emin olmadığın malzeme ekleme.
-3. İstenmeyen değişiklik yapma. Anlamadıysan ops boş kalsın ve reply'da netleştirici bir soru sor.
-4. Taslak boşsa ve mesajda menü yoksa, yöneticiye menüyü nasıl verebileceğini anlat: bağlantı, JSON, düz metin ya da fotoğraf/PDF.
-5. Görsel, çeviri ve yayınlama bu sohbetin işi değil; sorulursa ekrandaki ilgili düğmeyi söyle ("Tüm ürünlere görsel ara", "İşletmeyi oluştur").`;
+1. ASLA fiyat uydurma. Yönetici söylemediyse set_price kullanma; yüzde değişimini adjust_prices ile yap, hesaplamayı sen yapma. Fiyat istenirse ve kaynak varsa reread_source kullan.
+2. Açıklama yazman istenirse istenen her ürün için ayrı update_product yaz: kısa (en fazla 1 cümle), iştah açıcı, ürünün gerçekte ne olduğuna sadık; emin olmadığın malzeme ekleme. "Hepsine" dendiyse açıklaması OLMAYAN bütün ürünlere yaz; dolu açıklamayı yönetici istemedikçe değiştirme.
+3. Alerjen, rozet, kalori ve süre istenirse her ürün için ayrı set_details yaz. Yalnızca ürünün adından ve açıklamasından makul biçimde çıkarılabilenleri öner (ör. "Peynirli Omlet" → yumurta, laktoz); kalori ve süre gerçekçi aralıkta olsun. Bunlar öneridir ("given": false): reply'da önizlemede "AI önerisi" olarak işaretlendiğini ve kontrol edilmesi gerektiğini söyle. Bilemediğin alanı boş bırak.
+4. İstenmeyen değişiklik yapma. Anlamadıysan ops boş kalsın ve reply'da netleştirici bir soru sor. İstenen işi yapabiliyorsan yöneticiden veri isteme, yap.
+5. Taslak boşsa ve mesajda menü yoksa, yöneticiye menüyü nasıl verebileceğini anlat: bağlantı, JSON, düz metin ya da fotoğraf/PDF.
+6. reply'da yaptığın işi abartma: yalnızca bu yanıttaki ops ile gerçekten yaptığını, geçmiş zamanla söyle ("yazdım", "ekledim"). "Başlıyorum", "dolduracağım" gibi gelecek vaat etme; bu yanıttan sonra senin için ikinci bir tur yok.
+7. Toplu istekte (ör. "hepsine") taslaktaki İLGİLİ HER ürün için işlem üret; birkaç örnekle yetinme.`;
+}
+
+/** Kaynak yeniden okunduktan sonraki ikinci turun son talimatı. Uzun yönergenin
+ *  ortasında kalan cümleyi model atlıyor; somut sayılarla en sona konur. */
+export function buildFollowUpInstruction(draft: MenuDraft, turnNotes: string[]): string {
+  const products = draft.categories.flatMap((category) => category.products);
+  const noDescription = products.filter((product) => !product.description).length;
+  const noDetails = products.filter((product) => DETAIL_FIELDS.every((field) => !hasDetail(product, field))).length;
+  return `SİSTEM NOTU: Kaynak okundu ve taslağa işlendi: ${turnNotes.join(" ") || "yeni bilgi çıkmadı."}
+Şu an açıklaması boş ${noDescription} ürün, hiç ayrıntısı (alerjen/kalori/süre/rozet) olmayan ${noDetails} ürün var.
+Kaynağın veremediğini yöneticinin isteğine göre SEN işlemlerle şimdi yap (ör. açıklama yaz denildiyse açıklaması boş her ürüne update_product). reread_source kullanma. Yöneticinin isteğinde kaynağın karşılamadığı bir iş kalmadıysa ops boş kalsın.`;
 }
 
 export interface AssistantReply {
   reply: string;
   ops: MenuOp[];
   add: ScanResult;
+  /** Model taslağın kaynağının yeniden okunmasını istedi. */
+  rereadSource: boolean;
 }
 
 export function normalizeAssistantReply(raw: unknown): AssistantReply {
@@ -662,5 +921,6 @@ export function normalizeAssistantReply(raw: unknown): AssistantReply {
     reply: cleanText(value.reply, 1200),
     ops: normalizeOps(value.ops),
     add: normalizeScanResult(value.add),
+    rereadSource: value.reread_source === true,
   };
 }

@@ -9,6 +9,7 @@
 // döner ve `uncertain` listesine "price" eklenir — kullanıcı önizlemede görür.
 
 import { msg } from "@/lib/ui-i18n";
+import { normalizeDetails, type ProductDetails } from "@/lib/ai/product-details";
 
 /** Bir alanın modelce okunamadığını/belirsiz olduğunu belirten anahtar. */
 export type UncertainField = "name" | "description" | "price" | "currency";
@@ -24,6 +25,9 @@ export interface ScannedProduct {
   currency: string;
   /** Kullanıcının kontrol etmesi gereken alanlar. */
   uncertain: UncertainField[];
+  /** Kaynakta YAZAN alerjen, rozet, kalori ve süre (yönetici asistanı okur;
+   *  panel taraması bunları açıklamada bırakır). */
+  details?: ProductDetails;
 }
 
 export interface ScannedCategory {
@@ -216,6 +220,7 @@ export function normalizeScanResult(raw: unknown): ScanResult {
         price,
         currency,
         uncertain,
+        details: normalizeDetails(product),
       });
     }
 

@@ -123,6 +123,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               // AI görseli bağlantı olarak kalır (izinli sağlayıcı: normalizeDraft).
               image_url: product.image_url,
               image_source: product.image_url ? product.image_source : null,
+              // Ayrıntılar normalizeDraft'ta şemadaki anahtarlara ve sınırlara
+              // indirildi; bilinmeyen sayı 0 ("girilmemiş") yazılır.
+              allergens: product.allergens,
+              badges: product.badges,
+              calories: product.calories ?? 0,
+              prep_time_min: product.prep_time_min ?? 0,
+              prep_time_max: product.prep_time_max ?? 0,
               is_available: publish,
               order: planned.productOrderStart + index,
             },

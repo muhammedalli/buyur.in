@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkMenuUrl, extractImageLinks, htmlToMenuText, isPrivateAddress } from "@/lib/ai/menu-link";
+import { checkMenuUrl, extractImageLinks, extractPageLinks, htmlToMenuText, isPrivateAddress } from "@/lib/ai/menu-link";
 
 // Bağlantıdan menü okumanın güvenlik ve ayrıştırma sözleşmesi. Sunucu
 // yöneticinin verdiği adrese istek atar: iç ağa çıkan her adres reddedilir.
@@ -68,5 +68,35 @@ describe("extractImageLinks", () => {
     expect(extractImageLinks("![Menü](https://ornek.com/menu.png) ve ![](https://ornek.com/favicon.png)", "https://ornek.com")).toEqual([
       "https://ornek.com/menu.png",
     ]);
+  });
+});
+
+describe("extractPageLinks", () => {
+  it("aynı sitedeki kategori sayfalarını sırasıyla verir; dosya, başka site, menü dışı ve başka dil elenir", () => {
+    const html = `
+      <a href="/">Ana sayfa</a>
+      <a class="category-card" href="/kahvalti">Kahvaltı</a>
+      <a href="https://www.ornek.com/ana-yemekler#ust">Ana Yemekler</a>
+      <a href="/kahvalti">Kahvaltı (tekrar)</a>
+      <a href="/iletisim">İletişim</a>
+      <a href="/en/breakfast">English</a>
+      <a href="/menu.pdf">PDF</a>
+      <a href="https://baska.com/x">Başka</a>
+      <a href="mailto:a@b.com">E-posta</a>`;
+    expect(extractPageLinks(html, "https://ornek.com/")).toEqual(["https://ornek.com/kahvalti", "https://www.ornek.com/ana-yemekler"]);
+  });
+
+  it("tarayıcı okuyucusunun Markdown bağlantılarını da okur", () => {
+    const markdown = "### [Tatlılar 6 ürün](https://ornek.com/tatlilar)### [Sıcak İçecekler](https://ornek.com/sicak-icecekler) ![x](https://ornek.com/a.webp)";
+    expect(extractPageLinks(markdown, "https://ornek.com/")).toEqual(["https://ornek.com/tatlilar", "https://ornek.com/sicak-icecekler"]);
+  });
+});
+
+describe("htmlToMenuText — nitelikteki açıklama", () => {
+  it("data-description gibi niteliklerdeki ürün bilgisi metne katılır", () => {
+    const html = `<button class="menu-item" data-name="Serpme Kahvaltı" data-price="1000" data-description="Muhlama, Menemen, Kolot"><h3>Serpme Kahvaltı</h3><p>1000 ₺</p></button><button data-description><h3>Çay</h3></button>`;
+    const { text } = htmlToMenuText(html);
+    // Ad etiketlenir: değer adın önünde durduğu için model önceki ürüne bağlamasın.
+    expect(text).toContain("(Serpme Kahvaltı — açıklama: Muhlama, Menemen, Kolot)");
   });
 });

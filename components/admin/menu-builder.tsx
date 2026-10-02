@@ -16,6 +16,8 @@ import { useConfirm } from "@/components/panel/confirm-dialog";
 import { ArrowRightIcon, EyeIcon, FileTextIcon, ImageIcon, PlusIcon, SparklesIcon, TrashIcon, XIcon } from "@/components/icons";
 import { draftStats, emptyDraft, type DraftCategory, type DraftProduct, type DraftStats, type MenuDraft } from "@/lib/ai/menu-assistant";
 import type { StoredProductImage } from "@/lib/ai/image-source";
+import { emptyDetails, pickDetails } from "@/lib/ai/product-details";
+import { allergenLabels, badgeLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 // Yönetim panelinin menü asistanı: sayfanın içinde duran sohbet + pencerede
@@ -573,7 +575,12 @@ export function MenuAssistant({
     const message = input.trim();
     if ((!message && files.length === 0) || sending || disabled) return;
     const sent = files;
-    const history = messages.map((entry) => ({ role: entry.role, text: entry.text }));
+    // Notlar ("51 ürün eklendi", "fiyat eksik") da geçmişe girer: model taslağa
+    // ne olduğunu bilmeden yanıt vermesin.
+    const history = messages.map((entry) => ({
+      role: entry.role,
+      text: [entry.text, ...(entry.notes ?? [])].filter(Boolean).join("\n"),
+    }));
     setMessages((current) => [...current, { id: Date.now(), role: "user", text: message, files: sent.map((file) => file.name) }]);
     setInput("");
     setFiles([]);
@@ -743,6 +750,18 @@ export function MenuAssistant({
 
 // ── Önizleme ────────────────────────────────────────────────────────────
 
+/** "Alerjen: Gluten, Laktoz · Vejetaryen · 350 kcal · 10–15 dk" */
+function detailsLine(product: DraftProduct): string {
+  const parts: string[] = [];
+  if (product.allergens.length) parts.push(`Alerjen: ${product.allergens.map((key) => allergenLabels.tr[key]).join(", ")}`);
+  if (product.badges.length) parts.push(product.badges.map((key) => badgeLabels.tr[key]).join(", "));
+  if (product.calories !== null) parts.push(`${product.calories} kcal`);
+  if (product.prep_time_min !== null) {
+    parts.push(product.prep_time_min === product.prep_time_max ? `${product.prep_time_min} dk` : `${product.prep_time_min}–${product.prep_time_max} dk`);
+  }
+  return parts.join(" · ");
+}
+
 function ProductRow({
   product,
   disabled,
@@ -755,6 +774,7 @@ function ProductRow({
   onDelete: () => void;
 }) {
   const missingPrice = product.price === null;
+  const details = detailsLine(product);
   return (
     // Dar ekranda fiyat ve sil düğmesi alt satıra iner; ad okunur genişlikte kalır.
     <div className={cn("flex flex-wrap items-start gap-2 rounded-md border p-2", missingPrice ? "border-paprika/40 bg-paprika/5" : "border-line")}>
@@ -789,6 +809,24 @@ function ProductRow({
           aria-label="Ürün açıklaması"
           className="w-full min-w-0 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-ink-soft outline-none placeholder:text-ink-soft/50 hover:border-line focus:border-paprika"
         />
+        {details && (
+          <div className="flex flex-wrap items-center gap-1.5 px-1.5 text-xs text-ink-soft">
+            <span className="min-w-0">{details}</span>
+            {product.suggested.length > 0 && (
+              // Kaynakta yazmayan, modelin önerdiği değer: yönetici görmeden kayda gitmesin.
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onChange({ ...pickDetails(emptyDetails(), product.suggested), suggested: [] })}
+                title="Kaynakta yazmıyordu, yapay zekâ önerdi. Kontrol edin; tıklarsanız öneriler kaldırılır."
+                className="inline-flex items-center gap-1 rounded-md bg-paprika/10 px-1.5 py-0.5 text-paprika hover:bg-paprika/20 disabled:opacity-50"
+              >
+                AI önerisi
+                <XIcon size={11} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <input

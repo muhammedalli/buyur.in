@@ -3,6 +3,25 @@
 > Bu dosya `lib/release-notes.ts`'ten üretilir (`bun run changelog`). Elle düzenlemeyin.
 > Kullanıcıya görünen hâli: https://buyur.in/docs/surum-notlari
 
+## [0.14.0] — 2026-10-02
+
+**Menü asistanı bağlantıdaki menüyü eksiksiz alıyor**
+
+- **İyileştirme:** Menüsünü kategori sayfalarına bölen sitelerde asistan alt sayfaları da açar: ürünler fiyatları ve açıklamalarıyla birlikte gelir.
+- **Düzeltme:** Asistan artık kaynakta adı geçmeyen ürün eklemez ve kaynakta yazmayan fiyatı almaz; şüpheli kayıtlar ayıklanıp size bildirilir.
+- **İyileştirme:** "Fiyatları al", "eksikleri siteden doldur" dediğinizde asistan aynı bağlantıyı yeniden okuyup boş kalan fiyat ve açıklamaları doldurur; sizin düzelttiğiniz değerlere dokunmaz.
+- **Yeni:** Asistan alerjen, rozet, kalori ve hazırlanma süresini de doldurabilir. Kaynakta yazmayan değerler önizlemede "AI önerisi" olarak işaretlenir; tek tıkla kaldırabilirsiniz.
+- **İyileştirme:** Asistanın sohbet modeli güçlendirildi: toplu isteklerde ("hepsine açıklama yaz") her ürün için işlem yapar, yapamadığı şeyi açıkça söyler.
+
+Geliştirici notu:
+
+- Kök neden (ikizdere-menu vakası): ana sayfa yalnızca kategori kartları ("5 ürün") taşıyordu; okuyucu alt sayfaları izlemiyordu, gpt-4.1-mini sayaçlardan 51 ürün adı uydurdu, fiyatlar null kaldı. Sonraki mesajda model kaynağı görmediği için "dış bağlantıya erişemem" dedi.
+- lib/ai/menu-link.ts: extractPageLinks (aynı alan adı, dosya/menü dışı/başka dil elenir), data-description vb. nitelikler ürün adıyla etiketlenip metne katılır. lib/ai/menu-extract.ts → readMenuLink: düz → alt sayfalar (en çok 12, 4 eşzamanlı, 30k karakterlik parçalar paralel) → tarayıcı → görsel.
+- groundScan (lib/ai/menu-assistant.ts): metin kaynaklı çıkarımda ad kaynakta yoksa ürün atılır, fiyat kaynakta sayı olarak yoksa null, açıklama/ayrıntı dayanaksızsa silinir.
+- MenuDraft.sources + reread_source: kaynak yeniden okunur, fillFromSource yalnızca boşları doldurur; model işi tamamen kaynağa bıraktıysa buildFollowUpInstruction ile ikinci tur.
+- lib/ai/product-details.ts: alerjen/rozet/kalori/süre normalizasyonu; set_details işlemi, DraftProduct.suggested. Model popüler/yeni/şefin önerisi rozetini öneremez. /api/admin/businesses/[id]/import bu alanları yazar. Şema değişikliği yok.
+- OPENAI_ASSISTANT_MODEL varsayılanı gpt-5-mini (reasoning effort low); çıkarma MENU_MODEL'de kaldı. max_output_tokens 32000, incomplete yanıt bildirilir. Sohbet geçmişine notlar da girer.
+
 ## [0.13.1] — 2026-10-02
 
 **Marka adı başlıklarda BUYUR olarak yazılıyor**

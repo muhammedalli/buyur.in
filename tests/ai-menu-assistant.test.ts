@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addSource,
   adjustPrice,
   applyMenuOps,
   detectLinks,
   draftStats,
+  fillFromSource,
+  groundScan,
   mergeExtracted,
   normalizeDraft,
   normalizeOps,
@@ -12,6 +15,7 @@ import {
   type MenuDraft,
 } from "@/lib/ai/menu-assistant";
 import { normalizeScanResult } from "@/lib/ai/menu-scan";
+import { normalizeDetails } from "@/lib/ai/product-details";
 
 // Yönetim panelindeki menü asistanının sözleşmesi: model yalnızca işlem
 // söyler, fiyat hesabı ve taslak değişikliği burada deterministik yapılır.
@@ -153,5 +157,151 @@ describe("kaynak tespiti", () => {
     expect(array?.kind).toBe("native");
     expect(readJsonSource('{"items":[{"title":"Çay","cost":"25"}]}')?.kind).toBe("foreign");
     expect(readJsonSource("fiyatlara %10 ekle")).toBeNull();
+  });
+});
+
+describe("kaynağa bağlılık (groundScan)", () => {
+  // Gerçek vaka: ana sayfada yalnızca "Kahvaltı & Omletler 5 ürün" gibi
+  // kategori kartları vardı; model 51 ürün adı uydurdu.
+  it("adı kaynakta geçmeyen ürünü atar, kaynakta geçmeyen fiyatı siler", () => {
+    const source = "Kahvaltı & Omletler 5 ürün\nSade Omlet 130 ₺\nSerpme Kahvaltı (2 Kişilik) 1.000 ₺\nMuhlama, Kolot, Tereyağı";
+    const scan = normalizeScanResult({
+      categories: [
+        {
+          name: "Kahvaltı",
+          products: [
+            { name: "Sade Omlet", price: 130 },
+            { name: "Serpme Kahvaltı (2 Kişilik)", price: 1000, description: "Muhlama, Kolot, Tereyağı" },
+            { name: "Peynirli Omlet", price: 150 },
+            { name: "Söğüş Tabağı", price: null },
+          ],
+        },
+        { name: "Tatlılar", products: [{ name: "Künefe", price: 180 }] },
+      ],
+    });
+    const result = groundScan(scan, source);
+    expect(result.droppedProducts).toBe(3);
+    expect(result.scan.categories).toHaveLength(1);
+    expect(result.scan.categories[0].products.map((p) => [p.name, p.price, p.description])).toEqual([
+      ["Sade Omlet", 130, ""],
+      ["Serpme Kahvaltı (2 Kişilik)", 1000, "Muhlama, Kolot, Tereyağı"],
+    ]);
+  });
+
+  it("kaynakta yazmayan fiyat, açıklama, kalori ve alerjen silinir", () => {
+    const scan = normalizeScanResult({
+      categories: [
+        { name: "Ana", products: [{ name: "Kuru Fasulye", price: 999, description: "Ev yapımı, tereyağlı", calories: 450, allergens: ["gluten"] }] },
+      ],
+    });
+    const { scan: grounded, clearedPrices } = groundScan(scan, "Kuru Fasulye 220 TL");
+    const [product] = grounded.categories[0].products;
+    expect(clearedPrices).toBe(1);
+    expect(product.price).toBeNull();
+    expect(product.uncertain).toContain("price");
+    expect(product.description).toBe("");
+    expect(product.details).toMatchObject({ calories: null, allergens: [] });
+  });
+
+  it("kaynakta yazan ayrıntı korunur", () => {
+    const scan = normalizeScanResult({
+      categories: [{ name: "Ana", products: [{ name: "Mantı", price: 260, calories: 620, prep_time: "15-20", allergens: ["Süt", "un"] }] }],
+    });
+    const { scan: grounded } = groundScan(scan, "Mantı 260 ₺ · 620 kcal · 15-20 dk · İçerir: süt, buğday unu");
+    expect(grounded.categories[0].products[0].details).toEqual({
+      allergens: ["laktoz", "gluten"],
+      badges: [],
+      calories: 620,
+      prep_time_min: 15,
+      prep_time_max: 20,
+    });
+  });
+});
+
+describe("ürün ayrıntıları", () => {
+  it("serbest metni şemadaki anahtarlara çevirir, tanınmayanı ve sınır dışını atar", () => {
+    expect(normalizeDetails({ allergens: "Süt, ceviz, bilinmeyen", badges: ["Acılı", "Şefin önerisi"], calories: 9999, prep_time: "20" })).toEqual({
+      allergens: ["laktoz", "findik_fistik"],
+      badges: ["aci", "sefin_onerisi"],
+      calories: null,
+      prep_time_min: 20,
+      prep_time_max: 20,
+    });
+  });
+
+  it("set_details modelin önerisini işaretler; yöneticinin verdiği değeri işaretlemez", () => {
+    const ops = normalizeOps([
+      { op: "set_details", product: "p1", allergens: ["yumurta"], calories: 300 },
+      { op: "set_details", product: "p2", prep_time_min: 10, prep_time_max: 15, given: true },
+      { op: "set_details", product: "p3" },
+    ]);
+    expect(ops).toHaveLength(2);
+    const { draft } = applyMenuOps(sample(), ops);
+    const [menemen, sucuk] = draft.categories[0].products;
+    expect(menemen).toMatchObject({ allergens: ["yumurta"], calories: 300, suggested: ["allergens", "calories"] });
+    expect(sucuk).toMatchObject({ prep_time_min: 10, prep_time_max: 15, suggested: [] });
+  });
+
+  it("model işletmenin bildiği rozetleri (popüler, yeni, şefin önerisi) öneremez; yönetici verebilir", () => {
+    const { draft } = applyMenuOps(
+      sample(),
+      normalizeOps([
+        { op: "set_details", product: "p1", badges: ["populer", "vejetaryen"] },
+        { op: "set_details", product: "p2", badges: ["populer"], given: true },
+      ])
+    );
+    expect(draft.categories[0].products[0]).toMatchObject({ badges: ["vejetaryen"], suggested: ["badges"] });
+    expect(draft.categories[0].products[1]).toMatchObject({ badges: ["populer"], suggested: [] });
+  });
+
+  it("taslak kaynakları ve önerileri normalize ederken korur, boş öneriyi düşürür", () => {
+    const draft = normalizeDraft({
+      sources: ["https://ornek.com/", "javascript:alert(1)"],
+      categories: [{ name: "A", products: [{ name: "B", price: 1, calories: 200, suggested: ["calories", "allergens", "x"] }] }],
+    });
+    expect(draft.sources).toEqual(["https://ornek.com/"]);
+    expect(draft.categories[0].products[0].suggested).toEqual(["calories"]);
+    expect(addSource(draft, "https://ornek.com/").sources).toEqual(["https://ornek.com/"]);
+  });
+});
+
+describe("kaynaktan doldurma (fillFromSource)", () => {
+  it("yalnızca boşlukları doldurur, yöneticinin fiyatını ezmez, öneriyi gerçek değerle değiştirir", () => {
+    const base = normalizeDraft({
+      categories: [
+        {
+          name: "Kahvaltı",
+          products: [
+            { name: "Menemen", price: null },
+            { name: "Sucuklu Yumurta", price: 210, calories: 999, suggested: ["calories"] },
+          ],
+        },
+      ],
+    });
+    const scan = normalizeScanResult({
+      categories: [
+        {
+          name: "Kahvaltı",
+          products: [
+            { name: "menemen", price: 180, description: "Domates, biber, yumurta" },
+            { name: "Sucuklu Yumurta", price: 205, calories: 540 },
+            { name: "Omlet", price: 150 },
+          ],
+        },
+      ],
+    });
+    const result = fillFromSource(base, scan);
+    const [menemen, sucuk, omlet] = result.draft.categories[0].products;
+    expect(result).toMatchObject({ prices: 1, descriptions: 1, details: 1, addedProducts: 1 });
+    expect(menemen).toMatchObject({ price: 180, description: "Domates, biber, yumurta", uncertain: [] });
+    expect(sucuk).toMatchObject({ price: 210, calories: 540, suggested: [] });
+    expect(omlet.name).toBe("Omlet");
+  });
+
+  it("aynı turda modelin yazdığı açıklamanın yerine kaynaktaki açıklama geçer", () => {
+    const base = normalizeDraft({ categories: [{ name: "A", products: [{ name: "Çay", price: 25, description: "Demli çay" }] }] });
+    const scan = normalizeScanResult({ categories: [{ name: "A", products: [{ name: "Çay", price: 25, description: "Rize çayı, ince belli" }] }] });
+    expect(fillFromSource(base, scan).draft.categories[0].products[0].description).toBe("Demli çay");
+    expect(fillFromSource(base, scan, ["cay"]).draft.categories[0].products[0].description).toBe("Rize çayı, ince belli");
   });
 });
