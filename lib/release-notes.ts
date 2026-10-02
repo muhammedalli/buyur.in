@@ -59,6 +59,23 @@ export function localizedReleaseNote(note: ReleaseNote, locale: UiLocale): { tit
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: "0.13.1",
+    date: "2026-10-02",
+    title: "Marka adı başlıklarda BUYUR olarak yazılıyor",
+    items: [
+      { kind: "iyileştirme", text: "Sekme ve sayfa başlıklarında, bölüm başlıklarında, e-posta konularında ve alt bilgide marka adı artık BUYUR olarak büyük harfle görünür." },
+    ],
+    en: {
+      title: "The brand name is now written BUYUR in titles",
+      items: [
+        "In tab and page titles, section headings, email subjects and the footer, the brand name now appears as BUYUR in capitals.",
+      ],
+    },
+    internal: [
+      "SITE_NAME/SITE_TITLE, [slug] ve şifre sıfırlama başlıkları, manifest short_name, yan menü başlıkları, e-posta başlık/konuları ve ilgili İngilizce çeviri anahtarları. Bağlantı, adres ve cümle içi geçişler değişmedi.",
+    ],
+  },
+  {
     version: "0.13.0",
     date: "2026-10-02",
     title: "QR kodlarınızın ortasında logonuz",

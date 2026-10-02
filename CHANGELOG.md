@@ -3,6 +3,16 @@
 > Bu dosya `lib/release-notes.ts`'ten üretilir (`bun run changelog`). Elle düzenlemeyin.
 > Kullanıcıya görünen hâli: https://buyur.in/docs/surum-notlari
 
+## [0.13.1] — 2026-10-02
+
+**Marka adı başlıklarda BUYUR olarak yazılıyor**
+
+- **İyileştirme:** Sekme ve sayfa başlıklarında, bölüm başlıklarında, e-posta konularında ve alt bilgide marka adı artık BUYUR olarak büyük harfle görünür.
+
+Geliştirici notu:
+
+- SITE_NAME/SITE_TITLE, [slug] ve şifre sıfırlama başlıkları, manifest short_name, yan menü başlıkları, e-posta başlık/konuları ve ilgili İngilizce çeviri anahtarları. Bağlantı, adres ve cümle içi geçişler değişmedi.
+
 ## [0.13.0] — 2026-10-02
 
 **QR kodlarınızın ortasında logonuz**

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: SITE_TITLE,
-    short_name: "buyur",
+    short_name: "BUYUR",
     description: SITE_DESCRIPTION,
     start_url: "/",
     scope: "/",

@@ -128,7 +128,7 @@ export function AdminShell({ admin, children }: { admin: AdminShellUser; childre
           <SidebarHeader>
             <SidebarBrand
               href="/admin"
-              title="buyur"
+              title="BUYUR"
               subtitle="Yönetim paneli"
               // eslint-disable-next-line @next/next/no-img-element
               avatar={<img src="/icon-192.png" alt="" className="h-full w-full" />}

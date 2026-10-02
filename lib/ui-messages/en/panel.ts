@@ -987,7 +987,7 @@ export const PANEL_MESSAGES_EN: Catalog = {
   "{count} sepet": "{count} carts",
   "Dönem: {range}": "Period: {range}",
   "Oluşturulma: {date}": "Created: {date}",
-  "buyur analiz raporu": "buyur analytics report",
+  "BUYUR analiz raporu": "BUYUR analytics report",
   "PDF olarak yazdır": "Print as PDF",
   "CSV indir": "Download CSV",
   "Hazır iş raporları ve dışa aktarma.": "Ready-made business reports and exports.",

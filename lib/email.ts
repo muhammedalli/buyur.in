@@ -10,7 +10,7 @@ import { ROOT_DOMAIN, menuHost } from "@/lib/site";
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL ?? `noreply@${ROOT_DOMAIN}`;
-const SENDER_NAME = process.env.BREVO_SENDER_NAME ?? "buyur";
+const SENDER_NAME = process.env.BREVO_SENDER_NAME ?? "BUYUR";
 
 // Marka renkleri (app/globals.css @theme karşılıkları)
 const PAPER = "#fbf5ea";
@@ -145,7 +145,7 @@ ${body}
         </td></tr>
 
         <tr><td align="center" style="padding:24px 8px 0;font-family:${FONT_BODY};font-size:12px;line-height:1.7;color:${INK_SOFT};">
-          <a href="${escapeHtml(SITE_URL)}" style="color:${INK_SOFT};text-decoration:none;font-weight:600;">buyur</a>
+          <a href="${escapeHtml(SITE_URL)}" style="color:${INK_SOFT};text-decoration:none;font-weight:600;">BUYUR</a>
           &nbsp;·&nbsp; QR menü, tek bağlantıda.<br>
           Bu e-posta ${escapeHtml(ROOT_DOMAIN)} tarafından gönderildi.
         </td></tr>
@@ -161,7 +161,7 @@ ${body}
 export async function sendOtpEmail(to: string, name: string, code: string, ttlMinutes: number): Promise<void> {
   const greeting = name.trim() ? `Merhaba ${escapeHtml(name.trim())},` : "Merhaba,";
   const html = shell({
-    title: "buyur doğrulama kodun",
+    title: "BUYUR doğrulama kodun",
     preheader: `Kodun ${code} — ${ttlMinutes} dakika geçerli.`,
     body: `${eyebrow("Hesap doğrulama")}
 <h1 style="margin:10px 0 12px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:${INK};">Doğrulama kodun</h1>
@@ -177,7 +177,7 @@ export async function sendOtpEmail(to: string, name: string, code: string, ttlMi
   await send({
     to,
     toName: name || undefined,
-    subject: `buyur doğrulama kodun: ${code}`,
+    subject: `BUYUR doğrulama kodun: ${code}`,
     html,
     text: `Doğrulama kodun: ${code}\nKod ${ttlMinutes} dakika geçerli.\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.`,
   });
@@ -189,7 +189,7 @@ export async function sendOtpEmail(to: string, name: string, code: string, ttlMi
 export async function sendAdminLoginCodeEmail(to: string, name: string, code: string, ttlMinutes: number): Promise<void> {
   const greeting = name.trim() ? `Merhaba ${escapeHtml(name.trim())},` : "Merhaba,";
   const html = shell({
-    title: "buyur yönetim giriş kodu",
+    title: "BUYUR yönetim giriş kodu",
     preheader: `Yönetim paneli giriş kodun ${code} — ${ttlMinutes} dakika geçerli.`,
     body: `${eyebrow("Yönetim paneli")}
 <h1 style="margin:10px 0 12px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:${INK};">Giriş kodun</h1>
@@ -205,7 +205,7 @@ export async function sendAdminLoginCodeEmail(to: string, name: string, code: st
   await send({
     to,
     toName: name || undefined,
-    subject: `buyur yönetim giriş kodun: ${code}`,
+    subject: `BUYUR yönetim giriş kodun: ${code}`,
     html,
     text: `Yönetim paneli giriş kodun: ${code}\nKod ${ttlMinutes} dakika geçerli.\nGiriş yapmaya çalışan sen değilsen hemen şifreni değiştir ve ekibe haber ver.`,
   });
@@ -216,7 +216,7 @@ export async function sendAdminLoginCodeEmail(to: string, name: string, code: st
 export async function sendPasswordResetEmail(to: string, name: string, url: string, ttlMinutes: number): Promise<void> {
   const greeting = name.trim() ? `Merhaba ${escapeHtml(name.trim())},` : "Merhaba,";
   const html = shell({
-    title: "buyur şifre sıfırlama",
+    title: "BUYUR şifre sıfırlama",
     preheader: `Yeni şifreni belirlemek için bağlantı — ${ttlMinutes} dakika geçerli.`,
     body: `${eyebrow("Şifre sıfırlama")}
 <h1 style="margin:10px 0 12px;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:${INK};">Yeni şifreni belirle</h1>
@@ -229,7 +229,7 @@ ${button(url, "Şifremi sıfırla")}
   await send({
     to,
     toName: name || undefined,
-    subject: "buyur şifre sıfırlama bağlantın",
+    subject: "BUYUR şifre sıfırlama bağlantın",
     html,
     text: `Şifreni sıfırlamak için bu bağlantıyı aç (${ttlMinutes} dakika geçerli, tek kullanımlık):\n${url}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez.`,
   });

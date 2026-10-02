@@ -134,7 +134,7 @@ export function PanelSidebar({ business, onLogout }: { business: Business; onLog
       <SidebarHeader>
         <SidebarBrand
           href="/panel"
-          title="buyur"
+          title="BUYUR"
           subtitle={t("İşletme paneli")}
           // eslint-disable-next-line @next/next/no-img-element
           avatar={<img src="/icon-192.png" alt="" className="h-full w-full" />}

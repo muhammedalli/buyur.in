@@ -8,11 +8,11 @@ import { msg } from "@/lib/ui-i18n";
  */
 
 export const SITE_URL = `https://${ROOT_DOMAIN}`;
-export const SITE_NAME = "buyur";
+export const SITE_NAME = "BUYUR";
 export const SITE_EMAIL = "merhaba@buyur.in";
 
 /** 51 karakter — arama sonucunda kırpılmadan görünür. */
-export const SITE_TITLE = msg("buyur — Restoran ve Kafeler için Dijital QR Menü");
+export const SITE_TITLE = msg("BUYUR — Restoran ve Kafeler için Dijital QR Menü");
 
 /** ~155 karakter: masaüstü ve mobil snippet sınırının içinde kalır. */
 export const SITE_DESCRIPTION = msg(

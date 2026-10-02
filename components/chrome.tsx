@@ -150,7 +150,7 @@ export function Footer({ locale = "tr" }: { locale?: UiLocale }) {
 
       <div className="relative border-t border-paper/15 bg-ink/40 backdrop-blur-[2px]">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-5 py-6 text-center font-mono text-xs text-paper/55 sm:flex-row sm:justify-between sm:text-left">
-          <p>{t("© {year} buyur · Tüm hakları saklıdır.", { year })}</p>
+          <p>{t("© {year} BUYUR · Tüm hakları saklıdır.", { year })}</p>
           <p className="flex items-center gap-1.5">
             <Link href="https://www.harbidigital.com" target="_blank" rel="noopener noreferrer">
               {t("{brand} tarafından tasarlandı ve geliştirildi", { brand: "Harbi" })}

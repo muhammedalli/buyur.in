@@ -213,7 +213,7 @@ export function Hero({ proof, locale = "tr" }: { proof: ShowcaseItem | null; loc
       </section>
 
       {/* Kayan değer şeridi — koyu bant, sayfanın ritmini kırar */}
-      <Marquee items={marqueeItems.map((item) => t(item))} tone="ink" label={t("buyur ile gelenler")} className="py-3.5" />
+      <Marquee items={marqueeItems.map((item) => t(item))} tone="ink" label={t("BUYUR ile gelenler")} className="py-3.5" />
     </>
   );
 }

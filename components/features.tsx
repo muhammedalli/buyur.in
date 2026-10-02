@@ -187,7 +187,7 @@ export function ProblemSolution({ locale = "tr" }: { locale?: UiLocale }) {
     <section id={sectionId("why")} className="border-b border-line bg-crema/40">
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
-          <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Neden buyur")}</p>
+          <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Neden BUYUR")}</p>
           <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
             {t("Basılı menünün çözemediği üç sorun")}
           </h2>
@@ -210,7 +210,7 @@ export function ProblemSolution({ locale = "tr" }: { locale?: UiLocale }) {
                   <span className="text-paprika">0{index + 1}</span> {t("Sorun")}
                 </p>
                 <p className="mt-1.5 text-lg text-ink-soft">{row.problem}</p>
-                <p className="mt-6 font-mono text-[11px] uppercase tracking-wider text-herb">{t("buyur çözümü")}</p>
+                <p className="mt-6 font-mono text-[11px] uppercase tracking-wider text-herb">{t("BUYUR çözümü")}</p>
                 <h3 className="mt-1.5 font-display text-2xl font-extrabold tracking-tight md:text-3xl">{row.solution}</h3>
                 <p className="mt-3 leading-relaxed text-ink-soft">{row.body}</p>
                 <ul className="mt-5 space-y-2 text-sm">

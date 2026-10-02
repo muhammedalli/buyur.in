@@ -36,8 +36,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const business = await getBusiness(slug);
   if (!business) return {};
 
-  // Kök şablon (" | buyur") eklenmesin: başlık zaten markayı taşıyor.
-  const title = `${business.name} — Menü | buyur`;
+  // Kök şablon (" | BUYUR") eklenmesin: başlık zaten markayı taşıyor.
+  const title = `${business.name} — Menü | BUYUR`;
   const description = business.description || `${business.name} dijital menüsü — güncel fiyatlar, kategoriler ve ürünler.`;
   // Kapak yoksa markalı paylaşım görseli: WhatsApp'ta paylaşılan menü linki
   // hiçbir koşulda görselsiz kalmasın.

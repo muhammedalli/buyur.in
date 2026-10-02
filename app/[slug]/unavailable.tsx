@@ -33,7 +33,7 @@ export function MenuUnavailable({ business }: { business: Business }) {
         href="https://buyur.in"
         className="font-mono text-[11px] uppercase tracking-wider text-ink-soft/70 transition-colors hover:text-paprika"
       >
-        buyur ile hazırlandı
+        BUYUR ile hazırlandı
       </Link>
     </main>
   );

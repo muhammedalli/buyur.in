@@ -37,7 +37,7 @@ export function Comparison({ locale = "tr" }: { locale?: UiLocale }) {
       <div className="mx-auto max-w-6xl px-5 py-24">
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Karşılaştırın")}</p>
-          <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">{t("Kâğıt menü mü, buyur mı?")}</h2>
+          <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">{t("Kâğıt menü mü, BUYUR mı?")}</h2>
         </div>
 
         <div data-reveal className="mt-12 overflow-x-auto rounded-2xl border border-line bg-paper">
@@ -51,7 +51,7 @@ export function Comparison({ locale = "tr" }: { locale?: UiLocale }) {
                   {t("Kâğıt menü")}
                 </th>
                 <th className="px-5 py-3 font-display text-base font-bold text-paprika" scope="col">
-                  buyur
+                  BUYUR
                 </th>
               </tr>
             </thead>

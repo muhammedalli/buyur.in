@@ -55,7 +55,7 @@ export default function ReportDetailPage() {
         `${data.business.name} — ${t(data.title)}`,
         t("Dönem: {range}", { range: formatDateRange(data.range.from, data.range.to) }),
         t("Oluşturulma: {date}", { date: formatDayLong(data.generatedAt.slice(0, 10)) }),
-        t("buyur analiz raporu"),
+        t("BUYUR analiz raporu"),
       ]
     );
     downloadCsv(`${data.business.slug}-${data.type}-${data.range.from}_${data.range.to}`, content);
@@ -115,7 +115,7 @@ export default function ReportDetailPage() {
           <header className="rounded-md border border-line bg-paper p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-medium text-paprika">{t("buyur analiz raporu")}</p>
+                <p className="text-xs font-medium text-paprika">{t("BUYUR analiz raporu")}</p>
                 <h1 className="mt-1 font-display text-2xl font-extrabold tracking-tight">{t(data.title)}</h1>
                 <p className="mt-1 text-sm text-ink-soft">{data.business.name}</p>
               </div>
@@ -249,7 +249,7 @@ export default function ReportDetailPage() {
 
               <footer className="flex items-center justify-between gap-3 border-t border-line pt-4 text-xs font-medium text-ink-soft">
                 <span className="flex items-center gap-1.5">
-                  <FileTextIcon size={12} /> buyur · {data.business.name}
+                  <FileTextIcon size={12} /> BUYUR · {data.business.name}
                 </span>
                 <span>{data.business.slug}.buyur.in</span>
               </footer>

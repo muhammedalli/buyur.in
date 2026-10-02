@@ -31,7 +31,7 @@ function ShowcaseCard({ item, t, index }: { item: ShowcaseItem; t: Translator; i
         <div className="min-w-0">
           <p className="truncate font-display text-lg font-bold">{item.name}</p>
           <p className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">
-            {item.kind === "customer" ? t("buyur müşterisi") : t("Demo menü")}
+            {item.kind === "customer" ? t("BUYUR müşterisi") : t("Demo menü")}
             {item.city ? ` · ${item.city}` : ""}
           </p>
         </div>
@@ -85,7 +85,7 @@ export function Showcase({ items, locale = "tr" }: { items: ShowcaseItem[]; loca
         <div data-reveal className="max-w-2xl">
           <p className="font-mono text-[13px] uppercase tracking-[0.2em] text-paprika">{t("Canlı menüler")}</p>
           <h2 className="mt-3 font-display text-4xl font-extrabold tracking-tight md:text-5xl">
-            {hasCustomers ? t("buyur kullanan işletmeler") : t("Satın almadan önce menüleri kendiniz inceleyin")}
+            {hasCustomers ? t("BUYUR kullanan işletmeler") : t("Satın almadan önce menüleri kendiniz inceleyin")}
           </h2>
           <p className="mt-4 text-ink-soft">
             {t("Ekran görüntüsü değil, yayındaki menüler: açın, dil değiştirin, sepete ekleyin.")}
