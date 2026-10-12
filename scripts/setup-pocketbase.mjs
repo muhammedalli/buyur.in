@@ -54,6 +54,17 @@ const num = (name, opts = {}) => ({
 
 const boolField = (name) => ({ name, type: "bool" });
 
+const fileField = (name, opts = {}) => ({
+  name,
+  type: "file",
+  required: opts.required ?? false,
+  maxSelect: opts.maxSelect ?? 1,
+  maxSize: opts.maxSize ?? 25 * 1024 * 1024,
+  mimeTypes: opts.mimeTypes ?? [],
+  thumbs: opts.thumbs ?? [],
+  protected: opts.protected ?? false,
+});
+
 const json = (name) => ({ name, type: "json", maxSize: 2000000 });
 
 const dateField = (name, opts = {}) => ({
@@ -115,6 +126,7 @@ const EVENT_TYPES = [
   "campaign_view",
   "campaign_click",
   "language_change",
+  "product_ar_view",
 ];
 
 const STAT_DIMENSIONS = [
@@ -416,6 +428,26 @@ async function main() {
       num("discount_percent", { min: 0, max: 100 }),
       text("campaign_label", { max: 60 }),
       json("translations"),
+      // 3D / Artırılmış Gerçeklik (AR) alanları
+      fileField("ar_model_glb", {
+        maxSize: 50 * 1024 * 1024,
+        mimeTypes: ["model/gltf-binary", "application/octet-stream", "model/gltf+json", "model/gltf.binary"],
+      }),
+      fileField("ar_model_usdz", {
+        maxSize: 50 * 1024 * 1024,
+        mimeTypes: [
+          "model/vnd.usdz+zip",
+          "model/vnd.usdz",
+          "model/vnd.pixar.usd",
+          "model/usd",
+          "application/octet-stream",
+          "application/zip",
+          "application/x-zip",
+          "application/x-zip-compressed",
+        ],
+      }),
+      boolField("ar_enabled"),
+      text("ar_scale", { max: 30 }),
       ...stamps(),
     ],
     indexes: [

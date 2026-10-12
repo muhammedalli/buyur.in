@@ -5,11 +5,11 @@ import { trackEvent, trackOnce } from "@/lib/analytics/track-client";
 import type { Product, Template } from "@/lib/types";
 import { allergenLabels, badgeLabels } from "@/lib/labels";
 import { formatPrice } from "@/lib/format";
-import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, PlusIcon } from "@/components/icons";
+import { BadgeIcon, CheckCircleIcon, ClockIcon, CubeIcon, FlameIcon, PlusIcon } from "@/components/icons";
 import { FadeImg } from "@/components/menu/fade-img";
 import { ProductPlaceholder } from "@/components/menu/placeholder-art";
 import { useMenu } from "@/components/menu/menu-provider";
-import { productImageUrl } from "@/lib/files";
+import { hasProductAr, productImageUrl } from "@/lib/files";
 
 export function ProductCard({
   product,
@@ -101,6 +101,15 @@ export function ProductCard({
           </picture>
         ) : (
           <ProductPlaceholder size="sm" />
+        )}
+        {hasProductAr(product) && (
+          <div
+            title="3D & Masada Gör (AR)"
+            className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs backdrop-blur-md"
+          >
+            <CubeIcon size={11} />
+            <span>3D AR</span>
+          </div>
         )}
       </div>
 

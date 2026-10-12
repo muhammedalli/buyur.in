@@ -36,6 +36,7 @@ export const FEATURE_LABELS: Record<EditableFeature, string> = {
   report_export: "PDF ve CSV dışa aktarma",
   ai_menu_import: "Yapay zekâ ile menü aktarımı",
   ai_translation: "Yapay zekâ ile çoklu dil",
+  ar_menu: "Masada 3D & AR menü",
 };
 
 export interface PlanFormValues {

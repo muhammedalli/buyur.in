@@ -53,3 +53,21 @@ export function categoryImageUrl(category: Pick<Category, "id" | "image">): stri
 export function popupImageUrl(popup: Pick<Popup, "id" | "image">): string {
   return pbFileUrl(POPUP_COLLECTION, popup.id, popup.image);
 }
+
+/** Ürünün Web/Android 3D GLB dosya adresi. */
+export function productArGlbUrl(product: Pick<Product, "id"> & Partial<Pick<Product, "ar_model_glb">>): string {
+  if (!product.id || !product.ar_model_glb) return "";
+  return `/api/ar/${product.id}/${encodeURIComponent(product.ar_model_glb)}`;
+}
+
+/** Ürünün iOS Quick Look USDZ dosya adresi. */
+export function productArUsdzUrl(product: Pick<Product, "id"> & Partial<Pick<Product, "ar_model_usdz">>): string {
+  if (!product.id || !product.ar_model_usdz) return "";
+  return `/api/ar/${product.id}/${encodeURIComponent(product.ar_model_usdz)}`;
+}
+
+/** Ürünün gösterilebilir bir AR modeli olup olmadığı. */
+export function hasProductAr(product: Partial<Pick<Product, "ar_enabled" | "ar_model_glb" | "ar_model_usdz">>): boolean {
+  return Boolean(product.ar_enabled && (product.ar_model_glb || product.ar_model_usdz));
+}
+

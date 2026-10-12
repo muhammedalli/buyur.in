@@ -1,26 +1,29 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
 import { useMenu } from "@/components/menu/menu-provider";
 import { allergenLabels, badgeLabels } from "@/lib/labels";
 import { formatPrice } from "@/lib/format";
-import { BadgeIcon, CheckCircleIcon, ClockIcon, FlameIcon, PlusIcon } from "@/components/icons";
+import { BadgeIcon, CheckCircleIcon, ClockIcon, CubeIcon, FlameIcon, PlusIcon } from "@/components/icons";
 import { ImageCredit } from "@/components/menu/image-credit";
 import { CategoryPlaceholder } from "@/components/menu/placeholder-art";
+import { ArViewerModal } from "@/components/menu/ar-viewer-modal";
 import type { Product, ProductOption } from "@/lib/types";
-import { productImageUrl } from "@/lib/files";
+import { hasProductAr, productImageUrl } from "@/lib/files";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { business, base, addProduct, track, locale, t, tf } = useMenu();
   const [product, setProduct] = useState<Product | null>(null);
   const [options, setOptions] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState(false);
   const [imageBroken, setImageBroken] = useState(false);
+  const [arModalOpen, setArModalOpen] = useState(false);
   const addedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -38,6 +41,9 @@ export default function ProductDetailPage() {
         setProduct(prod);
         setOptions(opts);
         setLoading(false);
+        if (searchParams?.get("ar") === "1" && hasProductAr(prod)) {
+          setArModalOpen(true);
+        }
         track({
           type: "product_detail_view",
           target: prod.id,
@@ -73,7 +79,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="pb-10">
+    <div className="pb-32 sm:pb-36">
       {image && !imageBroken ? (
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-crema sm:aspect-[2/1]">
           <picture>
@@ -87,10 +93,30 @@ export default function ProductDetailPage() {
             />
           </picture>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-paper/60 to-transparent" />
+          {hasProductAr(product) && (
+            <button
+              type="button"
+              onClick={() => setArModalOpen(true)}
+              className="absolute bottom-3 right-3 z-10 flex items-center gap-2 rounded-full border border-white/25 bg-black/65 px-3.5 py-1.5 font-display text-xs font-semibold text-white shadow-lg backdrop-blur-md transition-all hover:bg-black/80 hover:scale-105 active:scale-95"
+            >
+              <CubeIcon size={15} />
+              <span>Masada Gör (AR)</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-crema sm:aspect-[2/1]">
           <CategoryPlaceholder />
+          {hasProductAr(product) && (
+            <button
+              type="button"
+              onClick={() => setArModalOpen(true)}
+              className="absolute bottom-3 right-3 z-10 flex items-center gap-2 rounded-full border border-white/25 bg-black/65 px-3.5 py-1.5 font-display text-xs font-semibold text-white shadow-lg backdrop-blur-md transition-all hover:bg-black/80 hover:scale-105 active:scale-95"
+            >
+              <CubeIcon size={15} />
+              <span>Masada Gör (AR)</span>
+            </button>
+          )}
         </div>
       )}
       {image && !imageBroken && <ImageCredit product={product} locale={locale} />}
@@ -105,6 +131,32 @@ export default function ProductDetailPage() {
             </p>
           </div>
         </div>
+
+        {hasProductAr(product) && (
+          <button
+            type="button"
+            onClick={() => setArModalOpen(true)}
+            className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl border border-line/70 bg-gradient-to-r from-crema/90 via-crema/40 to-crema/80 p-3.5 text-left shadow-xs transition-all hover:border-ink/20 active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-neutral-900 to-neutral-800 text-white shadow-md group-hover:scale-105 transition-transform">
+                <CubeIcon size={22} className="text-amber-300 animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-display text-xs font-bold text-ink">3D & Masada Gör</p>
+                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    1:1 AR
+                  </span>
+                </div>
+                <p className="text-[11px] text-ink-soft truncate">Porsiyon ve sunumu masanızda gerçek boyutuyla görün</p>
+              </div>
+            </div>
+            <span className="shrink-0 ml-2 rounded-full bg-ink/5 px-3 py-1 font-display text-xs font-semibold text-ink group-hover:bg-ink group-hover:text-paper transition-colors">
+              İncele →
+            </span>
+          </button>
+        )}
 
         {(product.badges?.length > 0 || product.campaign_label) && (
           <div className="flex flex-wrap gap-1.5">
@@ -188,7 +240,7 @@ export default function ProductDetailPage() {
             if (addedTimer.current) clearTimeout(addedTimer.current);
             addedTimer.current = setTimeout(() => setAdded(false), 1100);
           }}
-          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-display text-base font-bold shadow-md transition-all active:scale-[0.98] ${
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 mb-6 font-display text-base font-bold shadow-md transition-all active:scale-[0.98] ${
             added ? "cart-pop bg-herb text-white" : "hover:opacity-95"
           }`}
           style={!added ? { background: "var(--brand)", color: "var(--brand-on)" } : undefined}
@@ -206,6 +258,30 @@ export default function ProductDetailPage() {
           )}
         </button>
       </div>
+
+      {hasProductAr(product) && (
+        <ArViewerModal
+          product={product}
+          productName={name}
+          isOpen={arModalOpen}
+          onClose={() => setArModalOpen(false)}
+          onAddToCart={() => {
+            addProduct(product);
+            setAdded(true);
+            if (addedTimer.current) clearTimeout(addedTimer.current);
+            addedTimer.current = setTimeout(() => setAdded(false), 1100);
+          }}
+          onTrackArView={() => {
+            track({
+              type: "product_ar_view",
+              target: product.id,
+              label: product.name,
+              productId: product.id,
+              categoryId: product.category,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }

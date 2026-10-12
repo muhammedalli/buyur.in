@@ -316,6 +316,8 @@ export const SITE_MESSAGES_EN: Catalog = {
   "Yapay zekâ ile fiziksel menü aktarımı": "AI import of your printed menu",
   "Ayda {count} tarama": { one: "{count} scan per month", other: "{count} scans per month" },
   "Yapay zekâ ile çoklu dil tamamlama": "AI multilingual completion",
+  "Masada 3D & AR (Artırılmış Gerçeklik)": "3D & AR on the table",
+  "Masada 3D & AR (Artırılmış Gerçeklik) sunumu": "3D & AR tabletop presentation",
   "Gelişmiş raporlar": "Advanced reports",
   "PDF ve CSV dışa aktarma": "PDF and CSV export",
   "Ürünü deneyen küçük işletmeler için: menünü kur, QR'ını yayına al.": "For small businesses trying it out: set up your menu and put your QR live.",

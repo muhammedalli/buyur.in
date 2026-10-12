@@ -13,12 +13,16 @@ import type { ProductImageSource } from "@/lib/ai/image-source";
 import { MultiLangFields } from "@/components/panel/multi-lang-fields";
 import { useFormDraft } from "@/lib/use-draft";
 import { productNameTaken } from "@/lib/unique-name";
-import { PRODUCT_COLLECTION, productImageUrl } from "@/lib/files";
+import { PRODUCT_COLLECTION, productImageUrl, productArGlbUrl, productArUsdzUrl } from "@/lib/files";
 import { imagePatch, imageValueOf, restoreImageValue } from "@/lib/image-value";
+import { ArUploader, ArFeatureLockedCard } from "@/components/panel/ar-uploader";
+import { arModelPatch, isArBlob } from "@/lib/ar-model-value";
+import { isFeatureAvailable } from "@/lib/entitlements";
 import { productImageLabel } from "@/scripts/image-schema.mjs";
 import { activeLocales, mainLocale, type TranslatableField, type Translations } from "@/lib/i18n";
 import type { Allergen, Badge, Business, Category, Product } from "@/lib/types";
 import { useUiLocale } from "@/components/ui-locale-provider";
+import { uploadWithProgress, formatPbErrorMessage, hasFileField, type UploadProgress } from "@/lib/pb-upload";
 
 const ALL_ALLERGENS = Object.keys(allergenLabels.tr) as Allergen[];
 const ALL_BADGES = Object.keys(badgeLabels.tr) as Badge[];
@@ -49,6 +53,10 @@ interface ProductDraft {
   discountPercent: string;
   campaignLabel: string;
   translations: Translations;
+  arModelGlb: string;
+  arModelUsdz: string;
+  arEnabled: boolean;
+  arScale: string;
 }
 
 function toDraft(initial: Product | undefined, categories: Category[]): ProductDraft {
@@ -68,6 +76,10 @@ function toDraft(initial: Product | undefined, categories: Category[]): ProductD
     discountPercent: initial?.discount_percent ? initial.discount_percent.toString() : initial ? "0" : "",
     campaignLabel: initial?.campaign_label ?? "",
     translations: initial?.translations ?? {},
+    arModelGlb: initial?.ar_model_glb ?? "",
+    arModelUsdz: initial?.ar_model_usdz ?? "",
+    arEnabled: initial?.ar_enabled ?? false,
+    arScale: initial?.ar_scale ?? "1.0",
   };
 }
 
@@ -96,8 +108,13 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
   const [discountPercent, setDiscountPercent] = useState(baseline.discountPercent);
   const [campaignLabel, setCampaignLabel] = useState(baseline.campaignLabel);
   const [translations, setTranslations] = useState<Translations>(baseline.translations);
+  const [arModelGlb, setArModelGlb] = useState(baseline.arModelGlb);
+  const [arModelUsdz, setArModelUsdz] = useState(baseline.arModelUsdz);
+  const [arEnabled, setArEnabled] = useState(baseline.arEnabled);
+  const [arScale, setArScale] = useState(baseline.arScale);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const { toast } = useToast();
   const { t, locale: uiLocale } = useUiLocale();
@@ -118,6 +135,10 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
     discountPercent,
     campaignLabel,
     translations,
+    arModelGlb,
+    arModelUsdz,
+    arEnabled,
+    arScale,
   };
   const draft = useFormDraft(`product:${initial?.id ?? `new:${business.id}`}`, current, baseline, initial?.updated);
 
@@ -144,6 +165,10 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
     setDiscountPercent(value.discountPercent);
     setCampaignLabel(value.campaignLabel);
     setTranslations(value.translations);
+    setArModelGlb(isArBlob(value.arModelGlb) ? baseline.arModelGlb : value.arModelGlb);
+    setArModelUsdz(isArBlob(value.arModelUsdz) ? baseline.arModelUsdz : value.arModelUsdz);
+    setArEnabled(value.arEnabled);
+    setArScale(value.arScale);
   }
 
   function setBaseField(field: TranslatableField, value: string) {
@@ -232,6 +257,8 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
     };
 
     setSaving(true);
+    setError("");
+    setUploadProgress(null);
     try {
       // Ad tekilliği işletme genelindedir: aynı ürün iki kategoride durmasın.
       const taken = await productNameTaken(business.id, name, initial?.id);
@@ -241,12 +268,27 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         return;
       }
 
-      // Görsel yalnızca değiştiyse gider: yüklenen dosya MinIO'ya (eskisini
-      // PocketBase depodan siler), AI'ın bulduğu görsel bağlantı olarak.
-      const body = { ...payload, ...imagePatch(image, productImageLabel(categoryName, name), "image", "image_url") };
-      const record = initial
+      // Görsel ve 3D model yalnızca değiştiyse gider.
+      const body = {
+        ...payload,
+        ar_enabled: arEnabled,
+        ar_scale: arScale || "1.0",
+        ...imagePatch(image, productImageLabel(categoryName, name), "image", "image_url"),
+        ...arModelPatch(arModelGlb, arModelUsdz, initial?.ar_model_glb, initial?.ar_model_usdz),
+      };
+
+      const hasFiles = hasFileField(body);
+      const record = hasFiles
+        ? await uploadWithProgress<Product>(
+            PRODUCT_COLLECTION,
+            initial?.id,
+            initial ? body : { ...body, order: 999 },
+            (p) => setUploadProgress(p)
+          )
+        : initial
         ? await pb.collection(PRODUCT_COLLECTION).update<Product>(initial.id, body)
         : await pb.collection(PRODUCT_COLLECTION).create<Product>({ ...body, order: 999 });
+
       draft.clear();
       // Form kayıtla birebir aynı hâle getirilir (ör. "80.50" → 80.5); aksi
       // hâlde kayıttan sonra da "kaydedilmemiş değişiklik" görünürdü.
@@ -254,11 +296,17 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
       setLastSavedAt(Date.now());
       toast(initial ? t("Ürün güncellendi") : t("Ürün eklendi"));
       onSaved(record);
-    } catch {
-      setError(t("Kaydedilemedi, alanları kontrol edip tekrar dene."));
-      toast(t("Kaydedilemedi, tekrar dene."), "error");
+    } catch (err: any) {
+      const detail = formatPbErrorMessage(err);
+      setError(
+        detail
+          ? `${t("Kaydedilemedi, alanları kontrol edip tekrar dene.")} (${detail})`
+          : t("Kaydedilemedi, alanları kontrol edip tekrar dene.")
+      );
+      toast(detail || t("Kaydedilemedi, tekrar dene."), "error");
     } finally {
       setSaving(false);
+      setUploadProgress(null);
     }
   }
 
@@ -273,6 +321,27 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         onCancel={onCancel}
         toggle={{ checked: isAvailable, onChange: setIsAvailable, label: t("Satışta") }}
       />
+      {/* Büyük dosya yükleme ilerleme durumu çubuğu */}
+      {uploadProgress && (
+        <div className="rounded-2xl border border-herb/30 bg-herb/10 p-3.5 text-ink shadow-xs transition-all">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <span className="flex items-center gap-2 font-display font-bold text-ink">
+              <span className="inline-block h-2 w-2 rounded-full bg-herb animate-ping" />
+              <span>Dosyalar Yükleniyor: {uploadProgress.percent}%</span>
+            </span>
+            <span className="font-mono text-ink-soft">
+              {uploadProgress.loadedMb} / {uploadProgress.totalMb} · {uploadProgress.speedMb}
+              {uploadProgress.remainingSec > 0 && ` · ~${uploadProgress.remainingSec} sn kaldı`}
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-herb/20">
+            <div
+              className="h-full rounded-full bg-herb transition-all duration-150"
+              style={{ width: `${uploadProgress.percent}%` }}
+            />
+          </div>
+        </div>
+      )}
       {draft.restorable && (
         <DraftBanner
           savedAt={draft.restorable.savedAt}
@@ -471,6 +540,25 @@ export function ProductForm({ business, categories, initial, onSaved, onCancel }
         />
       </Card>
 
+      {/* 3D & Artırılmış Gerçeklik (WebAR) Bölümü */}
+      {isFeatureAvailable(business, "ar_menu") ? (
+        <ArUploader
+          glbValue={arModelGlb}
+          usdzValue={arModelUsdz}
+          enabled={arEnabled}
+          scale={arScale}
+          saving={saving}
+          uploadProgress={uploadProgress}
+          onGlbChange={setArModelGlb}
+          onUsdzChange={setArModelUsdz}
+          onEnabledChange={setArEnabled}
+          onScaleChange={setArScale}
+          storedGlbUrl={(fileName) => productArGlbUrl({ id: initial?.id ?? "", ar_model_glb: fileName })}
+          storedUsdzUrl={(fileName) => productArUsdzUrl({ id: initial?.id ?? "", ar_model_usdz: fileName })}
+        />
+      ) : (
+        <ArFeatureLockedCard />
+      )}
     </form>
   );
 }

@@ -23,6 +23,7 @@ export const ANALYTICS_EVENT_TYPES = [
   "campaign_view",
   "campaign_click",
   "language_change",
+  "product_ar_view",
 ] as const;
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
