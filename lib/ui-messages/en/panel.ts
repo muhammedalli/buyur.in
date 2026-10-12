@@ -629,6 +629,7 @@ export const PANEL_MESSAGES_EN: Catalog = {
   "Yapay zekâ ile fiziksel menü aktarımı": "AI import of printed menus",
   "Ayda {count} tarama": {"one": "{count} scan per month", "other": "{count} scans per month"},
   "Yapay zekâ ile çoklu dil tamamlama": "AI multi-language completion",
+  "Masada 3D & AR (Artırılmış Gerçeklik)": "3D & AR on the table",
   "Gelişmiş raporlar": "Advanced reports",
   "PDF ve CSV dışa aktarma": "PDF and CSV export",
   // guide

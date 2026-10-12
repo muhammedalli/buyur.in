@@ -326,6 +326,14 @@ export interface Product {
   discount_percent: number;
   campaign_label: string;
   translations?: Translations;
+  /** Web/Android 3D GLB dosya adı (PocketBase dosyası). */
+  ar_model_glb?: string;
+  /** iOS Apple Quick Look USDZ dosya adı (PocketBase dosyası). */
+  ar_model_usdz?: string;
+  /** AR butonunun müşteri menüsünde aktif olup olmadığı. */
+  ar_enabled?: boolean;
+  /** 1:1 ölçek çarpanı (varsayılan "1.0"). */
+  ar_scale?: string;
   created: string;
   updated: string;
   expand?: {

@@ -36,7 +36,8 @@ export type Feature =
   | "advanced_reports"
   | "report_export"
   | "ai_menu_import"
-  | "ai_translation";
+  | "ai_translation"
+  | "ar_menu";
 
 export interface PlanEntitlements {
   features: Record<Feature, boolean>;
@@ -69,6 +70,7 @@ const NONE: Record<Feature, boolean> = {
   report_export: false,
   ai_menu_import: false,
   ai_translation: false,
+  ar_menu: false,
 };
 
 /** YEDEK ÖZELLİK MATRİSİ — canlı kayıt okunamazsa geçerli olan değerler.
@@ -107,6 +109,7 @@ export const DEFAULT_PLAN_ENTITLEMENTS: Record<Plan, PlanEntitlements> = {
       report_export: true,
       ai_menu_import: true,
       ai_translation: true,
+      ar_menu: true,
     },
     limits: { durationMonths: null, menuViews: null, retentionDays: 1095, aiScansPerMonth: 10, aiPagesPerScan: 5 },
   },
@@ -135,6 +138,7 @@ export const FEATURE_LIMIT_KEYS: Record<Exclude<Feature, "menu">, string> = {
   report_export: "reports_export",
   ai_menu_import: "ai_menu_import",
   ai_translation: "ai_translation",
+  ar_menu: "ar_menu",
 };
 
 /** applyPlanRecords'un ihtiyaç duyduğu en küçük kayıt şekli. */
@@ -495,6 +499,7 @@ const MATRIX_ROWS: { label: string; value: (plan: Plan, t: TextFn, numberLocale:
     },
   },
   { label: msg("Yapay zekâ ile çoklu dil tamamlama"), value: feat("ai_translation") },
+  { label: msg("Masada 3D & AR (Artırılmış Gerçeklik)"), value: feat("ar_menu") },
   { label: msg("Gelişmiş raporlar"), value: feat("advanced_reports") },
   { label: msg("PDF ve CSV dışa aktarma"), value: feat("report_export") },
 ];

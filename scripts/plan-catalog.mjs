@@ -28,6 +28,7 @@ const planLimits = (overrides) => ({
   analytics_advanced: false,
   analytics_retention_days: 365,
   api_access: false,
+  ar_menu: false,
   branding_removal: false,
   campaigns: false,
   website: false,
@@ -101,6 +102,7 @@ export const PLAN_SEEDS = [
     features: [
       "Premium'daki her şey",
       "Web sitesi (menüden otomatik · animasyon · slider · galeri)",
+      "Masada 3D & AR (Artırılmış Gerçeklik) sunumu",
       "Rapor merkezi · PDF ve CSV dışa aktarma",
       "3 yıl analiz geçmişi",
       "Öncelikli teknik destek",
@@ -111,6 +113,7 @@ export const PLAN_SEEDS = [
       branding_removal: true,
       campaigns: true,
       website: true,
+      ar_menu: true,
       reports: true,
       reports_export: true,
       analytics_retention_days: 1095,

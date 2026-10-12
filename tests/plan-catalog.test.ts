@@ -32,6 +32,7 @@ describe("paket kataloğunun vaatleri", () => {
       expect(seed.limits.analytics, `${seed.key} analytics`).toBe(features.basic_analytics);
       expect(seed.limits.campaigns, `${seed.key} campaigns`).toBe(features.campaigns);
       expect(seed.limits.website, `${seed.key} website`).toBe(features.website);
+      expect(seed.limits.ar_menu, `${seed.key} ar_menu`).toBe(features.ar_menu);
       expect(seed.limits.branding_removal, `${seed.key} branding_removal`).toBe(features.branding_removal);
       expect(seed.limits.api_access, `${seed.key} api_access`).toBe(false);
     }
@@ -106,7 +107,7 @@ describe("paket kataloğu ile ilan edilen fiyat", () => {
     const expected = [
       "ai_menu_import", "ai_pages_per_scan", "ai_scans_per_month", "ai_translation",
       "analytics", "analytics_advanced", "analytics_retention_days", "api_access",
-      "branding_removal", "campaigns", "insights", "menu_views", "reports",
+      "ar_menu", "branding_removal", "campaigns", "insights", "menu_views", "reports",
       "reports_export", "scheduled_reports", "website",
     ];
     for (const seed of PLAN_SEEDS) {
